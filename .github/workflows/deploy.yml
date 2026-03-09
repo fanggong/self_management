@@ -72,6 +72,9 @@ jobs:
             -i ~/.ssh/id_ed25519 \
             -p "${{ steps.ssh_meta.outputs.port }}" \
             -o BatchMode=yes \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=10 \
+            -o TCPKeepAlive=yes \
             -o StrictHostKeyChecking=yes \
             "${DEPLOY_USER}@${{ steps.ssh_meta.outputs.host }}" \
             "mkdir -p '${DEPLOY_PATH}'"
@@ -81,7 +84,7 @@ jobs:
         run: |
           set -euo pipefail
           rsync -az --delete \
-            -e "ssh -i ~/.ssh/id_ed25519 -p ${{ steps.ssh_meta.outputs.port }} -o BatchMode=yes -o StrictHostKeyChecking=yes" \
+            -e "ssh -i ~/.ssh/id_ed25519 -p ${{ steps.ssh_meta.outputs.port }} -o BatchMode=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=10 -o TCPKeepAlive=yes -o StrictHostKeyChecking=yes" \
             --exclude ".git/" \
             --exclude ".github/" \
             --exclude ".env" \
@@ -99,6 +102,9 @@ jobs:
             -i ~/.ssh/id_ed25519 \
             -p "${{ steps.ssh_meta.outputs.port }}" \
             -o BatchMode=yes \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=10 \
+            -o TCPKeepAlive=yes \
             -o StrictHostKeyChecking=yes \
             "${DEPLOY_USER}@${{ steps.ssh_meta.outputs.host }}" \
             "cd '${DEPLOY_PATH}' && bash scripts/deploy/remote-deploy.sh '${DEPLOY_PATH}'"
