@@ -40,6 +40,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-otw-dev-jwt-secret-change-me-please-1234567890}
       CONNECTOR_SECRET_KEY: ${CONNECTOR_SECRET_KEY:-0jLUxjwhATZYPdYIgyqCzherzo2VFFa6qOdO1vMpZPI=}
       APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Shanghai}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
       SYNC_WORKER_INTERNAL_BASE_URL: ${SYNC_WORKER_INTERNAL_BASE_URL:-http://sync-worker:8081}
       TZ: ${APP_TIMEZONE:-Asia/Shanghai}
       JAVA_TOOL_OPTIONS: -Duser.timezone=${APP_TIMEZONE:-Asia/Shanghai}
