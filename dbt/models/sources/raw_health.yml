@@ -1,0 +1,13 @@
+version: 2
+
+sources:
+  - name: raw_health
+    description: Generic health-domain raw records written by the Python sync worker.
+    schema: raw
+    tables:
+      - name: health_snapshot_record
+        description: Pure raw payloads for health snapshot-style endpoints.
+      - name: health_event_record
+        description: Pure raw payloads for health event-style endpoints.
+      - name: health_timeseries_record
+        description: Pure raw payloads for health timeseries-style endpoints.

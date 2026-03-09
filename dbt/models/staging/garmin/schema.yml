@@ -1,0 +1,45 @@
+version: 2
+
+models:
+  - name: stg_garmin_profile
+    description: Standardized Garmin profile records.
+    columns:
+      - name: profile_external_id
+        tests:
+          - not_null
+  - name: stg_garmin_daily_summary
+    description: Standardized Garmin daily summary records.
+    columns:
+      - name: summary_external_id
+        tests:
+          - not_null
+      - name: source_record_date
+        tests:
+          - not_null
+  - name: stg_garmin_activity
+    description: Standardized Garmin activity records.
+    columns:
+      - name: activity_external_id
+        tests:
+          - not_null
+      - name: source_record_date
+        tests:
+          - not_null
+  - name: stg_garmin_sleep
+    description: Standardized Garmin sleep records.
+    columns:
+      - name: sleep_external_id
+        tests:
+          - not_null
+      - name: source_record_date
+        tests:
+          - not_null
+  - name: stg_garmin_heart_rate
+    description: Standardized Garmin heart rate records.
+    columns:
+      - name: heart_rate_external_id
+        tests:
+          - not_null
+      - name: source_record_date
+        tests:
+          - not_null

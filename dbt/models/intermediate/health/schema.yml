@@ -1,0 +1,33 @@
+version: 2
+
+models:
+  - name: int_activity_enriched
+    description: Activity sessions normalized at activity grain.
+    columns:
+      - name: activity_external_id
+        tests:
+          - not_null
+  - name: int_sleep_enriched
+    description: Sleep sessions normalized at sleep grain.
+    columns:
+      - name: sleep_external_id
+        tests:
+          - not_null
+  - name: int_heart_rate_daily
+    description: Heart rate measurements normalized at day grain.
+    columns:
+      - name: heart_rate_external_id
+        tests:
+          - not_null
+  - name: int_health_daily_user
+    description: Daily health metrics aggregated at account/date grain.
+    columns:
+      - name: source_record_date
+        tests:
+          - not_null
+  - name: int_vitals_daily
+    description: Daily vitals view derived from Garmin health entities.
+    columns:
+      - name: source_record_date
+        tests:
+          - not_null

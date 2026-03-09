@@ -1,0 +1,25 @@
+frontend/node_modules
+frontend/.nuxt
+frontend/.output
+frontend/.data
+frontend/.nitro
+frontend/dist
+frontend/.cache
+admin-api/target
+**/__pycache__
+**/.pytest_cache
+dbt/target
+dbt/logs
+
+# Local environment files
+.env
+.env.local
+.env.*.local
+
+# Skill-generated local planning files
+findings.md
+progress.md
+task_plan.md
+
+# OS/editor noise
+.DS_Store
