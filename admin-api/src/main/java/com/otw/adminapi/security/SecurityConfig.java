@@ -1,6 +1,7 @@
 package com.otw.adminapi.security;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -65,9 +66,14 @@ public class SecurityConfig {
   }
 
   @Bean
-  public CorsConfigurationSource corsConfigurationSource() {
+  public CorsConfigurationSource corsConfigurationSource(@Value("${app.cors.allowed-origins}") String allowedOrigins) {
     CorsConfiguration configuration = new CorsConfiguration();
-    configuration.setAllowedOrigins(List.of("http://localhost:3000", "http://127.0.0.1:3000"));
+    configuration.setAllowedOrigins(
+      Arrays.stream(allowedOrigins.split(","))
+        .map(String::trim)
+        .filter(origin -> !origin.isBlank())
+        .toList()
+    );
     configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
     configuration.setAllowedHeaders(List.of("*"));
     configuration.setExposedHeaders(List.of("Authorization"));
