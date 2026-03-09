@@ -1,0 +1,104 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DEPLOY_HOST_INPUT: ${{ secrets.SSH_HOST }}
+      DEPLOY_PATH: /srv/self_management
+      DEPLOY_USER: ${{ secrets.SSH_USER }}
+      SSH_KNOWN_HOSTS_INPUT: ${{ secrets.SSH_KNOWN_HOSTS }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Configure SSH private key
+        shell: bash
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      - name: Resolve SSH target and known_hosts
+        id: ssh_meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          install -m 700 -d ~/.ssh
+
+          if [[ "$DEPLOY_HOST_INPUT" =~ ^\[([^]]+)\]:([0-9]+)$ ]]; then
+            deploy_host="${BASH_REMATCH[1]}"
+            deploy_port="${BASH_REMATCH[2]}"
+          elif [[ "$DEPLOY_HOST_INPUT" =~ ^([^:]+):([0-9]+)$ ]]; then
+            deploy_host="${BASH_REMATCH[1]}"
+            deploy_port="${BASH_REMATCH[2]}"
+          else
+            deploy_host="$DEPLOY_HOST_INPUT"
+            deploy_port="22"
+          fi
+
+          if [[ -n "$SSH_KNOWN_HOSTS_INPUT" ]]; then
+            printf '%s\n' "$SSH_KNOWN_HOSTS_INPUT" > ~/.ssh/known_hosts
+          else
+            ssh-keyscan -p "$deploy_port" -H "$deploy_host" >> ~/.ssh/known_hosts
+          fi
+
+          chmod 600 ~/.ssh/known_hosts
+          echo "host=$deploy_host" >> "$GITHUB_OUTPUT"
+          echo "port=$deploy_port" >> "$GITHUB_OUTPUT"
+
+      - name: Ensure remote project directory exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh \
+            -i ~/.ssh/id_ed25519 \
+            -p "${{ steps.ssh_meta.outputs.port }}" \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            "${DEPLOY_USER}@${{ steps.ssh_meta.outputs.host }}" \
+            "mkdir -p '${DEPLOY_PATH}'"
+
+      - name: Sync repository to server
+        shell: bash
+        run: |
+          set -euo pipefail
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/id_ed25519 -p ${{ steps.ssh_meta.outputs.port }} -o BatchMode=yes -o StrictHostKeyChecking=yes" \
+            --exclude ".git/" \
+            --exclude ".github/" \
+            --exclude ".env" \
+            --exclude "docker-compose.override.yml" \
+            --exclude "findings.md" \
+            --exclude "progress.md" \
+            --exclude "task_plan.md" \
+            ./ "${DEPLOY_USER}@${{ steps.ssh_meta.outputs.host }}:${DEPLOY_PATH}/"
+
+      - name: Restart services on server
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh \
+            -i ~/.ssh/id_ed25519 \
+            -p "${{ steps.ssh_meta.outputs.port }}" \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            "${DEPLOY_USER}@${{ steps.ssh_meta.outputs.host }}" \
+            "cd '${DEPLOY_PATH}' && bash scripts/deploy/remote-deploy.sh '${DEPLOY_PATH}'"
