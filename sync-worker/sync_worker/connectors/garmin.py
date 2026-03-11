@@ -41,9 +41,15 @@ class GarminConnectorAdapter(BaseConnectorAdapter):
                 "payload": payload,
             }
 
-        payload = self._get_client().get_user_summary(local_today.isoformat())
+        payload = self._fetch_current_profile_payload()
         return {
-            "externalId": str(payload.get("externalId") or payload.get("id") or self.username),
+            "externalId": str(
+                payload.get("externalId")
+                or payload.get("profileId")
+                or payload.get("id")
+                or payload.get("garminGUID")
+                or self.username
+            ),
             "sourceRecordDate": local_today.isoformat(),
             "sourceRecordAt": None,
             "sourceUpdatedAt": None,
@@ -242,6 +248,21 @@ class GarminConnectorAdapter(BaseConnectorAdapter):
             self._client = Garmin(email=self.username, password=self.password, is_cn=True)
             self._client.login()
         return self._client
+
+    def _fetch_current_profile_payload(self) -> dict[str, Any]:
+        client = self._get_client()
+        garth_client = getattr(client, "garth", None)
+        profile = getattr(garth_client, "profile", None) if garth_client is not None else None
+        if isinstance(profile, dict) and profile:
+            return profile
+
+        connectapi = getattr(garth_client, "connectapi", None) if garth_client is not None else None
+        if callable(connectapi):
+            payload = connectapi("/userprofile-service/userprofile/profile")
+            if isinstance(payload, dict) and payload:
+                return payload
+
+        raise ValueError("Garmin current profile payload is unavailable after login.")
 
     def _iter_days(self, start_at: datetime, end_at: datetime) -> Iterable[date]:
         cursor = start_at.astimezone(self._local_timezone).date()
