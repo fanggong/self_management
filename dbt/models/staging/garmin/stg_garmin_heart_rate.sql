@@ -15,19 +15,39 @@ with source_records as (
     where connector_id = 'garmin-connect'
       and source_stream = 'heart_rate'
 ),
+normalized as (
+    select
+      *,
+      case
+        when jsonb_typeof(heart_rate_payload -> 'heartRateValueDescriptors') = 'array'
+          then heart_rate_payload -> 'heartRateValueDescriptors'
+        else '[]'::jsonb
+      end as heart_rate_value_descriptors_array,
+      case
+        when jsonb_typeof(heart_rate_payload -> 'heartRateValues') = 'array'
+          then heart_rate_payload -> 'heartRateValues'
+        else '[]'::jsonb
+      end as heart_rate_values_array
+    from source_records
+),
 with_descriptor as (
     select
       *,
       coalesce(
         (
-          select (descriptor ->> 'index')::integer
-          from jsonb_array_elements(coalesce(heart_rate_payload -> 'heartRateValueDescriptors', '[]'::jsonb)) descriptor
+          select
+            case
+              when (descriptor ->> 'index') ~ '^-?[0-9]+$'
+                then (descriptor ->> 'index')::integer
+              else null
+            end
+          from jsonb_array_elements(heart_rate_value_descriptors_array) descriptor
           where lower(descriptor ->> 'key') = 'heartrate'
           limit 1
         ),
         1
       ) as heart_rate_index
-    from source_records
+    from normalized
 ),
 aggregated as (
     select
@@ -54,7 +74,7 @@ aggregated as (
           and (sample.value ->> heart_rate_index) ~ '^-?[0-9]+(\\.[0-9]+)?$'
       ) as derived_sample_count
     from with_descriptor
-    left join lateral jsonb_array_elements(coalesce(heart_rate_payload -> 'heartRateValues', '[]'::jsonb)) sample(value)
+    left join lateral jsonb_array_elements(heart_rate_values_array) sample(value)
       on true
     group by
       account_id,
