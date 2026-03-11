@@ -16,6 +16,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class ConnectorService {
   private static final String GARMIN_CONNECT_ID = "garmin-connect";
+  private static final Map<String, String> CONNECTOR_NAME_MAP = Map.of(
+    GARMIN_CONNECT_ID, "Garmin Connect"
+  );
 
   private final ConnectorConfigRepository connectorConfigRepository;
   private final CryptoService cryptoService;
@@ -42,7 +45,7 @@ public class ConnectorService {
     return List.of(
       new ConnectorCatalogItemView(
         GARMIN_CONNECT_ID,
-        "Garmin Connect",
+        getConnectorName(GARMIN_CONNECT_ID),
         "health",
         List.of(
           new ConnectorConfigFieldView("username", "Username", "text", "Enter your Garmin Connect username", true, "username"),
@@ -102,6 +105,10 @@ public class ConnectorService {
       .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "CONNECTOR_NOT_FOUND", "Connector not found."));
   }
 
+  public String getConnectorName(String connectorId) {
+    return CONNECTOR_NAME_MAP.getOrDefault(connectorId, connectorId);
+  }
+
   private void validateConnectorId(String connectorId) {
     if (!GARMIN_CONNECT_ID.equals(connectorId)) {
       throw new ApiException(HttpStatus.NOT_FOUND, "CONNECTOR_NOT_FOUND", "Connector not found.");
@@ -139,7 +146,7 @@ public class ConnectorService {
     return new ConnectorRecordView(
       entity.getId(),
       entity.getConnectorId(),
-      "Garmin Connect",
+      getConnectorName(entity.getConnectorId()),
       entity.getCategory(),
       entity.getStatus(),
       entity.getSchedule(),

@@ -3,7 +3,19 @@ import garminConnectLogo from '~/assets/images/garmin-connect-tile-120.png';
 import { connectorApi } from '~/services/api/connectors';
 import { getConnectorDefinition } from '~/services/connectors/catalog';
 import { formatDateTime, getShanghaiStartOfDay, getUpcomingRunsFromCron, parseDateTime } from '~/services/connectors/cron';
-import type { ConnectorCategory, ConnectorConfigValues, ConnectorRecord, ConnectorStatus } from '~/types/connectors';
+import type {
+  ConnectorCategory,
+  ConnectorConfigValues,
+  ConnectorRecord,
+  ConnectorStatus,
+  ListSyncJobsPayload,
+  SyncJobDomain,
+  SyncJobListFacets,
+  SyncJobListItem,
+  SyncJobPeriod,
+  SyncJobStatus,
+  SyncJobTriggerType
+} from '~/types/connectors';
 import { useAuthStore } from '~/stores/auth';
 import type { AuthUser } from '~/types/auth';
 
@@ -40,14 +52,45 @@ type PasswordForm = {
   confirmPassword: string;
 };
 
+type ConnectorTaskStatus = SyncJobStatus;
+type ConnectorTaskTriggerType = SyncJobTriggerType;
+type ConnectorTaskDomain = SyncJobDomain;
+
+const createEmptySyncJobFacets = (): SyncJobListFacets => ({
+  allTasks: 0,
+  status: {
+    queued: 0,
+    running: 0,
+    success: 0,
+    failed: 0
+  },
+  triggerType: {
+    manual: 0,
+    scheduled: 0
+  },
+  domain: {
+    health: 0,
+    finance: 0
+  },
+  period: {
+    yesterday: 0,
+    last7Days: 0,
+    last30Days: 0
+  }
+});
+
 const auth = useAuthStore();
 const { showToast } = useAppToast();
 const route = useRoute();
-const activeTab = computed(() => String(route.query.tab ?? 'health'));
+const activeTab = computed(() => {
+  const tab = String(route.query.tab ?? 'health');
+  return tab === 'connector' ? 'connector-settings' : tab;
+});
 const tabLabelMap: Record<string, string> = {
   health: 'Health',
   finance: 'Finance',
-  connector: 'Connector',
+  'connector-settings': 'Connector Settings',
+  'connector-tasks': 'Connector Tasks',
   staging: 'Staging',
   intermediate: 'Intermediate',
   marts: 'Marts',
@@ -95,15 +138,205 @@ const passwordForm = reactive<PasswordForm>({
   newPassword: '',
   confirmPassword: ''
 });
+const connectorTaskFilters = reactive<{
+  status: 'all' | ConnectorTaskStatus;
+  triggerType: 'all' | ConnectorTaskTriggerType;
+  domain: 'all' | ConnectorTaskDomain;
+}>({
+  status: 'all',
+  triggerType: 'all',
+  domain: 'all'
+});
+const connectorTaskSearch = ref('');
+const connectorTaskSearchQuery = ref('');
+const connectorTaskPeriod = ref<SyncJobPeriod | null>(null);
 const avatarInputRef = ref<HTMLInputElement | null>(null);
 const profileSaving = ref(false);
 const passwordSaving = ref(false);
 const connectorStatusUpdatingIds = ref<ConnectorRecord['id'][]>([]);
 const connectorDialogBusy = computed(() => connectorTesting.value || connectorSaving.value);
+const connectorTaskRecords = ref<SyncJobListItem[]>([]);
+const connectorTaskFacets = ref<SyncJobListFacets>(createEmptySyncJobFacets());
+const connectorTaskLoading = ref(false);
+const connectorTaskLoadingMore = ref(false);
+const connectorTaskLoadError = ref('');
+const connectorTaskPage = reactive({
+  page: 1,
+  pageSize: 20,
+  total: 0,
+  totalPages: 0
+});
+let connectorTaskSearchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+let connectorTaskRequestSequence = 0;
 const syncFieldLabelMap: Record<SyncWindowField, string> = {
   startAt: 'Start time',
   endAt: 'End time'
 };
+
+const buildConnectorTaskQuery = (page: number): ListSyncJobsPayload => {
+  const payload: ListSyncJobsPayload = {
+    page,
+    pageSize: connectorTaskPage.pageSize,
+    sortBy: 'createdAt',
+    sortOrder: 'desc'
+  };
+
+  const normalizedSearch = connectorTaskSearchQuery.value.trim();
+  if (normalizedSearch) {
+    payload.search = normalizedSearch;
+  }
+
+  if (connectorTaskPeriod.value) {
+    payload.period = connectorTaskPeriod.value;
+  }
+
+  if (connectorTaskFilters.status !== 'all') {
+    payload.status = connectorTaskFilters.status;
+  }
+
+  if (connectorTaskFilters.triggerType !== 'all') {
+    payload.triggerType = connectorTaskFilters.triggerType;
+  }
+
+  if (connectorTaskFilters.domain !== 'all') {
+    payload.domain = connectorTaskFilters.domain;
+  }
+
+  return payload;
+};
+
+const loadConnectorTasks = async (options: { append: boolean } = { append: false }) => {
+  const append = options.append;
+  if (append) {
+    if (connectorTaskLoading.value || connectorTaskLoadingMore.value) {
+      return;
+    }
+
+    if (connectorTaskPage.totalPages > 0 && connectorTaskPage.page >= connectorTaskPage.totalPages) {
+      return;
+    }
+
+    connectorTaskLoadingMore.value = true;
+  } else {
+    connectorTaskLoading.value = true;
+    connectorTaskLoadError.value = '';
+  }
+
+  const targetPage = append ? connectorTaskPage.page + 1 : 1;
+  const currentRequestId = ++connectorTaskRequestSequence;
+  const result = await connectorApi.listSyncJobs(auth.token, buildConnectorTaskQuery(targetPage));
+
+  if (currentRequestId !== connectorTaskRequestSequence) {
+    return;
+  }
+
+  if (append) {
+    connectorTaskLoadingMore.value = false;
+  } else {
+    connectorTaskLoading.value = false;
+  }
+
+  if (!result.success || !result.data) {
+    const message = result.message ?? 'Unable to load sync tasks.';
+    if (append) {
+      showToast('error', message);
+      return;
+    }
+
+    connectorTaskRecords.value = [];
+    connectorTaskFacets.value = createEmptySyncJobFacets();
+    connectorTaskPage.page = 1;
+    connectorTaskPage.total = 0;
+    connectorTaskPage.totalPages = 0;
+    connectorTaskLoadError.value = message;
+    return;
+  }
+
+  connectorTaskLoadError.value = '';
+  connectorTaskFacets.value = result.data.facets ?? createEmptySyncJobFacets();
+  connectorTaskPage.page = result.data.page.page;
+  connectorTaskPage.pageSize = result.data.page.pageSize;
+  connectorTaskPage.total = result.data.page.total;
+  connectorTaskPage.totalPages = result.data.page.totalPages;
+  connectorTaskRecords.value = append
+    ? [...connectorTaskRecords.value, ...result.data.items]
+    : result.data.items;
+};
+
+const reloadConnectorTasks = async () => {
+  await loadConnectorTasks({ append: false });
+};
+
+const loadMoreConnectorTasks = async () => {
+  await loadConnectorTasks({ append: true });
+};
+
+const connectorTaskStatusItems = computed(() => {
+  return [
+    { key: 'queued' as const, label: 'Pending', icon: 'pi pi-inbox', count: connectorTaskFacets.value.status.queued },
+    { key: 'running' as const, label: 'In Progress', icon: 'pi pi-clock', count: connectorTaskFacets.value.status.running },
+    { key: 'success' as const, label: 'Completed', icon: 'pi pi-check-circle', count: connectorTaskFacets.value.status.success },
+    { key: 'failed' as const, label: 'Failed', icon: 'pi pi-times-circle', count: connectorTaskFacets.value.status.failed }
+  ];
+});
+
+const connectorTaskTriggerTypeItems = computed(() => {
+  return [
+    { key: 'manual' as const, label: 'Manual', icon: 'pi pi-user-edit', count: connectorTaskFacets.value.triggerType.manual },
+    { key: 'scheduled' as const, label: 'Scheduled', icon: 'pi pi-calendar-clock', count: connectorTaskFacets.value.triggerType.scheduled }
+  ];
+});
+
+const connectorTaskDomainItems = computed(() => {
+  return [
+    { key: 'health' as const, label: 'Health', icon: 'pi pi-heart', count: connectorTaskFacets.value.domain.health },
+    { key: 'finance' as const, label: 'Finance', icon: 'pi pi-chart-line', count: connectorTaskFacets.value.domain.finance }
+  ];
+});
+
+const connectorTaskPeriodItems = computed(() => {
+  return [
+    { key: 'yesterday' as const, label: 'Yesterday', icon: 'pi pi-calendar-minus', count: connectorTaskFacets.value.period.yesterday },
+    { key: 'last_7_days' as const, label: 'Last 7 days', icon: 'pi pi-calendar', count: connectorTaskFacets.value.period.last7Days },
+    { key: 'last_30_days' as const, label: 'Last 30 days', icon: 'pi pi-calendar-plus', count: connectorTaskFacets.value.period.last30Days }
+  ];
+});
+
+const isAllConnectorTasksSelected = computed(() => {
+  return connectorTaskFilters.status === 'all'
+    && connectorTaskFilters.triggerType === 'all'
+    && connectorTaskFilters.domain === 'all'
+    && !connectorTaskPeriod.value;
+});
+const hasMoreConnectorTasks = computed(() => {
+  return connectorTaskPage.totalPages > 0 && connectorTaskPage.page < connectorTaskPage.totalPages;
+});
+
+const activeConnectorTaskFilterLabel = computed(() => {
+  if (isAllConnectorTasksSelected.value) {
+    return 'All Tasks';
+  }
+
+  const labels: string[] = [];
+
+  if (connectorTaskFilters.status !== 'all') {
+    labels.push(getConnectorTaskStatusLabel(connectorTaskFilters.status));
+  }
+
+  if (connectorTaskFilters.triggerType !== 'all') {
+    labels.push(formatTriggerType(connectorTaskFilters.triggerType));
+  }
+
+  if (connectorTaskFilters.domain !== 'all') {
+    labels.push(connectorTaskFilters.domain === 'health' ? 'Health' : 'Finance');
+  }
+
+  if (connectorTaskPeriod.value) {
+    labels.push(getConnectorTaskPeriodLabel(connectorTaskPeriod.value));
+  }
+
+  return labels.join(' · ') || 'Filtered Tasks';
+});
 
 const activeConnectorCategory = computed<ConnectorCategory>(() => {
   return connectorActiveIndex.value === 1 ? 'finance' : 'health';
@@ -166,12 +399,63 @@ const settingsAvatarLabel = computed(() => {
   return source.charAt(0).toUpperCase();
 });
 
-const getConnectorLogo = (connectorId: ConnectorRecord['id']) => {
+const getConnectorLogo = (connectorId: string) => {
   if (connectorId === 'garmin-connect') {
     return garminConnectLogo;
   }
 
   return '';
+};
+
+const getTaskConnectorIcon = (connectorId: string) => {
+  if (connectorId === 'plaid') {
+    return 'pi pi-wallet';
+  }
+
+  if (connectorId === 'alpha-vantage') {
+    return 'pi pi-chart-line';
+  }
+
+  return 'pi pi-link';
+};
+
+const formatConnectorTaskDateTime = (value: string | null) => {
+  return value ?? '-';
+};
+
+const copyTaskJobId = async (jobId: string) => {
+  const fallbackCopy = () => {
+    const textarea = document.createElement('textarea');
+    textarea.value = jobId;
+    textarea.setAttribute('readonly', 'true');
+    textarea.style.position = 'absolute';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+    const copied = document.execCommand('copy');
+    document.body.removeChild(textarea);
+    return copied;
+  };
+
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(jobId);
+      showToast('success', 'Job ID copied.');
+      return;
+    }
+
+    if (fallbackCopy()) {
+      showToast('success', 'Job ID copied.');
+      return;
+    }
+  } catch {
+    if (fallbackCopy()) {
+      showToast('success', 'Job ID copied.');
+      return;
+    }
+  }
+
+  showToast('error', 'Unable to copy Job ID.');
 };
 
 const syncProfileForm = (user: AuthUser | null) => {
@@ -209,6 +493,81 @@ const getStatusClass = (status: ConnectorStatus) => {
   }
 
   return 'connector-status-not-configured';
+};
+
+const getConnectorTaskStatusLabel = (status: ConnectorTaskStatus) => {
+  if (status === 'queued') {
+    return 'Pending';
+  }
+
+  if (status === 'running') {
+    return 'In Progress';
+  }
+
+  if (status === 'success') {
+    return 'Completed';
+  }
+
+  return 'Failed';
+};
+
+const getConnectorTaskStatusClass = (status: ConnectorTaskStatus) => {
+  if (status === 'queued') {
+    return 'connector-task-status-pending';
+  }
+
+  if (status === 'running') {
+    return 'connector-task-status-running';
+  }
+
+  if (status === 'success') {
+    return 'connector-task-status-completed';
+  }
+
+  return 'connector-task-status-failed';
+};
+
+const formatTriggerType = (triggerType: ConnectorTaskTriggerType) => {
+  return triggerType === 'scheduled' ? 'Scheduled' : 'Manual';
+};
+
+const getConnectorTaskDomainLabel = (domain: ConnectorTaskDomain) => {
+  return domain === 'health' ? 'Health' : 'Finance';
+};
+
+const getConnectorTaskPeriodLabel = (period: SyncJobPeriod) => {
+  if (period === 'yesterday') {
+    return 'Yesterday';
+  }
+
+  if (period === 'last_7_days') {
+    return 'Last 7 days';
+  }
+
+  return 'Last 30 days';
+};
+
+const resetConnectorTaskFilters = () => {
+  connectorTaskFilters.status = 'all';
+  connectorTaskFilters.triggerType = 'all';
+  connectorTaskFilters.domain = 'all';
+  connectorTaskPeriod.value = null;
+};
+
+const setConnectorTaskStatusFilter = (status: ConnectorTaskStatus) => {
+  connectorTaskFilters.status = status;
+};
+
+const setConnectorTaskTriggerTypeFilter = (triggerType: ConnectorTaskTriggerType) => {
+  connectorTaskFilters.triggerType = triggerType;
+};
+
+const setConnectorTaskDomainFilter = (domain: ConnectorTaskDomain) => {
+  connectorTaskFilters.domain = domain;
+};
+
+const setConnectorTaskPeriodFilter = (period: SyncJobPeriod) => {
+  connectorTaskPeriod.value = period;
 };
 
 const canToggleConnectorStatus = (connector: ConnectorRecord) => connector.status !== 'not_configured';
@@ -553,6 +912,51 @@ const onConnectorTabChange = (event: TabChangeEvent) => {
   connectorActiveIndex.value = event.index;
 };
 
+watch(
+  () => connectorTaskSearch.value,
+  (value) => {
+    if (connectorTaskSearchDebounceTimer) {
+      clearTimeout(connectorTaskSearchDebounceTimer);
+    }
+
+    connectorTaskSearchDebounceTimer = setTimeout(() => {
+      connectorTaskSearchQuery.value = value.trim();
+    }, 300);
+  },
+  { immediate: true }
+);
+
+watch(
+  () => activeTab.value,
+  (tab) => {
+    if (tab === 'connector-tasks') {
+      reloadConnectorTasks();
+    }
+  },
+  { immediate: true }
+);
+
+watch(
+  [
+    () => connectorTaskFilters.status,
+    () => connectorTaskFilters.triggerType,
+    () => connectorTaskFilters.domain,
+    () => connectorTaskPeriod.value,
+    () => connectorTaskSearchQuery.value
+  ],
+  () => {
+    if (activeTab.value === 'connector-tasks') {
+      reloadConnectorTasks();
+    }
+  }
+);
+
+onBeforeUnmount(() => {
+  if (connectorTaskSearchDebounceTimer) {
+    clearTimeout(connectorTaskSearchDebounceTimer);
+  }
+});
+
 onMounted(() => {
   loadConnectors();
 });
@@ -567,8 +971,8 @@ watch(
 </script>
 
 <template>
-  <section class="space-y-6">
-    <div v-if="activeTab === 'connector'" class="app-panel connector-panel p-4 sm:p-5">
+  <section :class="activeTab === 'connector-tasks' ? 'tasks-page-section' : 'space-y-6'">
+    <div v-if="activeTab === 'connector-settings'" class="app-panel connector-panel p-4 sm:p-5">
       <TabMenu
         :model="connectorTabItems"
         :active-index="connectorActiveIndex"
@@ -619,6 +1023,234 @@ watch(
           <div class="connector-empty">No Connector Available</div>
         </template>
       </DataTable>
+    </div>
+
+    <div v-else-if="activeTab === 'connector-tasks'" class="app-panel connector-tasks-panel p-4 sm:px-5 sm:pt-5 sm:pb-3">
+      <div class="connector-tasks-layout">
+        <aside class="connector-tasks-sidebar">
+          <div class="connector-tasks-filter-list">
+            <button
+              type="button"
+              class="connector-tasks-filter connector-tasks-filter-primary"
+              :class="{ 'connector-tasks-filter-active': isAllConnectorTasksSelected }"
+              @click="resetConnectorTaskFilters"
+            >
+              <span class="connector-tasks-filter-main">
+                <i class="pi pi-list connector-tasks-filter-icon" />
+                <span class="connector-tasks-filter-label">All Tasks</span>
+              </span>
+              <span class="connector-tasks-filter-count">
+                {{ connectorTaskFacets.allTasks }}
+              </span>
+            </button>
+          </div>
+
+          <div class="connector-tasks-filter-group">
+            <p class="connector-tasks-filter-group-title">Status</p>
+            <div class="connector-tasks-filter-list connector-tasks-filter-list-grouped">
+              <button
+                v-for="item in connectorTaskStatusItems"
+                :key="item.key"
+                type="button"
+                class="connector-tasks-filter connector-tasks-filter-secondary"
+                :class="{ 'connector-tasks-filter-active': connectorTaskFilters.status === item.key }"
+                @click="setConnectorTaskStatusFilter(item.key)"
+              >
+                <span class="connector-tasks-filter-main">
+                  <i :class="[item.icon, 'connector-tasks-filter-icon']" />
+                  <span class="connector-tasks-filter-label">{{ item.label }}</span>
+                </span>
+                <span class="connector-tasks-filter-count">{{ item.count }}</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="connector-tasks-filter-group">
+            <p class="connector-tasks-filter-group-title">Trigger Type</p>
+            <div class="connector-tasks-filter-list connector-tasks-filter-list-grouped">
+              <button
+                v-for="item in connectorTaskTriggerTypeItems"
+                :key="item.key"
+                type="button"
+                class="connector-tasks-filter connector-tasks-filter-secondary"
+                :class="{ 'connector-tasks-filter-active': connectorTaskFilters.triggerType === item.key }"
+                @click="setConnectorTaskTriggerTypeFilter(item.key)"
+              >
+                <span class="connector-tasks-filter-main">
+                  <i :class="[item.icon, 'connector-tasks-filter-icon']" />
+                  <span class="connector-tasks-filter-label">{{ item.label }}</span>
+                </span>
+                <span class="connector-tasks-filter-count">{{ item.count }}</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="connector-tasks-filter-group">
+            <p class="connector-tasks-filter-group-title">Domain</p>
+            <div class="connector-tasks-filter-list connector-tasks-filter-list-grouped">
+              <button
+                v-for="item in connectorTaskDomainItems"
+                :key="item.key"
+                type="button"
+                class="connector-tasks-filter connector-tasks-filter-secondary"
+                :class="{ 'connector-tasks-filter-active': connectorTaskFilters.domain === item.key }"
+                @click="setConnectorTaskDomainFilter(item.key)"
+              >
+                <span class="connector-tasks-filter-main">
+                  <i :class="[item.icon, 'connector-tasks-filter-icon']" />
+                  <span class="connector-tasks-filter-label">{{ item.label }}</span>
+                </span>
+                <span class="connector-tasks-filter-count">{{ item.count }}</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="connector-tasks-filter-group">
+            <p class="connector-tasks-filter-group-title">Period</p>
+            <div class="connector-tasks-filter-list connector-tasks-filter-list-grouped">
+              <button
+                v-for="item in connectorTaskPeriodItems"
+                :key="item.key"
+                type="button"
+                class="connector-tasks-filter connector-tasks-filter-secondary"
+                :class="{ 'connector-tasks-filter-active': connectorTaskPeriod === item.key }"
+                @click="setConnectorTaskPeriodFilter(item.key)"
+              >
+                <span class="connector-tasks-filter-main">
+                  <i :class="[item.icon, 'connector-tasks-filter-icon']" />
+                  <span class="connector-tasks-filter-label">{{ item.label }}</span>
+                </span>
+                <span class="connector-tasks-filter-count">{{ item.count }}</span>
+              </button>
+            </div>
+          </div>
+        </aside>
+
+        <div class="connector-tasks-content">
+          <div class="connector-tasks-content-head">
+            <IconField class="connector-tasks-search">
+              <InputIcon class="pi pi-search" />
+              <InputText
+                v-model.trim="connectorTaskSearch"
+                type="search"
+                placeholder="Search connector"
+                aria-label="Search connector"
+              />
+            </IconField>
+            <div class="connector-tasks-head-actions">
+              <span class="connector-tasks-selection">{{ activeConnectorTaskFilterLabel }}</span>
+            </div>
+          </div>
+
+          <div v-if="connectorTaskLoading" class="connector-empty mt-4">Loading tasks...</div>
+          <div v-else-if="connectorTaskLoadError" class="connector-task-load-error mt-4">
+            <span>{{ connectorTaskLoadError }}</span>
+            <Button label="Retry" size="small" severity="secondary" outlined @click="reloadConnectorTasks" />
+          </div>
+          <div v-else-if="connectorTaskRecords.length" class="connector-task-list mt-4">
+            <article v-for="task in connectorTaskRecords" :key="task.jobId" class="connector-task-card">
+              <div class="connector-task-card-head">
+                <div class="connector-task-card-head-main">
+                  <div class="connector-task-card-topline">
+                    <div class="connector-task-card-heading">
+                      <div class="connector-task-card-identity">
+                        <span class="connector-task-card-logo-wrap">
+                          <img
+                            v-if="getConnectorLogo(task.connectorId)"
+                            :src="getConnectorLogo(task.connectorId)"
+                            :alt="task.connectorName"
+                            class="connector-task-card-logo"
+                          />
+                          <i v-else :class="[getTaskConnectorIcon(task.connectorId), 'connector-task-card-logo-icon']" />
+                        </span>
+                        <h3 class="connector-task-card-title">{{ task.connectorName }}</h3>
+                      </div>
+                      <div class="connector-task-id-inline">
+                        <span class="connector-task-job-id">{{ task.jobId }}</span>
+                        <button
+                          type="button"
+                          class="connector-task-copy-button"
+                          :aria-label="`Copy Job ID ${task.jobId}`"
+                          @click="copyTaskJobId(task.jobId)"
+                        >
+                          <i class="pi pi-copy" />
+                        </button>
+                      </div>
+                    </div>
+                    <span class="connector-task-card-chip">{{ getConnectorTaskDomainLabel(task.domain) }}</span>
+                    <span class="connector-task-card-chip">{{ formatTriggerType(task.triggerType) }}</span>
+                  </div>
+                </div>
+                <span class="connector-status-pill" :class="getConnectorTaskStatusClass(task.status)">
+                  {{ getConnectorTaskStatusLabel(task.status) }}
+                </span>
+              </div>
+
+              <div class="connector-task-card-body">
+                <div class="connector-task-summary-grid">
+                  <div class="connector-task-summary-item">
+                    <span class="connector-task-meta-label">Window Start</span>
+                    <span class="connector-task-summary-value">{{ formatConnectorTaskDateTime(task.windowStart) }}</span>
+                  </div>
+                  <div class="connector-task-summary-item">
+                    <span class="connector-task-meta-label">Window End</span>
+                    <span class="connector-task-summary-value">{{ formatConnectorTaskDateTime(task.windowEnd) }}</span>
+                  </div>
+                  <div class="connector-task-summary-item">
+                    <span class="connector-task-meta-label">Started At</span>
+                    <span class="connector-task-summary-value">{{ formatConnectorTaskDateTime(task.startedAt) }}</span>
+                  </div>
+                  <div class="connector-task-summary-item">
+                    <span class="connector-task-meta-label">Finished At</span>
+                    <span class="connector-task-summary-value">{{ formatConnectorTaskDateTime(task.finishedAt) }}</span>
+                  </div>
+                  <div class="connector-task-summary-item connector-task-summary-item--count">
+                    <span class="connector-task-stat-label">Fetched</span>
+                    <span class="connector-task-summary-value connector-task-summary-value--count">
+                      {{ task.fetchedCount }}
+                    </span>
+                  </div>
+                  <div class="connector-task-summary-item connector-task-summary-item--count">
+                    <span class="connector-task-stat-label">Inserted</span>
+                    <span class="connector-task-summary-value connector-task-summary-value--count">
+                      {{ task.insertedCount }}
+                    </span>
+                  </div>
+                  <div class="connector-task-summary-item connector-task-summary-item--count">
+                    <span class="connector-task-stat-label">Updated</span>
+                    <span class="connector-task-summary-value connector-task-summary-value--count">
+                      {{ task.updatedCount }}
+                    </span>
+                  </div>
+                  <div class="connector-task-summary-item connector-task-summary-item--count">
+                    <span class="connector-task-stat-label">Deduped</span>
+                    <span class="connector-task-summary-value connector-task-summary-value--count">
+                      {{ task.dedupedCount }}
+                    </span>
+                  </div>
+                </div>
+
+                <div v-if="task.status === 'failed'" class="connector-task-error-row">
+                  <span class="connector-task-meta-label">Error Message</span>
+                  <span class="connector-task-error" :class="{ 'connector-task-error-muted': !task.errorMessage }">
+                    {{ task.errorMessage || 'Unknown error' }}
+                  </span>
+                </div>
+              </div>
+            </article>
+          </div>
+          <div v-else class="connector-empty mt-4">No Task Available</div>
+          <div v-if="hasMoreConnectorTasks" class="connector-task-load-more">
+            <Button
+              label="Load More"
+              severity="secondary"
+              outlined
+              :loading="connectorTaskLoadingMore"
+              @click="loadMoreConnectorTasks"
+            />
+          </div>
+        </div>
+      </div>
     </div>
 
     <div v-else-if="activeTab === 'settings'" class="space-y-6">

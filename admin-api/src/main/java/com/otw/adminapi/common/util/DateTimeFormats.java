@@ -19,6 +19,14 @@ public final class DateTimeFormats {
     return DATETIME_FORMATTER.format(LocalDateTime.ofInstant(instant, zoneId));
   }
 
+  public static String formatNullableOrNull(Instant instant, ZoneId zoneId) {
+    if (instant == null) {
+      return null;
+    }
+
+    return DATETIME_FORMATTER.format(LocalDateTime.ofInstant(instant, zoneId));
+  }
+
   public static Instant parseRequired(String value, ZoneId zoneId) {
     return LocalDateTime.parse(value, DATETIME_FORMATTER).atZone(zoneId).toInstant();
   }

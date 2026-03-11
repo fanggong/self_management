@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface SyncTaskRepository extends JpaRepository<SyncTaskEntity, UUID> {
   boolean existsByAccountIdAndConnectorConfigIdAndStatusIn(UUID accountId, UUID connectorConfigId, Collection<String> statuses);
 
+  List<SyncTaskEntity> findByAccountId(UUID accountId);
+
   List<SyncTaskEntity> findTop50ByAccountIdOrderByCreatedAtDesc(UUID accountId);
 
   Optional<SyncTaskEntity> findByIdAndAccountIdAndConnectorConfigId(UUID id, UUID accountId, UUID connectorConfigId);

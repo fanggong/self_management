@@ -3,7 +3,6 @@ package com.otw.adminapi.sync;
 import com.otw.adminapi.common.api.ApiResult;
 import com.otw.adminapi.security.JwtService;
 import jakarta.validation.Valid;
-import java.util.List;
 import java.util.UUID;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -12,6 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -36,8 +36,20 @@ public class SyncJobController {
   }
 
   @GetMapping("/sync-jobs")
-  public ApiResult<List<SyncTaskView>> listJobs(@AuthenticationPrincipal Jwt jwt) {
-    return ApiResult.success(syncTaskService.listJobs(jwtService.toAuthenticatedUser(jwt)));
+  public ApiResult<SyncJobListResponse> listJobs(
+    @AuthenticationPrincipal Jwt jwt,
+    @RequestParam(defaultValue = "1") Integer page,
+    @RequestParam(defaultValue = "20") Integer pageSize,
+    @RequestParam(required = false) String search,
+    @RequestParam(required = false) String period,
+    @RequestParam(required = false) String status,
+    @RequestParam(required = false) String triggerType,
+    @RequestParam(required = false) String domain,
+    @RequestParam(defaultValue = "createdAt") String sortBy,
+    @RequestParam(defaultValue = "desc") String sortOrder
+  ) {
+    SyncJobListRequest request = new SyncJobListRequest(page, pageSize, search, period, status, triggerType, domain, sortBy, sortOrder);
+    return ApiResult.success(syncTaskService.listJobs(jwtService.toAuthenticatedUser(jwt), request));
   }
 
   @GetMapping("/connectors/{connectorId}/sync-jobs/{jobId}")

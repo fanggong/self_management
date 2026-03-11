@@ -57,11 +57,19 @@ export type CreateSyncJobPayload = {
   endAt: string;
 };
 
+export type SyncJobStatus = 'queued' | 'running' | 'success' | 'failed';
+
+export type SyncJobTriggerType = 'manual' | 'scheduled';
+
+export type SyncJobDomain = 'health' | 'finance';
+
+export type SyncJobPeriod = 'yesterday' | 'last_7_days' | 'last_30_days';
+
 export type SyncJobRecord = {
   jobId: string;
   connectorId: ConnectorId;
-  status: 'queued' | 'running' | 'success' | 'failed';
-  triggerType: 'scheduled' | 'manual' | 'retry' | 'backfill';
+  status: SyncJobStatus;
+  triggerType: SyncJobTriggerType;
   startAt: string;
   endAt: string;
   startedAt: string;
@@ -73,4 +81,69 @@ export type SyncJobRecord = {
   dedupedCount: number;
   errorMessage?: string;
   createdAt: string;
+};
+
+export type SyncJobListItem = {
+  jobId: string;
+  connectorId: string;
+  connectorName: string;
+  domain: SyncJobDomain;
+  status: SyncJobStatus;
+  triggerType: SyncJobTriggerType;
+  windowStart: string | null;
+  windowEnd: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  fetchedCount: number;
+  insertedCount: number;
+  updatedCount: number;
+  dedupedCount: number;
+  errorMessage: string | null;
+  createdAt: string;
+};
+
+export type SyncJobListFacets = {
+  allTasks: number;
+  status: {
+    queued: number;
+    running: number;
+    success: number;
+    failed: number;
+  };
+  triggerType: {
+    manual: number;
+    scheduled: number;
+  };
+  domain: {
+    health: number;
+    finance: number;
+  };
+  period: {
+    yesterday: number;
+    last7Days: number;
+    last30Days: number;
+  };
+};
+
+export type SyncJobListResponse = {
+  items: SyncJobListItem[];
+  page: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
+  facets: SyncJobListFacets;
+};
+
+export type ListSyncJobsPayload = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  period?: SyncJobPeriod;
+  status?: SyncJobStatus;
+  triggerType?: SyncJobTriggerType;
+  domain?: SyncJobDomain;
+  sortBy?: 'createdAt' | 'windowStart' | 'windowEnd' | 'startedAt' | 'finishedAt';
+  sortOrder?: 'asc' | 'desc';
 };

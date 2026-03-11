@@ -6,31 +6,42 @@ import { useUiStore } from '~/stores/ui';
 const auth = useAuthStore();
 const ui = useUiStore();
 const route = useRoute();
+const currentTab = computed(() => {
+  const tab = String(route.query.tab ?? 'health');
+  return tab === 'connector' ? 'connector-settings' : tab;
+});
 
 const currentUserName = computed(() => auth.user?.displayName ?? 'Guest');
 const currentUserAvatarUrl = computed(() => auth.user?.avatarUrl?.trim() ?? '');
-const moduleLabelMap: Record<string, string> = {
+const pageTitleMap: Record<string, string> = {
   health: 'Health',
   finance: 'Finance',
-  connector: 'Connector',
+  'connector-settings': 'Connector',
+  'connector-tasks': 'Connector',
   staging: 'Staging',
   intermediate: 'Intermediate',
   marts: 'Marts',
   logs: 'Logs',
   settings: 'Settings'
 };
-const moduleCategoryMap: Record<string, string> = {
+const breadcrumbCategoryMap: Record<string, string> = {
   health: 'Dashboards',
   finance: 'Dashboards',
-  connector: 'Apps',
+  'connector-settings': 'Apps',
+  'connector-tasks': 'Apps',
   staging: 'Data',
   intermediate: 'Data',
   marts: 'Data',
   logs: 'Data',
   settings: 'System'
 };
-const currentModule = computed(() => moduleLabelMap[String(route.query.tab ?? 'health')] ?? 'Dashboard');
-const currentCategory = computed(() => moduleCategoryMap[String(route.query.tab ?? 'health')] ?? 'Module');
+const breadcrumbChildMap: Record<string, string> = {
+  'connector-settings': 'Settings',
+  'connector-tasks': 'Tasks'
+};
+const currentPageTitle = computed(() => pageTitleMap[currentTab.value] ?? 'Dashboard');
+const currentCategory = computed(() => breadcrumbCategoryMap[currentTab.value] ?? 'Module');
+const currentBreadcrumbChild = computed(() => breadcrumbChildMap[currentTab.value] ?? '');
 const userInitial = computed(() => (currentUserName.value[0] ?? 'U').toUpperCase());
 const searchKeyword = ref('');
 const wrapperClasses = computed(() => [
@@ -116,7 +127,7 @@ onMounted(() => {
             <i class="pi pi-bars" />
           </button>
           <span class="topbar-separator" />
-          <div class="page-title">{{ currentModule }}</div>
+          <div class="page-title">{{ currentPageTitle }}</div>
         </div>
 
         <div class="topbar-right">
@@ -149,8 +160,16 @@ onMounted(() => {
           <i class="pi pi-home !text-xs" />
         </span>
         <span class="text-sm text-slate-400">{{ currentCategory }}</span>
-        <i class="pi pi-chevron-right !text-[10px] text-slate-400" />
-        <span class="text-sm font-medium text-slate-700 dark:text-slate-200">{{ currentModule }}</span>
+        <template v-if="currentBreadcrumbChild">
+          <i class="pi pi-chevron-right !text-[10px] text-slate-400" />
+          <span class="text-sm text-slate-400">{{ currentPageTitle }}</span>
+          <i class="pi pi-chevron-right !text-[10px] text-slate-400" />
+          <span class="text-sm font-medium text-slate-700 dark:text-slate-200">{{ currentBreadcrumbChild }}</span>
+        </template>
+        <template v-else>
+          <i class="pi pi-chevron-right !text-[10px] text-slate-400" />
+          <span class="text-sm font-medium text-slate-700 dark:text-slate-200">{{ currentPageTitle }}</span>
+        </template>
       </div>
 
       <div class="layout-content-area scrollable-content flex-1 overflow-auto p-6">
