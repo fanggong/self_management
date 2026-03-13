@@ -13,6 +13,8 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class JwtService {
+  private static final long TOKEN_TTL_SECONDS = 60L * 60L * 24L * 7L;
+
   private final JwtEncoder jwtEncoder;
 
   public JwtService(JwtEncoder jwtEncoder) {
@@ -25,7 +27,7 @@ public class JwtService {
     JwtClaimsSet claims = JwtClaimsSet.builder()
       .subject(user.getId().toString())
       .issuedAt(now)
-      .expiresAt(now.plusSeconds(60L * 60L * 12L))
+      .expiresAt(now.plusSeconds(TOKEN_TTL_SECONDS))
       .claim("accountId", user.getAccountId().toString())
       .claim("principal", user.getPrincipal())
       .claim("role", user.getRole())

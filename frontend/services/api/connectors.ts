@@ -1,8 +1,14 @@
 import type { ApiResult } from '~/types/auth';
 import type {
+  ConnectorId,
   ConnectorRecord,
   CreateSyncJobPayload,
   ListSyncJobsPayload,
+  MedicalReportParsePayload,
+  MedicalReportParseResult,
+  MedicalReportParsedSection,
+  MedicalReportSyncPayload,
+  MedicalReportSyncResult,
   SaveConnectorPayload,
   SyncJobListItem,
   SyncJobListResponse,
@@ -15,8 +21,60 @@ import { mockConnectorApi } from '~/services/mock/connectors';
 
 const SHANGHAI_OFFSET_MS = 8 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
+const BUILTIN_CONNECTOR_ORDER: ConnectorId[] = ['garmin-connect', 'medical-report'];
+const FALLBACK_CONNECTORS: Record<ConnectorId, ConnectorRecord> = {
+  'garmin-connect': {
+    id: 'garmin-connect',
+    name: 'Garmin Connect',
+    category: 'health',
+    status: 'not_configured',
+    schedule: '0 2 * * *',
+    lastRun: '',
+    nextRun: '',
+    config: {
+      username: '',
+      password: ''
+    }
+  },
+  'medical-report': {
+    id: 'medical-report',
+    name: 'Medical Report',
+    category: 'health',
+    status: 'not_configured',
+    schedule: '-',
+    lastRun: '',
+    nextRun: '-',
+    config: {
+      provider: '',
+      modelId: '',
+      apiKey: ''
+    }
+  }
+};
+const MOCK_CONNECTOR_NAME_MAP: Record<string, string> = {
+  'garmin-connect': 'Garmin Connect',
+  'medical-report': 'Medical Report'
+};
 
 const MOCK_SYNC_JOB_ITEMS: SyncJobListItem[] = [
+  {
+    jobId: 'tmp-7f6b2d9b-9f41-4a8e-9a16-d112e0e9f4a1',
+    connectorId: 'medical-report',
+    connectorName: 'Medical Report',
+    domain: 'health',
+    status: 'running',
+    triggerType: 'manual',
+    windowStart: '2026-03-10 00:00:00',
+    windowEnd: '2026-03-11 00:00:00',
+    startedAt: '2026-03-11 09:00:00',
+    finishedAt: null,
+    fetchedCount: 12,
+    insertedCount: 12,
+    updatedCount: 0,
+    dedupedCount: 0,
+    errorMessage: null,
+    createdAt: '2026-03-11 09:00:00'
+  },
   {
     jobId: 'ed0bd727-9af6-4c84-8f40-511d7eecb67b',
     connectorId: 'garmin-connect',
@@ -109,6 +167,65 @@ const MOCK_SYNC_JOB_ITEMS: SyncJobListItem[] = [
   }
 ];
 
+const MOCK_MEDICAL_REPORT_SECTIONS: MedicalReportParsedSection[] = [
+  {
+    sectionKey: 'general',
+    items: [
+      { itemKey: 'height', result: '172', referenceValue: '165-185', unit: 'cm', abnormalFlag: '' },
+      { itemKey: 'weight', result: '68.5', referenceValue: '50-80', unit: 'kg', abnormalFlag: '' },
+      { itemKey: 'bmi', result: '23.1', referenceValue: '18.5-23.9', unit: 'kg/m^2', abnormalFlag: '' },
+      { itemKey: 'pulse_rate', result: '72', referenceValue: '60-100', unit: 'bpm', abnormalFlag: '' },
+      { itemKey: 'sbp', result: '122', referenceValue: '90-139', unit: 'mmHg', abnormalFlag: '' },
+      { itemKey: 'dbp', result: '78', referenceValue: '60-89', unit: 'mmHg', abnormalFlag: '' }
+    ]
+  },
+  {
+    sectionKey: 'internal_medicine',
+    items: [
+      { itemKey: 'past_medical_history', result: 'No significant history', referenceValue: '', unit: '', abnormalFlag: '' },
+      { itemKey: 'heart_rate', result: '72', referenceValue: '60-100', unit: 'bpm', abnormalFlag: '' }
+    ]
+  },
+  {
+    sectionKey: 'cbc',
+    items: [
+      { itemKey: 'wbc', result: '6.10', referenceValue: '3.5-9.5', unit: '10^9/L', abnormalFlag: '' },
+      { itemKey: 'neut_abs', result: '3.60', referenceValue: '1.8-6.3', unit: '10^9/L', abnormalFlag: '' },
+      { itemKey: 'lymph_abs', result: '1.90', referenceValue: '1.1-3.2', unit: '10^9/L', abnormalFlag: '' },
+      { itemKey: 'rbc', result: '4.90', referenceValue: '4.3-5.8', unit: '10^12/L', abnormalFlag: '' },
+      { itemKey: 'hgb', result: '148', referenceValue: '130-175', unit: 'g/L', abnormalFlag: '' },
+      { itemKey: 'plt', result: '226', referenceValue: '125-350', unit: '10^9/L', abnormalFlag: '' }
+    ]
+  },
+  {
+    sectionKey: 'liver_function',
+    items: [
+      { itemKey: 'tbil', result: '12.6', referenceValue: '5.0-21.0', unit: 'umol/L', abnormalFlag: '' },
+      { itemKey: 'alt', result: '22', referenceValue: '9-50', unit: 'U/L', abnormalFlag: '' },
+      { itemKey: 'ast', result: '21', referenceValue: '15-40', unit: 'U/L', abnormalFlag: '' }
+    ]
+  },
+  {
+    sectionKey: 'ecg',
+    items: [
+      { itemKey: 'routine_ecg', result: 'Sinus rhythm', referenceValue: 'Sinus rhythm', unit: '', abnormalFlag: '' }
+    ]
+  },
+  {
+    sectionKey: 'imaging',
+    items: [
+      { itemKey: 'chest_dr_pa', result: 'No active pulmonary lesion', referenceValue: '', unit: '', abnormalFlag: '' }
+    ]
+  }
+];
+
+const cloneMockMedicalReportSections = (): MedicalReportParsedSection[] => {
+  return MOCK_MEDICAL_REPORT_SECTIONS.map((section) => ({
+    sectionKey: section.sectionKey,
+    items: section.items.map((item) => ({ ...item }))
+  }));
+};
+
 const getShanghaiTodayStart = () => {
   const now = new Date();
   const shanghaiNow = new Date(now.getTime() + SHANGHAI_OFFSET_MS);
@@ -189,6 +306,31 @@ const buildSyncJobsPath = (payload: ListSyncJobsPayload) => {
   return queryString ? `/users/me/sync-jobs?${queryString}` : '/users/me/sync-jobs';
 };
 
+const normalizeConnectorList = (connectors: ConnectorRecord[]) => {
+  const connectorMap = new Map<ConnectorId, ConnectorRecord>();
+  for (const connector of connectors) {
+    connectorMap.set(connector.id, connector);
+  }
+
+  for (const connectorId of BUILTIN_CONNECTOR_ORDER) {
+    if (!connectorMap.has(connectorId)) {
+      connectorMap.set(connectorId, { ...FALLBACK_CONNECTORS[connectorId], config: { ...FALLBACK_CONNECTORS[connectorId].config } });
+    }
+  }
+
+  return BUILTIN_CONNECTOR_ORDER.map((connectorId) => {
+    const connector = connectorMap.get(connectorId);
+    if (!connector) {
+      return { ...FALLBACK_CONNECTORS[connectorId], config: { ...FALLBACK_CONNECTORS[connectorId].config } };
+    }
+
+    return {
+      ...connector,
+      config: { ...(connector.config ?? {}) }
+    };
+  });
+};
+
 const buildMockSyncJobList = (payload: ListSyncJobsPayload): SyncJobListResponse => {
   const page = payload.page ?? 1;
   const pageSize = payload.pageSize ?? 20;
@@ -265,14 +407,31 @@ const buildMockSyncJobList = (payload: ListSyncJobsPayload): SyncJobListResponse
 };
 
 export const connectorApi = {
-  list(token?: string | null): Promise<ApiResult<ConnectorRecord[]>> {
+  async list(token?: string | null): Promise<ApiResult<ConnectorRecord[]>> {
     if (useHttpApiMode()) {
-      return requestApi<ConnectorRecord[]>('/users/me/connectors', {
+      const result = await requestApi<ConnectorRecord[]>('/users/me/connectors', {
         token
       });
+
+      if (!result.success || !result.data) {
+        return result;
+      }
+
+      return {
+        ...result,
+        data: normalizeConnectorList(result.data)
+      };
     }
 
-    return mockConnectorApi.list();
+    const result = await mockConnectorApi.list();
+    if (!result.success || !result.data) {
+      return result;
+    }
+
+    return {
+      ...result,
+      data: normalizeConnectorList(result.data)
+    };
   },
 
   testConnection(token: string | null | undefined, payload: TestConnectorPayload): Promise<ApiResult<null>> {
@@ -348,7 +507,88 @@ export const connectorApi = {
         dedupedCount: 0,
         createdAt: payload.startAt
       },
-      message: 'Garmin Connect sync job queued.'
+      message: `${MOCK_CONNECTOR_NAME_MAP[payload.id] ?? 'Connector'} sync job queued.`
+    });
+  },
+
+  parseMedicalReport(
+    token: string | null | undefined,
+    payload: MedicalReportParsePayload
+  ): Promise<ApiResult<MedicalReportParseResult>> {
+    if (useHttpApiMode()) {
+      const formData = new FormData();
+      const metadata = new Blob(
+        [
+          JSON.stringify({
+            recordNumber: payload.recordNumber,
+            reportDate: payload.reportDate,
+            institution: payload.institution
+          })
+        ],
+        { type: 'application/json' }
+      );
+      formData.append('metadata', metadata);
+      formData.append('recordNumber', payload.recordNumber);
+      formData.append('reportDate', payload.reportDate);
+      formData.append('institution', payload.institution);
+      formData.append('file', payload.file);
+
+      return requestApi<MedicalReportParseResult>('/users/me/connectors/medical-report/parse', {
+        method: 'POST',
+        token,
+        body: formData
+      });
+    }
+
+    return Promise.resolve({
+      success: true,
+      data: {
+        parseSessionId: `mock-parse-${Date.now()}`,
+        connectorId: 'medical-report',
+        provider: 'deepseek',
+        modelId: 'mock-model',
+        parsedAt: `${payload.reportDate} 00:00:00`,
+        form: {
+          examiner: '',
+          examDate: payload.reportDate
+        },
+        sections: cloneMockMedicalReportSections()
+      },
+      message: 'Medical report parsed successfully.'
+    });
+  },
+
+  syncMedicalReport(
+    token: string | null | undefined,
+    payload: MedicalReportSyncPayload
+  ): Promise<ApiResult<MedicalReportSyncResult>> {
+    if (useHttpApiMode()) {
+      return requestApi<MedicalReportSyncResult>('/users/me/connectors/medical-report/sync-jobs', {
+        method: 'POST',
+        token,
+        body: payload
+      });
+    }
+
+    return Promise.resolve({
+      success: true,
+      data: {
+        jobId: `mock-job-${Date.now()}`,
+        connectorId: 'medical-report',
+        status: 'success',
+        triggerType: 'manual',
+        windowStart: `${payload.reportDate} 00:00:00`,
+        windowEnd: `${payload.reportDate} 23:59:59`,
+        startedAt: `${payload.reportDate} 00:00:01`,
+        finishedAt: `${payload.reportDate} 00:00:02`,
+        fetchedCount: 1,
+        insertedCount: 1,
+        updatedCount: 0,
+        dedupedCount: 0,
+        errorMessage: null,
+        createdAt: `${payload.reportDate} 00:00:00`
+      },
+      message: 'Medical report synced successfully.'
     });
   },
 

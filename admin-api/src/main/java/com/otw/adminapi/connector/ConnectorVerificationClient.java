@@ -26,18 +26,26 @@ public class ConnectorVerificationClient {
   }
 
   public void verifyGarminConnection(Map<String, String> config) {
+    verify("/internal/connectors/garmin-connect/verify", config, "Garmin Connect");
+  }
+
+  public void verifyMedicalReportConnection(Map<String, String> config) {
+    verify("/internal/connectors/medical-report/verify", config, "Medical Report");
+  }
+
+  private void verify(String path, Map<String, String> config, String connectorName) {
     try {
       String requestBody = objectMapper.writeValueAsString(Map.of("config", config));
 
       VerificationResponse response = restClient.post()
-        .uri("/internal/connectors/garmin-connect/verify")
+        .uri(path)
         .contentType(MediaType.APPLICATION_JSON)
         .body(requestBody)
         .retrieve()
         .body(VerificationResponse.class);
 
       if (response == null) {
-        throw new ApiException(HttpStatus.BAD_GATEWAY, "CONNECTOR_VERIFICATION_FAILED", "Garmin Connect verification returned an empty response.");
+        throw new ApiException(HttpStatus.BAD_GATEWAY, "CONNECTOR_VERIFICATION_FAILED", connectorName + " verification returned an empty response.");
       }
 
       if (!response.success()) {
@@ -74,8 +82,9 @@ public class ConnectorVerificationClient {
     }
 
     HttpStatus status = exception.getStatusCode().is4xxClientError() ? HttpStatus.BAD_REQUEST : HttpStatus.BAD_GATEWAY;
-    return new ApiException(status, "CONNECTOR_VERIFICATION_FAILED", "Garmin Connect verification failed.");
+    return new ApiException(status, "CONNECTOR_VERIFICATION_FAILED", "Connector verification failed.");
   }
+
   @JsonIgnoreProperties(ignoreUnknown = true)
   private record VerificationResponse(boolean success, String code, String message) {
   }

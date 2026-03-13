@@ -23,6 +23,9 @@ public class SyncTaskEntity {
   @Column(nullable = false)
   private UUID connectorConfigId;
 
+  @Column
+  private UUID parseSessionId;
+
   @Column(nullable = false, length = 32)
   private String triggerType;
 
@@ -91,6 +94,14 @@ public class SyncTaskEntity {
 
   public void setConnectorConfigId(UUID connectorConfigId) {
     this.connectorConfigId = connectorConfigId;
+  }
+
+  public UUID getParseSessionId() {
+    return parseSessionId;
+  }
+
+  public void setParseSessionId(UUID parseSessionId) {
+    this.parseSessionId = parseSessionId;
   }
 
   public String getTriggerType() {

@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import garminConnectLogo from '~/assets/images/garmin-connect-tile-120.png';
+import medicalReportLogo from '~/assets/images/medical-report-logo.png';
 import { connectorApi } from '~/services/api/connectors';
 import { getConnectorDefinition } from '~/services/connectors/catalog';
 import { formatDateTime, getShanghaiStartOfDay, getUpcomingRunsFromCron, parseDateTime } from '~/services/connectors/cron';
 import type {
   ConnectorCategory,
   ConnectorConfigValues,
+  ConnectorFieldOption,
   ConnectorRecord,
   ConnectorStatus,
   ListSyncJobsPayload,
+  MedicalReportParsedSection,
   SyncJobDomain,
   SyncJobListFacets,
   SyncJobListItem,
@@ -35,6 +38,50 @@ type SyncWindow = {
 
 type SyncWindowField = keyof SyncWindow;
 
+type MedicalReportSyncForm = {
+  parseSessionId: string;
+  recordNumber: string;
+  reportTime: Date | null;
+  reportTimeInput: string;
+  institution: string;
+  file: File | null;
+  fileName: string;
+  reportTimeError: string;
+};
+
+type MedicalReportSectionKey =
+  | 'general'
+  | 'internal_medicine'
+  | 'surgery'
+  | 'ophthalmology'
+  | 'ent'
+  | 'cbc'
+  | 'liver_function'
+  | 'kidney_function'
+  | 'ecg'
+  | 'imaging';
+
+type MedicalReportEditableField = 'result' | 'referenceValue' | 'unit' | 'abnormalFlag';
+
+type MedicalReportSectionCellValues = Record<MedicalReportEditableField, string>;
+
+type MedicalReportItemDefinition = {
+  key: string;
+  itemName: string;
+  itemNameHint: string;
+};
+
+type MedicalReportSectionRow = {
+  sectionKey: MedicalReportSectionKey;
+  itemKey: string;
+  itemName: string;
+  itemNameHint: string;
+  result: string;
+  referenceValue: string;
+  unit: string;
+  abnormalFlag: string;
+};
+
 type DatePickerBlurEvent = {
   value?: string | null;
 };
@@ -50,6 +97,19 @@ type PasswordForm = {
   currentPassword: string;
   newPassword: string;
   confirmPassword: string;
+};
+
+type MedicalReportSectionItem = {
+  key: MedicalReportSectionKey;
+  label: string;
+  hint: string;
+};
+
+type MedicalReportHintOverlay = {
+  visible: boolean;
+  text: string;
+  top: number;
+  left: number;
 };
 
 type ConnectorTaskStatus = SyncJobStatus;
@@ -103,6 +163,135 @@ const connectorTabItems = [
   { label: 'Health' },
   { label: 'Finance' }
 ];
+const medicalReportSectionActiveIndex = ref(0);
+const medicalReportSectionItems: MedicalReportSectionItem[] = [
+  { key: 'general', label: 'General', hint: '一般常规检查' },
+  { key: 'internal_medicine', label: 'Internal Medicine', hint: '内科常规检查' },
+  { key: 'surgery', label: 'Surgery', hint: '外科常规检查' },
+  { key: 'ophthalmology', label: 'Ophthalmology', hint: '眼科检查' },
+  { key: 'ent', label: 'ENT', hint: '耳鼻喉常规检查' },
+  { key: 'cbc', label: 'CBC', hint: '血常规' },
+  { key: 'liver_function', label: 'Liver Function', hint: '肝功能' },
+  { key: 'kidney_function', label: 'Kidney Function', hint: '肾功能' },
+  { key: 'ecg', label: 'ECG', hint: '常规心电图' },
+  { key: 'imaging', label: 'Imaging', hint: '影像检查' }
+];
+const medicalReportItemCatalog: Record<MedicalReportSectionKey, MedicalReportItemDefinition[]> = {
+  general: [
+    { key: 'height', itemName: 'Height', itemNameHint: '身高' },
+    { key: 'weight', itemName: 'Weight', itemNameHint: '体重' },
+    { key: 'bmi', itemName: 'BMI', itemNameHint: '体重指数' },
+    { key: 'pulse_rate', itemName: 'Pulse Rate', itemNameHint: '脉搏' },
+    { key: 'sbp', itemName: 'SBP', itemNameHint: '收缩压' },
+    { key: 'dbp', itemName: 'DBP', itemNameHint: '舒张压' }
+  ],
+  internal_medicine: [
+    { key: 'past_medical_history', itemName: 'Past Medical History', itemNameHint: '即往史' },
+    { key: 'thoracic_contour', itemName: 'Thoracic Contour', itemNameHint: '胸廓外形' },
+    { key: 'heart_rate', itemName: 'Heart Rate', itemNameHint: '心率' },
+    { key: 'heart_rhythm', itemName: 'Heart Rhythm', itemNameHint: '心律' },
+    { key: 'heart_sounds', itemName: 'Heart Sounds', itemNameHint: '心音' },
+    { key: 'cardiac_murmur', itemName: 'Cardiac Murmur', itemNameHint: '心脏杂音' },
+    { key: 'pulmonary_auscultation', itemName: 'Pulmonary Auscultation', itemNameHint: '肺部听诊' },
+    { key: 'abdominal_wall', itemName: 'Abdominal Wall', itemNameHint: '腹壁' },
+    { key: 'abdominal_tenderness', itemName: 'Abdominal Tenderness', itemNameHint: '腹部压痛' },
+    { key: 'liver', itemName: 'Liver', itemNameHint: '肝脏' },
+    { key: 'gallbladder', itemName: 'Gallbladder', itemNameHint: '胆囊' },
+    { key: 'spleen', itemName: 'Spleen', itemNameHint: '脾脏' },
+    { key: 'kidneys', itemName: 'Kidneys', itemNameHint: '肾脏' },
+    { key: 'neurological_system', itemName: 'Neurological System', itemNameHint: '神经系统' }
+  ],
+  surgery: [
+    { key: 'skin', itemName: 'Skin', itemNameHint: '皮肤' },
+    { key: 'spine', itemName: 'Spine', itemNameHint: '脊柱' },
+    { key: 'extremity_joints', itemName: 'Extremity Joints', itemNameHint: '四肢关节' },
+    { key: 'thyroid_gland', itemName: 'Thyroid Gland', itemNameHint: '甲状腺' },
+    { key: 'superficial_lymph_nodes', itemName: 'Superficial Lymph Nodes', itemNameHint: '浅表淋巴结' },
+    { key: 'breast_exam', itemName: 'Breast Exam', itemNameHint: '乳腺诊查' },
+    { key: 'other_findings', itemName: 'Other Findings', itemNameHint: '其他' }
+  ],
+  ophthalmology: [
+    { key: 'ucva_left', itemName: 'UCVA (L)', itemNameHint: '裸眼视力（左）' },
+    { key: 'ucva_right', itemName: 'UCVA (R)', itemNameHint: '裸眼视力（右）' },
+    { key: 'bcva_left', itemName: 'BCVA (L)', itemNameHint: '矫正视力（左）' },
+    { key: 'bcva_right', itemName: 'BCVA (R)', itemNameHint: '矫正视力（右）' },
+    { key: 'color_vision', itemName: 'Color Vision', itemNameHint: '色觉' },
+    { key: 'external_eye', itemName: 'External Eye', itemNameHint: '外眼' }
+  ],
+  ent: [
+    { key: 'auricle', itemName: 'Auricle', itemNameHint: '外耳廓' },
+    { key: 'external_auditory_canal', itemName: 'External Auditory Canal', itemNameHint: '外耳道' },
+    { key: 'tympanic_membrane', itemName: 'Tympanic Membrane', itemNameHint: '鼓膜' },
+    { key: 'mastoid', itemName: 'Mastoid', itemNameHint: '乳突' },
+    { key: 'external_nose', itemName: 'External Nose', itemNameHint: '鼻外部' },
+    { key: 'nasal_cavity', itemName: 'Nasal Cavity', itemNameHint: '鼻腔' },
+    { key: 'nasal_vestibule', itemName: 'Nasal Vestibule', itemNameHint: '鼻前庭' },
+    { key: 'nasal_septum', itemName: 'Nasal Septum', itemNameHint: '鼻中隔' },
+    { key: 'paranasal_sinuses', itemName: 'Paranasal Sinuses', itemNameHint: '鼻附窦' },
+    { key: 'oropharynx', itemName: 'Oropharynx', itemNameHint: '口咽部' }
+  ],
+  cbc: [
+    { key: 'wbc', itemName: 'WBC', itemNameHint: '白细胞计数' },
+    { key: 'neut_abs', itemName: 'NEUT#', itemNameHint: '中性粒细胞绝对值' },
+    { key: 'lymph_abs', itemName: 'LYMPH#', itemNameHint: '淋巴细胞绝对值' },
+    { key: 'mono_abs', itemName: 'MONO#', itemNameHint: '单核细胞绝对值' },
+    { key: 'eos_abs', itemName: 'EOS#', itemNameHint: '嗜酸细胞绝对值' },
+    { key: 'baso_abs', itemName: 'BASO#', itemNameHint: '嗜碱细胞绝对值' },
+    { key: 'neut_pct', itemName: 'NEUT%', itemNameHint: '中性粒细胞百分比' },
+    { key: 'lymph_pct', itemName: 'LYMPH%', itemNameHint: '淋巴细胞百分比' },
+    { key: 'mono_pct', itemName: 'MONO%', itemNameHint: '单核细胞百分比' },
+    { key: 'eos_pct', itemName: 'EOS%', itemNameHint: '嗜酸细胞百分比' },
+    { key: 'baso_pct', itemName: 'BASO%', itemNameHint: '嗜碱细胞百分比' },
+    { key: 'rbc', itemName: 'RBC', itemNameHint: '红细胞计数' },
+    { key: 'hgb', itemName: 'HGB', itemNameHint: '血红蛋白' },
+    { key: 'hct', itemName: 'HCT', itemNameHint: '红细胞比容' },
+    { key: 'mcv', itemName: 'MCV', itemNameHint: '平均红细胞体积' },
+    { key: 'mch', itemName: 'MCH', itemNameHint: '平均红细胞血红蛋白量' },
+    { key: 'mchc', itemName: 'MCHC', itemNameHint: '平均红细胞血红蛋白浓度' },
+    { key: 'rdw_sd', itemName: 'RDW-SD', itemNameHint: '平均红细胞分布宽度（SD）' },
+    { key: 'nrbc_abs', itemName: 'NRBC#', itemNameHint: '有核红细胞计数' },
+    { key: 'nrbc_pct', itemName: 'NRBC%', itemNameHint: '有核红细胞比率' },
+    { key: 'plt', itemName: 'PLT', itemNameHint: '血小板计数' },
+    { key: 'pdw', itemName: 'PDW', itemNameHint: '血小板分布宽度' },
+    { key: 'mpv', itemName: 'MPV', itemNameHint: '血小板平均体积' },
+    { key: 'pct', itemName: 'PCT', itemNameHint: '血小板比积' },
+    { key: 'p_lcr', itemName: 'P-LCR', itemNameHint: '大血小板比率' }
+  ],
+  liver_function: [
+    { key: 'tbil', itemName: 'TBIL', itemNameHint: '总胆红素' },
+    { key: 'ibil', itemName: 'IBIL', itemNameHint: '间接胆红素' },
+    { key: 'dbil', itemName: 'DBIL', itemNameHint: '直接胆红素' },
+    { key: 'alt', itemName: 'ALT', itemNameHint: '丙氨酸氨基转移酶' },
+    { key: 'ast', itemName: 'AST', itemNameHint: '天门冬氨酸氨基转移酶' },
+    { key: 'ast_alt', itemName: 'AST/ALT', itemNameHint: '谷草/谷丙' },
+    { key: 'tp', itemName: 'TP', itemNameHint: '总蛋白' },
+    { key: 'alb', itemName: 'ALB', itemNameHint: '白蛋白' },
+    { key: 'glob', itemName: 'GLOB', itemNameHint: '球蛋白' },
+    { key: 'ag_ratio', itemName: 'A/G', itemNameHint: '白球比' },
+    { key: 'ggt', itemName: 'GGT', itemNameHint: 'γ-谷氨酰基转移酶' },
+    { key: 'alp', itemName: 'ALP', itemNameHint: '碱性磷酸酶' }
+  ],
+  kidney_function: [],
+  ecg: [
+    { key: 'routine_ecg', itemName: 'Routine ECG', itemNameHint: '常规心电图' }
+  ],
+  imaging: [
+    { key: 'chest_dr_pa', itemName: 'Chest DR (PA View)', itemNameHint: 'DR胸部正位' }
+  ]
+};
+
+const createMedicalReportSectionInputState = () => {
+  const state = {} as Record<MedicalReportSectionKey, Record<string, MedicalReportSectionCellValues>>;
+
+  for (const [sectionKey, items] of Object.entries(medicalReportItemCatalog) as [MedicalReportSectionKey, MedicalReportItemDefinition[]][]) {
+    state[sectionKey] = Object.fromEntries(
+      items.map((item) => [item.key, { result: '', referenceValue: '', unit: '', abnormalFlag: '' }])
+    );
+  }
+
+  return state;
+};
+
 const connectorRecords = ref<ConnectorRecord[]>([]);
 const connectorLoading = ref(false);
 const connectorLoadError = ref('');
@@ -114,11 +303,37 @@ const connectorTesting = ref(false);
 const connectorSaving = ref(false);
 const syncDialogVisible = ref(false);
 const syncSubmitting = ref(false);
+const medicalReportParsing = ref(false);
+const medicalReportParsed = ref(false);
 const selectedSyncConnectorId = ref<ConnectorRecord['id'] | null>(null);
+const medicalReportFileInputRef = ref<HTMLInputElement | null>(null);
+const medicalReportRecordNumberInputRef = ref<any>(null);
+const medicalReportInstitutionInputRef = ref<any>(null);
+const medicalReportHintOverlayRef = ref<HTMLElement | null>(null);
 const syncWindow = reactive<SyncWindow>({
   startAt: null,
   endAt: null
 });
+const medicalReportSyncForm = reactive<MedicalReportSyncForm>({
+  parseSessionId: '',
+  recordNumber: '',
+  reportTime: null,
+  reportTimeInput: '',
+  institution: '',
+  file: null,
+  fileName: '',
+  reportTimeError: ''
+});
+const medicalReportSectionForm = reactive<{
+  examiner: string;
+  examTime: Date | null;
+}>({
+  examiner: '',
+  examTime: null
+});
+const medicalReportSectionInputs = reactive<Record<MedicalReportSectionKey, Record<string, MedicalReportSectionCellValues>>>(
+  createMedicalReportSectionInputState()
+);
 const syncInputValues = reactive<Record<SyncWindowField, string>>({
   startAt: '',
   endAt: ''
@@ -172,6 +387,14 @@ const syncFieldLabelMap: Record<SyncWindowField, string> = {
   startAt: 'Start time',
   endAt: 'End time'
 };
+const MANUAL_ONLY_CONNECTOR_IDS = new Set<ConnectorRecord['id']>(['medical-report']);
+const medicalReportHintOverlay = reactive<MedicalReportHintOverlay>({
+  visible: false,
+  text: '',
+  top: 0,
+  left: 0
+});
+let medicalReportHintAnchor: HTMLElement | null = null;
 
 const buildConnectorTaskQuery = (page: number): ListSyncJobsPayload => {
   const payload: ListSyncJobsPayload = {
@@ -353,7 +576,42 @@ const selectedConnectorDefinition = computed(() => {
 const selectedSyncConnector = computed(() => {
   return connectorRecords.value.find((connector) => connector.id === selectedSyncConnectorId.value) ?? null;
 });
+const isManualOnlyConnector = (connectorId: ConnectorRecord['id'] | null | undefined) => {
+  return Boolean(connectorId && MANUAL_ONLY_CONNECTOR_IDS.has(connectorId));
+};
+const isConnectorManualOnly = computed(() => {
+  return isManualOnlyConnector(selectedConnector.value?.id);
+});
+const isMedicalReportSyncDialog = computed(() => {
+  return selectedSyncConnector.value?.id === 'medical-report';
+});
+const activeMedicalReportSectionKey = computed<MedicalReportSectionKey>(() => {
+  return medicalReportSectionItems[medicalReportSectionActiveIndex.value]?.key ?? 'general';
+});
+const medicalReportSectionRows = computed<MedicalReportSectionRow[]>(() => {
+  const sectionKey = activeMedicalReportSectionKey.value;
+  const items = medicalReportItemCatalog[sectionKey] ?? [];
+  const valuesByItem = medicalReportSectionInputs[sectionKey] ?? {};
+
+  return items.map((item) => ({
+    sectionKey,
+    itemKey: item.key,
+    itemName: item.itemName,
+    itemNameHint: item.itemNameHint,
+    result: valuesByItem[item.key]?.result ?? '',
+    referenceValue: valuesByItem[item.key]?.referenceValue ?? '',
+    unit: valuesByItem[item.key]?.unit ?? '',
+    abnormalFlag: valuesByItem[item.key]?.abnormalFlag ?? ''
+  }));
+});
 const schedulePreviewResult = computed(() => {
+  if (isConnectorManualOnly.value) {
+    return {
+      success: true,
+      runs: [] as Date[]
+    };
+  }
+
   const schedule = connectorDraftSchedule.value.trim();
   if (!schedule) {
     return {
@@ -372,6 +630,10 @@ const upcomingRunPreviews = computed(() => {
   return schedulePreviewResult.value.runs.map((run) => formatDateTime(run));
 });
 const scheduleError = computed(() => {
+  if (isConnectorManualOnly.value) {
+    return '';
+  }
+
   return schedulePreviewResult.value.success ? '' : schedulePreviewResult.value.message ?? 'Invalid cron expression.';
 });
 const syncWindowError = computed(() => {
@@ -404,10 +666,63 @@ const getConnectorLogo = (connectorId: string) => {
     return garminConnectLogo;
   }
 
+  if (connectorId === 'medical-report') {
+    return medicalReportLogo;
+  }
+
   return '';
 };
 
+const getConnectorFallbackIcon = (connectorId: string) => {
+  if (connectorId === 'medical-report') {
+    return 'pi pi-file-medical';
+  }
+
+  return 'pi pi-link';
+};
+
+const getConnectorScheduleText = (connector: ConnectorRecord) => {
+  if (isManualOnlyConnector(connector.id)) {
+    return '-';
+  }
+
+  return connector.schedule?.trim() || '-';
+};
+
+const getConnectorLastRunText = (connector: ConnectorRecord) => {
+  return connector.lastRun?.trim() || '-';
+};
+
+const getConnectorNextRunText = (connector: ConnectorRecord) => {
+  if (isManualOnlyConnector(connector.id)) {
+    return '-';
+  }
+
+  return connector.nextRun?.trim() || '-';
+};
+
+const getConnectorFieldOptions = (field: { options?: ConnectorFieldOption[] }) => {
+  return field.options ?? [];
+};
+
+const hasConnectorFieldOptionLogo = (field: { options?: ConnectorFieldOption[] }) => {
+  return getConnectorFieldOptions(field).some((option) => Boolean(option.logo));
+};
+
+const getConnectorFieldSelectedOption = (field: { options?: ConnectorFieldOption[] }, value: unknown) => {
+  const normalizedValue = String(value ?? '').trim();
+  if (!normalizedValue) {
+    return null;
+  }
+
+  return getConnectorFieldOptions(field).find((option) => option.value === normalizedValue) ?? null;
+};
+
 const getTaskConnectorIcon = (connectorId: string) => {
+  if (connectorId === 'medical-report') {
+    return 'pi pi-file-medical';
+  }
+
   if (connectorId === 'plaid') {
     return 'pi pi-wallet';
   }
@@ -421,6 +736,133 @@ const getTaskConnectorIcon = (connectorId: string) => {
 
 const formatConnectorTaskDateTime = (value: string | null) => {
   return value ?? '-';
+};
+
+const updateMedicalReportCell = (
+  sectionKey: MedicalReportSectionKey,
+  itemKey: string,
+  field: MedicalReportEditableField,
+  value: string
+) => {
+  if (!medicalReportSectionInputs[sectionKey]) {
+    medicalReportSectionInputs[sectionKey] = {};
+  }
+
+  if (!medicalReportSectionInputs[sectionKey][itemKey]) {
+    medicalReportSectionInputs[sectionKey][itemKey] = {
+      result: '',
+      referenceValue: '',
+      unit: '',
+      abnormalFlag: ''
+    };
+  }
+
+  medicalReportSectionInputs[sectionKey][itemKey][field] = value;
+};
+
+const updateMedicalReportSyncTextField = (field: 'recordNumber' | 'institution', value: unknown) => {
+  medicalReportSyncForm[field] = String(value ?? '');
+  medicalReportParsed.value = false;
+  medicalReportSyncForm.parseSessionId = '';
+};
+
+const getPrimeInputDomValue = (inputRef: { $el?: unknown; value?: unknown } | null | undefined) => {
+  const element = inputRef?.$el instanceof HTMLInputElement
+    ? inputRef.$el
+    : inputRef?.$el?.querySelector?.('input') instanceof HTMLInputElement
+      ? inputRef.$el.querySelector('input')
+      : inputRef instanceof HTMLInputElement
+        ? inputRef
+        : null;
+
+  return element ? element.value : '';
+};
+
+const syncMedicalReportTextFieldsFromDom = () => {
+  const recordNumberValue = getPrimeInputDomValue(medicalReportRecordNumberInputRef.value);
+  const institutionValue = getPrimeInputDomValue(medicalReportInstitutionInputRef.value);
+
+  if (recordNumberValue) {
+    medicalReportSyncForm.recordNumber = recordNumberValue;
+  }
+
+  if (institutionValue) {
+    medicalReportSyncForm.institution = institutionValue;
+  }
+};
+
+const resetMedicalReportSectionData = () => {
+  medicalReportSectionForm.examiner = '';
+  medicalReportSectionForm.examTime = null;
+  medicalReportSectionActiveIndex.value = 0;
+  medicalReportParsed.value = false;
+
+  const nextState = createMedicalReportSectionInputState();
+  for (const sectionKey of Object.keys(medicalReportSectionInputs) as MedicalReportSectionKey[]) {
+    delete medicalReportSectionInputs[sectionKey];
+  }
+  Object.assign(medicalReportSectionInputs, nextState);
+};
+
+const MEDICAL_REPORT_SECTION_KEY_SET = new Set<MedicalReportSectionKey>(medicalReportSectionItems.map((item) => item.key));
+
+const normalizeMedicalReportSectionKey = (value: string): MedicalReportSectionKey | null => {
+  const normalized = value.trim().toLowerCase();
+  return MEDICAL_REPORT_SECTION_KEY_SET.has(normalized as MedicalReportSectionKey)
+    ? (normalized as MedicalReportSectionKey)
+    : null;
+};
+
+const toMedicalReportSectionCellValues = (value: Partial<MedicalReportSectionCellValues> | null | undefined): MedicalReportSectionCellValues => {
+  return {
+    result: String(value?.result ?? ''),
+    referenceValue: String(value?.referenceValue ?? ''),
+    unit: String(value?.unit ?? ''),
+    abnormalFlag: String(value?.abnormalFlag ?? '')
+  };
+};
+
+const applyMedicalReportParsedSections = (sections: MedicalReportParsedSection[]) => {
+  const nextState = createMedicalReportSectionInputState();
+  for (const section of sections) {
+    const sectionKey = normalizeMedicalReportSectionKey(String(section.sectionKey ?? ''));
+    if (!sectionKey) {
+      continue;
+    }
+
+    for (const item of section.items ?? []) {
+      const itemKey = String(item.itemKey ?? '').trim();
+      if (!itemKey || !nextState[sectionKey]?.[itemKey]) {
+        continue;
+      }
+
+      nextState[sectionKey][itemKey] = toMedicalReportSectionCellValues(item);
+    }
+  }
+
+  for (const sectionKey of Object.keys(medicalReportSectionInputs) as MedicalReportSectionKey[]) {
+    delete medicalReportSectionInputs[sectionKey];
+  }
+  Object.assign(medicalReportSectionInputs, nextState);
+};
+
+const buildMedicalReportSectionsPayload = (): MedicalReportParsedSection[] => {
+  return (Object.entries(medicalReportItemCatalog) as [MedicalReportSectionKey, MedicalReportItemDefinition[]][])
+    .map(([sectionKey, items]) => {
+      return {
+        sectionKey,
+        items: items.map((item) => {
+          const values = medicalReportSectionInputs[sectionKey]?.[item.key];
+          return {
+            itemKey: item.key,
+            result: String(values?.result ?? ''),
+            referenceValue: String(values?.referenceValue ?? ''),
+            unit: String(values?.unit ?? ''),
+            abnormalFlag: String(values?.abnormalFlag ?? '')
+          };
+        })
+      };
+    });
 };
 
 const copyTaskJobId = async (jobId: string) => {
@@ -764,10 +1206,196 @@ const handleSyncDateModelUpdate = (
   syncFieldErrors[field] = normalizedValue ? '' : `${syncFieldLabelMap[field]} is required.`;
 };
 
+const resetMedicalReportSyncForm = () => {
+  medicalReportSyncForm.parseSessionId = '';
+  medicalReportSyncForm.recordNumber = '';
+  medicalReportSyncForm.reportTime = null;
+  medicalReportSyncForm.reportTimeInput = '';
+  medicalReportSyncForm.institution = '';
+  medicalReportSyncForm.file = null;
+  medicalReportSyncForm.fileName = '';
+  medicalReportSyncForm.reportTimeError = '';
+  resetMedicalReportSectionData();
+
+  if (medicalReportFileInputRef.value) {
+    medicalReportFileInputRef.value.value = '';
+  }
+};
+
+const formatMedicalReportDate = (value: Date) => {
+  return formatDateTime(value).slice(0, 10);
+};
+
+const parseMedicalReportDate = (value: string) => {
+  const trimmed = value.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return {
+      success: false,
+      message: 'Report data must use YYYY-MM-DD format.'
+    } as const;
+  }
+
+  const parsed = parseDateTime(`${trimmed} 00:00:00`);
+  if (!parsed.success || !parsed.date) {
+    return {
+      success: false,
+      message: 'Report data must use YYYY-MM-DD format.'
+    } as const;
+  }
+
+  return {
+    success: true,
+    date: parsed.date
+  } as const;
+};
+
+const validateMedicalReportTime = (rawValue = medicalReportSyncForm.reportTimeInput) => {
+  const trimmedValue = rawValue.trim();
+
+  if (!trimmedValue) {
+    medicalReportSyncForm.reportTime = null;
+    medicalReportSyncForm.reportTimeInput = '';
+    medicalReportSyncForm.reportTimeError = 'Report data is required.';
+    return false;
+  }
+
+  const parsedResult = parseMedicalReportDate(trimmedValue);
+  if (!parsedResult.success || !parsedResult.date) {
+    medicalReportSyncForm.reportTimeError = parsedResult.message ?? 'Report data must use YYYY-MM-DD format.';
+    return false;
+  }
+
+  medicalReportSyncForm.reportTime = parsedResult.date;
+  medicalReportSyncForm.reportTimeInput = formatMedicalReportDate(parsedResult.date);
+  medicalReportSyncForm.reportTimeError = '';
+  return true;
+};
+
+const handleMedicalReportTimeInput = (event: Event) => {
+  medicalReportSyncForm.reportTimeInput = (event.target as HTMLInputElement | null)?.value ?? '';
+  medicalReportParsed.value = false;
+  medicalReportSyncForm.parseSessionId = '';
+
+  if (medicalReportSyncForm.reportTimeError) {
+    medicalReportSyncForm.reportTimeError = '';
+  }
+};
+
+const handleMedicalReportTimeBlur = (event: DatePickerBlurEvent) => {
+  medicalReportSyncForm.reportTimeInput = String(event.value ?? '');
+  if (validateMedicalReportTime()) {
+    medicalReportParsed.value = false;
+    medicalReportSyncForm.parseSessionId = '';
+  }
+};
+
+const handleMedicalReportTimeModelUpdate = (value: Date | Date[] | (Date | null)[] | null | undefined) => {
+  const normalizedValue = value instanceof Date ? value : null;
+
+  medicalReportSyncForm.reportTime = normalizedValue;
+  medicalReportSyncForm.reportTimeInput = normalizedValue ? formatMedicalReportDate(normalizedValue) : '';
+  medicalReportSyncForm.reportTimeError = normalizedValue ? '' : 'Report data is required.';
+  medicalReportParsed.value = false;
+  medicalReportSyncForm.parseSessionId = '';
+};
+
+const openMedicalReportFilePicker = () => {
+  medicalReportFileInputRef.value?.click();
+};
+
+const handleMedicalReportFileSelected = (event: Event) => {
+  const input = event.target as HTMLInputElement | null;
+  const file = input?.files?.[0] ?? null;
+
+  if (file) {
+    const isPdfFile = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    if (!isPdfFile) {
+      medicalReportSyncForm.file = null;
+      medicalReportSyncForm.fileName = '';
+      medicalReportParsed.value = false;
+      medicalReportSyncForm.parseSessionId = '';
+      if (input) {
+        input.value = '';
+      }
+      showToast('error', 'Only PDF format is supported for medical report upload.');
+      return;
+    }
+  }
+
+  medicalReportSyncForm.file = file;
+  medicalReportSyncForm.fileName = file?.name ?? '';
+  medicalReportParsed.value = false;
+  medicalReportSyncForm.parseSessionId = '';
+};
+
+const parseMedicalReport = async () => {
+  await nextTick();
+  syncMedicalReportTextFieldsFromDom();
+
+  if (!medicalReportSyncForm.recordNumber.trim()) {
+    showToast('error', 'Record number is required.');
+    return;
+  }
+
+  if (!medicalReportSyncForm.institution.trim()) {
+    showToast('error', 'Medical institution is required.');
+    return;
+  }
+
+  if (!medicalReportSyncForm.file) {
+    showToast('error', 'Please upload a medical report first.');
+    return;
+  }
+
+  if (!validateMedicalReportTime()) {
+    showToast('error', medicalReportSyncForm.reportTimeError || 'Report data is required.');
+    return;
+  }
+
+  const isPdfFile = medicalReportSyncForm.file.type === 'application/pdf'
+    || medicalReportSyncForm.file.name.toLowerCase().endsWith('.pdf');
+  if (!isPdfFile) {
+    showToast('error', 'Only PDF format is supported for medical report upload.');
+    return;
+  }
+
+  medicalReportParsing.value = true;
+  try {
+    const result = await connectorApi.parseMedicalReport(auth.token, {
+      recordNumber: medicalReportSyncForm.recordNumber.trim(),
+      reportDate: formatMedicalReportDate(medicalReportSyncForm.reportTime as Date),
+      institution: medicalReportSyncForm.institution.trim(),
+      file: medicalReportSyncForm.file
+    });
+
+    if (!result.success || !result.data) {
+      medicalReportParsed.value = false;
+      medicalReportSyncForm.parseSessionId = '';
+      showToast('error', result.message ?? 'Unable to parse medical report.');
+      return;
+    }
+
+    applyMedicalReportParsedSections(result.data.sections ?? []);
+    medicalReportSyncForm.parseSessionId = result.data.parseSessionId;
+    medicalReportSectionForm.examiner = String(result.data.form?.examiner ?? '').trim();
+
+    const parsedExamDate = parseMedicalReportDate(String(result.data.form?.examDate ?? ''));
+    medicalReportSectionForm.examTime = parsedExamDate.success && parsedExamDate.date
+      ? parsedExamDate.date
+      : new Date((medicalReportSyncForm.reportTime as Date).getTime());
+
+    medicalReportParsed.value = true;
+    showToast('success', result.message ?? 'Medical report parsed successfully.');
+  } finally {
+    medicalReportParsing.value = false;
+  }
+};
+
 const openSyncDialog = (connector: ConnectorRecord) => {
   const defaultStart = getShanghaiStartOfDay(-3);
   const defaultEnd = getShanghaiStartOfDay(0);
 
+  resetMedicalReportSyncForm();
   selectedSyncConnectorId.value = connector.id;
   syncWindow.startAt = defaultStart;
   syncWindow.endAt = defaultEnd;
@@ -780,6 +1408,9 @@ const openSyncDialog = (connector: ConnectorRecord) => {
 
 const resetSyncDialog = () => {
   selectedSyncConnectorId.value = null;
+  medicalReportParsing.value = false;
+  hideMedicalReportHint();
+  resetMedicalReportSyncForm();
   syncWindow.startAt = null;
   syncWindow.endAt = null;
   syncInputValues.startAt = '';
@@ -822,10 +1453,11 @@ const saveConnectorConfiguration = async () => {
   }
 
   connectorSaving.value = true;
+  const normalizedSchedule = isConnectorManualOnly.value ? '-' : connectorDraftSchedule.value.trim();
 
   const saveResult = await connectorApi.saveConfiguration(auth.token, {
     id: selectedConnector.value.id,
-    schedule: connectorDraftSchedule.value.trim(),
+    schedule: normalizedSchedule,
     config: { ...connectorDraftConfig }
   });
 
@@ -847,6 +1479,82 @@ const saveConnectorConfiguration = async () => {
 
 const confirmSync = async () => {
   if (!selectedSyncConnector.value) {
+    return;
+  }
+
+  if (isMedicalReportSyncDialog.value) {
+    await nextTick();
+    syncMedicalReportTextFieldsFromDom();
+
+    if (!medicalReportSyncForm.recordNumber.trim()) {
+      showToast('error', 'Record number is required.');
+      return;
+    }
+
+    if (!validateMedicalReportTime()) {
+      showToast('error', medicalReportSyncForm.reportTimeError || 'Report data is required.');
+      return;
+    }
+
+    if (!medicalReportSyncForm.institution.trim()) {
+      showToast('error', 'Medical institution is required.');
+      return;
+    }
+
+    if (!medicalReportSyncForm.file) {
+      showToast('error', 'Please upload the medical report.');
+      return;
+    }
+
+    if (!medicalReportSyncForm.parseSessionId) {
+      showToast('error', 'Please parse the report again before confirming sync.');
+      return;
+    }
+
+    if (!medicalReportParsed.value) {
+      showToast('error', 'Please parse the report before confirming sync.');
+      return;
+    }
+
+    if (!medicalReportSectionForm.examiner.trim()) {
+      showToast('error', 'Examiner is required.');
+      return;
+    }
+
+    if (!(medicalReportSectionForm.examTime instanceof Date)) {
+      showToast('error', 'Exam date is required.');
+      return;
+    }
+
+    syncSubmitting.value = true;
+    let result: Awaited<ReturnType<typeof connectorApi.syncMedicalReport>> | null = null;
+    try {
+      result = await connectorApi.syncMedicalReport(auth.token, {
+        parseSessionId: medicalReportSyncForm.parseSessionId,
+        recordNumber: medicalReportSyncForm.recordNumber.trim(),
+        reportDate: formatMedicalReportDate(medicalReportSyncForm.reportTime as Date),
+        institution: medicalReportSyncForm.institution.trim(),
+        fileName: medicalReportSyncForm.file.name,
+        form: {
+          examiner: medicalReportSectionForm.examiner.trim(),
+          examDate: formatMedicalReportDate(medicalReportSectionForm.examTime)
+        },
+        sections: buildMedicalReportSectionsPayload()
+      });
+    } finally {
+      syncSubmitting.value = false;
+    }
+
+    if (!result?.success || !result.data) {
+      showToast('error', result?.message ?? 'Unable to sync medical report.');
+      return;
+    }
+
+    showToast('success', result.message ?? 'Medical report sync job queued.');
+    if (activeTab.value === 'connector-tasks') {
+      reloadConnectorTasks();
+    }
+    closeSyncDialog();
     return;
   }
 
@@ -912,6 +1620,56 @@ const onConnectorTabChange = (event: TabChangeEvent) => {
   connectorActiveIndex.value = event.index;
 };
 
+const onMedicalReportSectionTabChange = (event: TabChangeEvent) => {
+  medicalReportSectionActiveIndex.value = event.index;
+  hideMedicalReportHint();
+};
+
+const updateMedicalReportHintPosition = () => {
+  if (!medicalReportHintAnchor || !medicalReportHintOverlay.visible || typeof window === 'undefined') {
+    return;
+  }
+
+  const rect = medicalReportHintAnchor.getBoundingClientRect();
+  const viewportPadding = 12;
+  const overlayWidth = medicalReportHintOverlayRef.value?.offsetWidth ?? 0;
+  const centerX = rect.left + rect.width / 2;
+  const minLeft = overlayWidth ? viewportPadding + overlayWidth / 2 : viewportPadding;
+  const maxLeft = overlayWidth ? window.innerWidth - viewportPadding - overlayWidth / 2 : window.innerWidth - viewportPadding;
+
+  medicalReportHintOverlay.left = Math.min(Math.max(centerX, minLeft), maxLeft);
+  medicalReportHintOverlay.top = rect.bottom;
+};
+
+const showMedicalReportHint = (event: MouseEvent | FocusEvent, hint: string) => {
+  const anchor = event.currentTarget as HTMLElement | null;
+  if (!anchor || !hint.trim()) {
+    return;
+  }
+
+  medicalReportHintAnchor = anchor;
+  medicalReportHintOverlay.text = hint;
+  medicalReportHintOverlay.visible = true;
+  updateMedicalReportHintPosition();
+
+  requestAnimationFrame(() => {
+    updateMedicalReportHintPosition();
+  });
+};
+
+const hideMedicalReportHint = () => {
+  medicalReportHintOverlay.visible = false;
+  medicalReportHintAnchor = null;
+};
+
+const handleMedicalReportHintViewportChange = () => {
+  if (!medicalReportHintOverlay.visible || !medicalReportHintAnchor) {
+    return;
+  }
+
+  updateMedicalReportHintPosition();
+};
+
 watch(
   () => connectorTaskSearch.value,
   (value) => {
@@ -955,10 +1713,20 @@ onBeforeUnmount(() => {
   if (connectorTaskSearchDebounceTimer) {
     clearTimeout(connectorTaskSearchDebounceTimer);
   }
+
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('resize', handleMedicalReportHintViewportChange);
+    window.removeEventListener('scroll', handleMedicalReportHintViewportChange, true);
+  }
 });
 
 onMounted(() => {
   loadConnectors();
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('resize', handleMedicalReportHintViewportChange, { passive: true });
+    window.addEventListener('scroll', handleMedicalReportHintViewportChange, true);
+  }
 });
 
 watch(
@@ -988,14 +1756,32 @@ watch(
         <Column header="Connector">
           <template #body="{ data }">
             <div class="connector-identity">
-              <img :src="getConnectorLogo(data.id)" :alt="data.name" class="connector-brand-logo" />
+              <img
+                v-if="getConnectorLogo(data.id)"
+                :src="getConnectorLogo(data.id)"
+                :alt="data.name"
+                class="connector-brand-logo"
+              />
+              <i v-else :class="[getConnectorFallbackIcon(data.id), 'connector-brand-icon']" />
               <span class="connector-name">{{ data.name }}</span>
             </div>
           </template>
         </Column>
-        <Column field="schedule" header="Schudule" />
-        <Column field="lastRun" header="Last Run" />
-        <Column field="nextRun" header="Next Run" />
+        <Column header="Schudule">
+          <template #body="{ data }">
+            {{ getConnectorScheduleText(data) }}
+          </template>
+        </Column>
+        <Column header="Last Run">
+          <template #body="{ data }">
+            {{ getConnectorLastRunText(data) }}
+          </template>
+        </Column>
+        <Column header="Next Run">
+          <template #body="{ data }">
+            {{ getConnectorNextRunText(data) }}
+          </template>
+        </Column>
         <Column header="Status">
           <template #body="{ data }">
             <div class="connector-status-cell">
@@ -1425,6 +2211,39 @@ watch(
                 @update:model-value="connectorDraftConfig[field.key] = String($event ?? '')"
               />
 
+              <Select
+                v-else-if="field.type === 'select'"
+                :input-id="`connector-field-${field.key}`"
+                :model-value="connectorDraftConfig[field.key] ?? ''"
+                :options="getConnectorFieldOptions(field)"
+                option-label="label"
+                option-value="value"
+                class="w-full"
+                :placeholder="field.placeholder"
+                @update:model-value="connectorDraftConfig[field.key] = String($event ?? '')"
+              >
+                <template v-if="hasConnectorFieldOptionLogo(field)" #value="slotProps">
+                  <div v-if="getConnectorFieldSelectedOption(field, slotProps.value)" class="connector-provider-option">
+                    <img
+                      :src="getConnectorFieldSelectedOption(field, slotProps.value)?.logo"
+                      :alt="getConnectorFieldSelectedOption(field, slotProps.value)?.label"
+                      class="connector-provider-option-logo"
+                    />
+                    <span class="connector-provider-option-label">
+                      {{ getConnectorFieldSelectedOption(field, slotProps.value)?.label }}
+                    </span>
+                  </div>
+                  <span v-else class="connector-provider-option-placeholder">{{ slotProps.placeholder }}</span>
+                </template>
+
+                <template v-if="hasConnectorFieldOptionLogo(field)" #option="slotProps">
+                  <div class="connector-provider-option">
+                    <img :src="slotProps.option.logo" :alt="slotProps.option.label" class="connector-provider-option-logo" />
+                    <span class="connector-provider-option-label">{{ slotProps.option.label }}</span>
+                  </div>
+                </template>
+              </Select>
+
               <Password
                 v-else
                 :id="`connector-field-${field.key}`"
@@ -1441,7 +2260,10 @@ watch(
           </div>
         </div>
 
-        <div class="space-y-4 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 dark:border-slate-700 dark:bg-slate-900/70">
+        <div
+          v-if="!isConnectorManualOnly"
+          class="space-y-4 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 dark:border-slate-700 dark:bg-slate-900/70"
+        >
           <div>
             <p class="connector-section-title">Update Schedule</p>
             <p class="connector-section-help">Use standard crontab syntax such as `0 2 * * *`.</p>
@@ -1494,13 +2316,250 @@ watch(
     <Dialog
       v-model:visible="syncDialogVisible"
       modal
-      :dismissable-mask="!syncSubmitting"
-      :close-on-escape="!syncSubmitting"
-      :class="['connector-config-dialog sync-config-dialog w-[min(92vw,34rem)]', { 'connector-config-dialog-busy': syncSubmitting }]"
+      :dismissable-mask="!(syncSubmitting || medicalReportParsing)"
+      :close-on-escape="!(syncSubmitting || medicalReportParsing)"
+      :class="[
+        'connector-config-dialog sync-config-dialog',
+        {
+          'connector-config-dialog-busy': syncSubmitting || medicalReportParsing,
+          'medical-report-sync-dialog': isMedicalReportSyncDialog,
+          'medical-report-sync-dialog-parsing': isMedicalReportSyncDialog && medicalReportParsing
+        }
+      ]"
       :header="selectedSyncConnector ? `Sync ${selectedSyncConnector.name}` : 'Sync Connector'"
       @hide="resetSyncDialog"
     >
-      <div class="space-y-5">
+      <div v-if="isMedicalReportSyncDialog" class="medical-report-sync-shell space-y-5">
+        <div v-if="medicalReportParsing" class="medical-report-parse-overlay" role="status" aria-live="polite" aria-busy="true">
+          <div class="medical-report-parse-progress-card">
+            <div class="medical-report-parse-progress-head">
+              <div class="medical-report-parse-spinner-shell">
+                <ProgressSpinner class="medical-report-parse-spinner" stroke-width="4" fill="transparent" animation-duration=".9s" />
+              </div>
+
+              <div class="medical-report-parse-progress-copy">
+                <div class="medical-report-parse-progress-eyebrow">Medical Report</div>
+                <div class="medical-report-parse-progress-label">Parsing medical report...</div>
+                <div class="medical-report-parse-progress-caption">Extracting structured fields from the uploaded PDF.</div>
+              </div>
+            </div>
+
+            <div class="medical-report-parse-progress-track" aria-hidden="true">
+              <div class="medical-report-parse-progress-indicator" />
+            </div>
+          </div>
+        </div>
+
+        <div class="medical-report-sync-main">
+          <div class="medical-report-sync-top">
+            <div class="medical-report-sync-field">
+              <label for="medical-report-sync-number" class="auth-label">Record Number</label>
+              <InputText
+                ref="medicalReportRecordNumberInputRef"
+                id="medical-report-sync-number"
+                :model-value="medicalReportSyncForm.recordNumber"
+                class="w-full"
+                placeholder="Enter record number"
+                @update:model-value="updateMedicalReportSyncTextField('recordNumber', $event)"
+                @input="updateMedicalReportSyncTextField('recordNumber', ($event.target as HTMLInputElement | null)?.value ?? '')"
+              />
+            </div>
+
+            <div class="medical-report-sync-field">
+              <label for="medical-report-sync-data" class="auth-label">Report Data</label>
+              <DatePicker
+                id="medical-report-sync-data"
+                v-model="medicalReportSyncForm.reportTime"
+                class="w-full"
+                input-class="w-full"
+                placeholder="YYYY-MM-DD"
+                date-format="yy-mm-dd"
+                show-icon
+                icon-display="input"
+                :manual-input="true"
+                @update:model-value="handleMedicalReportTimeModelUpdate($event)"
+                @input="handleMedicalReportTimeInput($event)"
+                @blur="handleMedicalReportTimeBlur($event)"
+              />
+              <small v-if="medicalReportSyncForm.reportTimeError" class="auth-error">
+                {{ medicalReportSyncForm.reportTimeError }}
+              </small>
+            </div>
+
+            <div class="medical-report-sync-field">
+              <label for="medical-report-sync-institution" class="auth-label">Medical Institution</label>
+              <InputText
+                ref="medicalReportInstitutionInputRef"
+                id="medical-report-sync-institution"
+                :model-value="medicalReportSyncForm.institution"
+                class="w-full"
+                placeholder="Enter medical institution"
+                @update:model-value="updateMedicalReportSyncTextField('institution', $event)"
+                @input="updateMedicalReportSyncTextField('institution', ($event.target as HTMLInputElement | null)?.value ?? '')"
+              />
+            </div>
+
+            <div class="medical-report-sync-field medical-report-sync-upload-field">
+              <div class="medical-report-upload-row">
+                <Button
+                  label="Upload Report"
+                  severity="secondary"
+                  outlined
+                  :disabled="syncSubmitting || medicalReportParsing"
+                  @click="openMedicalReportFilePicker"
+                />
+                <Button
+                  label="Parse Report"
+                  severity="secondary"
+                  outlined
+                  :loading="medicalReportParsing"
+                  :disabled="syncSubmitting || medicalReportParsing"
+                  @click="parseMedicalReport"
+                />
+              </div>
+              <span v-if="medicalReportSyncForm.fileName" class="medical-report-upload-name" :title="medicalReportSyncForm.fileName">
+                {{ medicalReportSyncForm.fileName }}
+              </span>
+              <input
+                ref="medicalReportFileInputRef"
+                type="file"
+                class="hidden"
+                accept=".pdf,application/pdf"
+                @change="handleMedicalReportFileSelected"
+              />
+            </div>
+          </div>
+
+          <div class="medical-report-sync-middle">
+            <div class="medical-report-workspace">
+              <TabMenu
+                :model="medicalReportSectionItems"
+                :active-index="medicalReportSectionActiveIndex"
+                class="connector-tabmenu medical-report-tabmenu"
+                @tab-change="onMedicalReportSectionTabChange"
+              >
+                <template #item="{ item, props }">
+                  <a v-bind="props.action">
+                    <span class="medical-report-tabmenu-label-group">
+                      <span v-bind="props.label">{{ item.label }}</span>
+                      <span
+                        class="medical-report-tabmenu-help"
+                        :aria-label="`${item.label} note`"
+                        tabindex="0"
+                        @mouseenter="showMedicalReportHint($event, item.hint)"
+                        @mouseleave="hideMedicalReportHint"
+                        @focusin="showMedicalReportHint($event, item.hint)"
+                        @focusout="hideMedicalReportHint"
+                      >
+                        <i class="pi pi-info-circle medical-report-tabmenu-help-icon" />
+                      </span>
+                    </span>
+                  </a>
+                </template>
+              </TabMenu>
+
+              <section class="medical-report-workspace-body">
+                <div class="medical-report-section-form">
+                  <div class="space-y-1.5">
+                    <label for="medical-report-section-examiner" class="auth-label">Examiner</label>
+                    <InputText
+                      id="medical-report-section-examiner"
+                      v-model.trim="medicalReportSectionForm.examiner"
+                      class="w-full"
+                      placeholder="Enter examiner"
+                    />
+                  </div>
+
+                  <div class="space-y-1.5">
+                    <label for="medical-report-section-exam-time" class="auth-label">Exam Date</label>
+                    <DatePicker
+                      id="medical-report-section-exam-time"
+                      v-model="medicalReportSectionForm.examTime"
+                      class="w-full"
+                      input-class="w-full"
+                      placeholder="YYYY-MM-DD"
+                      date-format="yy-mm-dd"
+                      show-icon
+                      icon-display="input"
+                      :manual-input="true"
+                    />
+                  </div>
+                </div>
+
+                <div class="medical-report-section-table-wrap">
+                  <DataTable
+                    :value="medicalReportSectionRows"
+                    class="medical-report-section-table"
+                    table-style="min-width: 100%"
+                    scrollable
+                    scroll-height="flex"
+                  >
+                    <Column header="Item Name">
+                      <template #body="{ data }">
+                        <span class="medical-report-item-name-wrap">
+                          <span>{{ data.itemName }}</span>
+                          <span
+                            class="medical-report-item-help"
+                            :aria-label="`${data.itemName} note`"
+                            tabindex="0"
+                            @mouseenter="showMedicalReportHint($event, data.itemNameHint)"
+                            @mouseleave="hideMedicalReportHint"
+                            @focusin="showMedicalReportHint($event, data.itemNameHint)"
+                            @focusout="hideMedicalReportHint"
+                          >
+                            <i class="pi pi-info-circle medical-report-item-help-icon" />
+                          </span>
+                        </span>
+                      </template>
+                    </Column>
+                    <Column header="Result">
+                      <template #body="{ data }">
+                        <InputText
+                          :model-value="data.result"
+                          class="w-full medical-report-cell-input"
+                          @update:model-value="updateMedicalReportCell(data.sectionKey, data.itemKey, 'result', String($event ?? ''))"
+                        />
+                      </template>
+                    </Column>
+                    <Column header="Reference Value">
+                      <template #body="{ data }">
+                        <InputText
+                          :model-value="data.referenceValue"
+                          class="w-full medical-report-cell-input"
+                          @update:model-value="updateMedicalReportCell(data.sectionKey, data.itemKey, 'referenceValue', String($event ?? ''))"
+                        />
+                      </template>
+                    </Column>
+                    <Column header="Unit">
+                      <template #body="{ data }">
+                        <InputText
+                          :model-value="data.unit"
+                          class="w-full medical-report-cell-input"
+                          @update:model-value="updateMedicalReportCell(data.sectionKey, data.itemKey, 'unit', String($event ?? ''))"
+                        />
+                      </template>
+                    </Column>
+                    <Column header="Abnormal Flag">
+                      <template #body="{ data }">
+                        <InputText
+                          :model-value="data.abnormalFlag"
+                          class="w-full medical-report-cell-input"
+                          @update:model-value="updateMedicalReportCell(data.sectionKey, data.itemKey, 'abnormalFlag', String($event ?? ''))"
+                        />
+                      </template>
+                    </Column>
+                    <template #empty>
+                      <div class="connector-empty">No inspection items available.</div>
+                    </template>
+                  </DataTable>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-else class="space-y-5">
         <div class="space-y-1">
           <p class="connector-section-title">Sync Time Range</p>
           <p class="connector-section-help">Select the start and end time in `YYYY-MM-DD HH:MM:SS` format.</p>
@@ -1559,12 +2618,26 @@ watch(
             label="Cancel"
             severity="secondary"
             text
-            :disabled="syncSubmitting"
+            :disabled="syncSubmitting || medicalReportParsing"
             @click="closeSyncDialog"
           />
-          <Button label="Confirm" :loading="syncSubmitting" @click="confirmSync" />
+          <Button label="Confirm" :loading="syncSubmitting" :disabled="medicalReportParsing" @click="confirmSync" />
         </div>
       </template>
     </Dialog>
+
+    <Teleport to="body">
+      <div
+        v-if="medicalReportHintOverlay.visible"
+        ref="medicalReportHintOverlayRef"
+        class="medical-report-tabmenu-help-overlay"
+        :style="{
+          top: `${medicalReportHintOverlay.top}px`,
+          left: `${medicalReportHintOverlay.left}px`
+        }"
+      >
+        {{ medicalReportHintOverlay.text }}
+      </div>
+    </Teleport>
   </section>
 </template>

@@ -3,6 +3,7 @@ package com.otw.adminapi.auth;
 import com.otw.adminapi.common.api.ApiException;
 import com.otw.adminapi.connector.ConnectorConfigEntity;
 import com.otw.adminapi.connector.ConnectorConfigRepository;
+import com.otw.adminapi.connector.ConnectorService;
 import com.otw.adminapi.connector.CronScheduleService;
 import com.otw.adminapi.security.AuthenticatedUser;
 import com.otw.adminapi.security.JwtService;
@@ -24,9 +25,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional
 public class AuthService {
-  private static final String DEFAULT_CONNECTOR_ID = "garmin-connect";
   private static final String DEFAULT_CONNECTOR_CATEGORY = "health";
-  private static final String DEFAULT_SCHEDULE = "0 2 * * *";
+  private static final String DEFAULT_GARMIN_SCHEDULE = "0 2 * * *";
+  private static final String DEFAULT_MEDICAL_REPORT_SCHEDULE = "-";
 
   private final UserRepository userRepository;
   private final AccountRepository accountRepository;
@@ -95,14 +96,8 @@ public class AuthService {
     user.setPasswordHash(passwordEncoder.encode(request.password()));
     userRepository.save(user);
 
-    ConnectorConfigEntity connectorConfig = new ConnectorConfigEntity();
-    connectorConfig.setAccountId(account.getId());
-    connectorConfig.setConnectorId(DEFAULT_CONNECTOR_ID);
-    connectorConfig.setCategory(DEFAULT_CONNECTOR_CATEGORY);
-    connectorConfig.setStatus("not_configured");
-    connectorConfig.setSchedule(DEFAULT_SCHEDULE);
-    connectorConfig.setNextRunAt(cronScheduleService.nextRun(DEFAULT_SCHEDULE, zoneId));
-    connectorConfigRepository.save(connectorConfig);
+    connectorConfigRepository.save(createDefaultConnector(account.getId(), ConnectorService.GARMIN_CONNECT_ID));
+    connectorConfigRepository.save(createDefaultConnector(account.getId(), ConnectorService.MEDICAL_REPORT_ID));
 
     return toUserView(user);
   }
@@ -147,6 +142,24 @@ public class AuthService {
   private UserEntity requireUser(AuthenticatedUser authenticatedUser) {
     return userRepository.findByIdAndAccountId(authenticatedUser.userId(), authenticatedUser.accountId())
       .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "USER_NOT_FOUND", "Your session has expired."));
+  }
+
+  private ConnectorConfigEntity createDefaultConnector(java.util.UUID accountId, String connectorId) {
+    ConnectorConfigEntity connectorConfig = new ConnectorConfigEntity();
+    connectorConfig.setAccountId(accountId);
+    connectorConfig.setConnectorId(connectorId);
+    connectorConfig.setCategory(DEFAULT_CONNECTOR_CATEGORY);
+    connectorConfig.setStatus("not_configured");
+
+    if (ConnectorService.MEDICAL_REPORT_ID.equals(connectorId)) {
+      connectorConfig.setSchedule(DEFAULT_MEDICAL_REPORT_SCHEDULE);
+      connectorConfig.setNextRunAt(null);
+      return connectorConfig;
+    }
+
+    connectorConfig.setSchedule(DEFAULT_GARMIN_SCHEDULE);
+    connectorConfig.setNextRunAt(cronScheduleService.nextRun(DEFAULT_GARMIN_SCHEDULE, zoneId));
+    return connectorConfig;
   }
 
   public static AuthUserView toUserView(UserEntity user) {

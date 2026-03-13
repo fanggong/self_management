@@ -32,7 +32,7 @@ public class SyncJobController {
     @Valid @RequestBody CreateSyncJobRequest request
   ) {
     SyncTaskView data = syncTaskService.createManualSyncJob(jwtService.toAuthenticatedUser(jwt), connectorId, request);
-    return ApiResult.success(data, "Garmin Connect sync job queued.");
+    return ApiResult.success(data, "Sync job queued.");
   }
 
   @GetMapping("/sync-jobs")

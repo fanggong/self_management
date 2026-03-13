@@ -53,6 +53,14 @@ public class SyncTaskService {
   }
 
   public SyncTaskView createManualSyncJob(AuthenticatedUser authenticatedUser, String connectorId, CreateSyncJobRequest request) {
+    if (ConnectorService.MEDICAL_REPORT_ID.equals(normalizeKey(connectorId))) {
+      throw new ApiException(
+        HttpStatus.BAD_REQUEST,
+        "INVALID_SYNC_PAYLOAD",
+        "Medical Report requires /users/me/connectors/medical-report/sync-jobs."
+      );
+    }
+
     ConnectorConfigEntity connector = connectorService.requireConnector(authenticatedUser, connectorId);
     if ("not_configured".equals(connector.getStatus())) {
       throw new ApiException(HttpStatus.BAD_REQUEST, "CONNECTOR_NOT_CONFIGURED", "Configure this connector before starting a sync.");

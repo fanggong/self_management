@@ -29,6 +29,23 @@ const createInitialConnector = (definition: ConnectorDefinition): ConnectorRecor
     };
   }
 
+  if (definition.id === 'medical-report') {
+    return {
+      id: definition.id,
+      name: definition.name,
+      category: definition.category,
+      status: 'not_configured',
+      schedule: '-',
+      lastRun: '2026-03-10 09:30:00',
+      nextRun: '-',
+      config: {
+        provider: '',
+        modelId: '',
+        apiKey: ''
+      }
+    };
+  }
+
   return {
     id: definition.id,
     name: definition.name,
@@ -110,12 +127,13 @@ const parseConnectors = (raw: string | null): ConnectorRecord[] => {
       return INITIAL_CONNECTORS.map((connector) => cloneConnector(connector));
     }
 
-    return parsed.map((connector) => {
-      const definition = getConnectorDefinition(connector.id);
+    const parsedById = new Map(parsed.map((connector) => [connector.id, connector]));
+    return connectorCatalog.map((definition) => {
+      const connector = parsedById.get(definition.id) ?? createInitialConnector(definition);
       return {
         ...connector,
-        name: definition?.name ?? connector.name,
-        category: definition?.category ?? connector.category,
+        name: definition.name,
+        category: definition.category,
         config: normalizeConnectorConfig(definition, connector.config ?? {}),
         status: normalizeConnectorStatus(definition, connector.status, normalizeConnectorConfig(definition, connector.config ?? {}))
       };
@@ -160,6 +178,13 @@ const validateConnectorConfig = (
     const password = String(config.password ?? '');
     if (password.length < 6) {
       return 'Password must be at least 6 characters.';
+    }
+  }
+
+  if (definition.id === 'medical-report') {
+    const provider = String(config.provider ?? '').trim();
+    if (!['deepseek', 'volcengine'].includes(provider)) {
+      return 'Provider must be DeepSeek or 火山引擎.';
     }
   }
 
@@ -213,15 +238,6 @@ export const mockConnectorApi = {
       };
     }
 
-    const nextRunResult = getNextRunFromCron(payload.schedule);
-    if (!nextRunResult.success || !nextRunResult.nextRun) {
-      return {
-        success: false,
-        message: nextRunResult.message ?? 'Invalid cron expression.',
-        code: 'INVALID_CRON'
-      };
-    }
-
     const connectors = readConnectors();
     const connectorIndex = connectors.findIndex((connector) => connector.id === payload.id);
 
@@ -233,10 +249,30 @@ export const mockConnectorApi = {
       };
     }
 
+    const isManualOnlyConnector = payload.id === 'medical-report';
+    let normalizedSchedule = payload.schedule.trim();
+    let normalizedNextRun = connectors[connectorIndex].nextRun;
+
+    if (isManualOnlyConnector) {
+      normalizedSchedule = '-';
+      normalizedNextRun = '-';
+    } else {
+      const nextRunResult = getNextRunFromCron(normalizedSchedule);
+      if (!nextRunResult.success || !nextRunResult.nextRun) {
+        return {
+          success: false,
+          message: nextRunResult.message ?? 'Invalid cron expression.',
+          code: 'INVALID_CRON'
+        };
+      }
+
+      normalizedNextRun = formatDateTime(nextRunResult.nextRun);
+    }
+
     const updatedConnector: ConnectorRecord = {
       ...connectors[connectorIndex],
-      schedule: payload.schedule.trim(),
-      nextRun: formatDateTime(nextRunResult.nextRun),
+      schedule: normalizedSchedule,
+      nextRun: normalizedNextRun,
       config: normalizedConfig,
       status: normalizeConnectorStatus(definition, connectors[connectorIndex].status, normalizedConfig)
     };

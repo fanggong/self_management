@@ -43,7 +43,7 @@ public class ConnectorController {
     @RequestBody TestConnectionRequest request
   ) {
     connectorService.testConnection(jwtService.toAuthenticatedUser(jwt), connectorId, request);
-    return ApiResult.success(null, "Garmin Connect connection verified successfully.");
+    return ApiResult.success(null, connectorService.getConnectorName(connectorId) + " connection verified successfully.");
   }
 
   @PutMapping("/users/me/connectors/{connectorId}/configuration")

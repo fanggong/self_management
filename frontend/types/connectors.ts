@@ -1,16 +1,23 @@
 export type ConnectorCategory = 'health' | 'finance';
 
-export type ConnectorId = 'garmin-connect';
+export type ConnectorId = 'garmin-connect' | 'medical-report';
 
 export type ConnectorStatus = 'not_configured' | 'running' | 'stopped';
 
-export type ConnectorFieldType = 'text' | 'password';
+export type ConnectorFieldType = 'text' | 'password' | 'select';
+
+export type ConnectorFieldOption = {
+  label: string;
+  value: string;
+  logo?: string;
+};
 
 export type ConnectorFieldSchema = {
   key: string;
   label: string;
   type: ConnectorFieldType;
   placeholder: string;
+  options?: ConnectorFieldOption[];
   required?: boolean;
   autocomplete?: string;
 };
@@ -55,6 +62,69 @@ export type CreateSyncJobPayload = {
   id: ConnectorId;
   startAt: string;
   endAt: string;
+};
+
+export type MedicalReportParsePayload = {
+  recordNumber: string;
+  reportDate: string;
+  institution: string;
+  file: File;
+};
+
+export type MedicalReportParsedItem = {
+  itemKey: string;
+  result: string;
+  referenceValue: string;
+  unit: string;
+  abnormalFlag: string;
+};
+
+export type MedicalReportParsedSection = {
+  sectionKey: string;
+  items: MedicalReportParsedItem[];
+};
+
+export type MedicalReportParseResult = {
+  parseSessionId: string;
+  connectorId: ConnectorId;
+  provider: string;
+  modelId: string;
+  parsedAt: string;
+  form: {
+    examiner: string;
+    examDate: string;
+  };
+  sections: MedicalReportParsedSection[];
+};
+
+export type MedicalReportSyncPayload = {
+  parseSessionId: string;
+  recordNumber: string;
+  reportDate: string;
+  institution: string;
+  fileName: string;
+  form: {
+    examiner: string;
+    examDate: string;
+  };
+  sections: MedicalReportParsedSection[];
+};
+
+export type MedicalReportSyncResult = {
+  jobId: string;
+  connectorId: ConnectorId;
+  status: SyncJobStatus;
+  triggerType: SyncJobTriggerType;
+  windowStart: string;
+  windowEnd: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+  fetchedCount: number;
+  insertedCount: number;
+  updatedCount: number;
+  dedupedCount: number;
+  errorMessage: string | null;
+  createdAt: string;
 };
 
 export type SyncJobStatus = 'queued' | 'running' | 'success' | 'failed';
