@@ -1,10 +1,40 @@
 from __future__ import annotations
 
 import subprocess
+from collections.abc import Iterable
 
 from flask import Flask, jsonify, request
 
 app = Flask(__name__)
+
+
+LAYER_PATH_PREFIXES = ("staging/", "intermediate/", "marts/")
+
+
+def normalize_selectors(selectors: Iterable[str]) -> list[str]:
+    normalized: list[str] = []
+    for raw_selector in selectors:
+        selector = str(raw_selector).strip()
+        if not selector:
+            continue
+
+        prefix = ""
+        while selector and selector[0] in "+@":
+            prefix += selector[0]
+            selector = selector[1:]
+
+        if selector.startswith("tag:"):
+            normalized_prefix = prefix if "+" in prefix else f"{prefix}+"
+            normalized.append(f"{normalized_prefix}{selector}")
+            continue
+
+        if selector.startswith(LAYER_PATH_PREFIXES):
+            normalized.append(f"{prefix}path:models/{selector}")
+            continue
+
+        normalized.append(f"{prefix}{selector}")
+
+    return normalized
 
 
 @app.get("/health")
@@ -15,7 +45,7 @@ def health() -> tuple[dict[str, str], int]:
 @app.post("/run")
 def run_build():
     payload = request.get_json(silent=True) or {}
-    selected = payload.get("select") or []
+    selected = normalize_selectors(payload.get("select") or [])
 
     command = [
         "dbt",

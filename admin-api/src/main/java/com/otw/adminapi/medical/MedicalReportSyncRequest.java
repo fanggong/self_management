@@ -10,17 +10,12 @@ public record MedicalReportSyncRequest(
   @NotBlank String reportDate,
   @NotBlank String institution,
   @NotBlank String fileName,
-  @Valid MedicalReportFormInput form,
   @Valid List<MedicalReportSectionInput> sections
 ) {
-  public record MedicalReportFormInput(
-    @NotBlank String examiner,
-    @NotBlank String examDate
-  ) {
-  }
-
   public record MedicalReportSectionInput(
     @NotBlank String sectionKey,
+    String examiner,
+    String examDate,
     @Valid List<MedicalReportItemInput> items
   ) {
   }

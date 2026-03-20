@@ -1,0 +1,1151 @@
+version: 2
+models:
+- name: int_health_profile_snapshot
+  description: Semantic intermediate mirror of `stg_garmin_profile_snapshot`. Grain
+    stays identical to staging so each intermediate row maps to exactly one staging
+    row while dropping connector/raw lineage columns and upgrading only fields that
+    can be stably semanticized.
+  tests:
+  - unique_combination:
+      arguments:
+        column_names:
+        - staging_record_id
+  columns:
+  - name: staging_record_id
+    data_type: uuid
+    description: Technical lineage key carried from the staging `raw_record_id` column.
+    tests:
+    - not_null
+  - name: account_id
+    data_type: uuid
+    description: Application account that owns the intermediate health record.
+    tests:
+    - not_null
+  - name: source_external_id
+    data_type: text
+    description: Source-side business metadata carried forward from staging `source_external_id`
+      after connector and raw lineage columns are removed.
+    tests:
+    - not_null
+  - name: source_record_date
+    data_type: date
+    description: Source-side business metadata carried forward from staging `source_record_date`
+      after connector and raw lineage columns are removed.
+    tests:
+    - not_null
+  - name: source_record_at
+    data_type: timestamp with time zone
+    description: Source-side business metadata carried forward from staging `source_record_at`
+      after connector and raw lineage columns are removed.
+  - name: source_updated_at
+    data_type: timestamp with time zone
+    description: Source-side business metadata carried forward from staging `source_updated_at`
+      after connector and raw lineage columns are removed.
+  - name: payload_id
+    data_type: text
+    description: Semantic carry-forward of staging `payload_id`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: profile_id
+    data_type: text
+    description: Semantic carry-forward of staging `profile_id`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: connection_request_id
+    data_type: text
+    description: Semantic carry-forward of staging `connection_request_id`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: garmin_guid
+    data_type: text
+    description: Semantic carry-forward of staging `garmin_guid`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: profile_external_id
+    data_type: text
+    description: Semantic carry-forward of staging `profile_external_id`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: display_name
+    data_type: text
+    description: Semantic carry-forward of staging `display_name`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: full_name
+    data_type: text
+    description: Semantic carry-forward of staging `full_name`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: user_name
+    data_type: text
+    description: Semantic carry-forward of staging `user_name`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: user_profile_full_name
+    data_type: text
+    description: Semantic carry-forward of staging `user_profile_full_name`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: profile_image_type
+    data_type: text
+    description: Semantic carry-forward of staging `profile_image_type`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: profile_image_uuid
+    data_type: text
+    description: Semantic carry-forward of staging `profile_image_uuid`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: profile_image_url_large
+    data_type: text
+    description: Semantic carry-forward of staging `profile_image_url_large`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: profile_image_url_medium
+    data_type: text
+    description: Semantic carry-forward of staging `profile_image_url_medium`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: profile_image_url_small
+    data_type: text
+    description: Semantic carry-forward of staging `profile_image_url_small`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: location
+    data_type: text
+    description: Semantic carry-forward of staging `location`. The value is kept unchanged
+      because the staging type is already suitable or the field is intentionally preserved
+      as-is in this intermediate phase.
+  - name: facebook_url
+    data_type: text
+    description: Semantic carry-forward of staging `facebook_url`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: twitter_url
+    data_type: text
+    description: Semantic carry-forward of staging `twitter_url`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: personal_website
+    data_type: text
+    description: Semantic carry-forward of staging `personal_website`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: motivation
+    data_type: text
+    description: Semantic carry-forward of staging `motivation`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: bio
+    data_type: text
+    description: Semantic carry-forward of staging `bio`. The value is kept unchanged
+      because the staging type is already suitable or the field is intentionally preserved
+      as-is in this intermediate phase.
+  - name: primary_activity
+    data_type: text
+    description: Semantic carry-forward of staging `primary_activity`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: other_primary_activity
+    data_type: text
+    description: Semantic carry-forward of staging `other_primary_activity`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: running_training_speed
+    data_type: numeric
+    description: Semantic carry-forward of staging `running_training_speed`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: cycling_training_speed
+    data_type: numeric
+    description: Semantic carry-forward of staging `cycling_training_speed`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: swimming_training_speed
+    data_type: numeric
+    description: Semantic carry-forward of staging `swimming_training_speed`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: cycling_classification
+    data_type: text
+    description: Semantic carry-forward of staging `cycling_classification`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: cycling_max_avg_power
+    data_type: numeric
+    description: Semantic carry-forward of staging `cycling_max_avg_power`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: other_activity
+    data_type: text
+    description: Semantic carry-forward of staging `other_activity`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: other_motivation
+    data_type: text
+    description: Semantic carry-forward of staging `other_motivation`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: profile_visibility
+    data_type: text
+    description: Semantic carry-forward of staging `profile_visibility`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: activity_start_visibility
+    data_type: text
+    description: Semantic carry-forward of staging `activity_start_visibility`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: activity_map_visibility
+    data_type: text
+    description: Semantic carry-forward of staging `activity_map_visibility`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: course_visibility
+    data_type: text
+    description: Semantic carry-forward of staging `course_visibility`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: activity_heart_rate_visibility
+    data_type: text
+    description: Semantic carry-forward of staging `activity_heart_rate_visibility`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: activity_power_visibility
+    data_type: text
+    description: Semantic carry-forward of staging `activity_power_visibility`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: badge_visibility
+    data_type: text
+    description: Semantic carry-forward of staging `badge_visibility`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: show_age
+    data_type: boolean
+    description: Semantic carry-forward of staging `show_age`. The value is kept unchanged
+      because the staging type is already suitable or the field is intentionally preserved
+      as-is in this intermediate phase.
+  - name: show_weight
+    data_type: boolean
+    description: Semantic carry-forward of staging `show_weight`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: show_height
+    data_type: boolean
+    description: Semantic carry-forward of staging `show_height`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: show_weight_class
+    data_type: boolean
+    description: Semantic carry-forward of staging `show_weight_class`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: show_age_range
+    data_type: boolean
+    description: Semantic carry-forward of staging `show_age_range`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: show_gender
+    data_type: boolean
+    description: Semantic carry-forward of staging `show_gender`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: show_activity_class
+    data_type: boolean
+    description: Semantic carry-forward of staging `show_activity_class`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: show_vo2_max
+    data_type: boolean
+    description: Semantic carry-forward of staging `show_vo2_max`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: show_personal_records
+    data_type: boolean
+    description: Semantic carry-forward of staging `show_personal_records`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: show_last_12_months
+    data_type: boolean
+    description: Semantic carry-forward of staging `show_last_12_months`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: show_lifetime_totals
+    data_type: boolean
+    description: Semantic carry-forward of staging `show_lifetime_totals`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: show_upcoming_events
+    data_type: boolean
+    description: Semantic carry-forward of staging `show_upcoming_events`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: show_recent_favorites
+    data_type: boolean
+    description: Semantic carry-forward of staging `show_recent_favorites`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: show_recent_device
+    data_type: boolean
+    description: Semantic carry-forward of staging `show_recent_device`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: show_recent_gear
+    data_type: boolean
+    description: Semantic carry-forward of staging `show_recent_gear`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: show_badges
+    data_type: boolean
+    description: Semantic carry-forward of staging `show_badges`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: name_approved
+    data_type: boolean
+    description: Semantic carry-forward of staging `name_approved`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: make_golf_scorecards_private
+    data_type: boolean
+    description: Semantic carry-forward of staging `make_golf_scorecards_private`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: allow_golf_live_scoring
+    data_type: boolean
+    description: Semantic carry-forward of staging `allow_golf_live_scoring`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: allow_golf_scoring_by_connections
+    data_type: boolean
+    description: Semantic carry-forward of staging `allow_golf_scoring_by_connections`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: user_level
+    data_type: integer
+    description: Semantic carry-forward of staging `user_level`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: user_point
+    data_type: integer
+    description: Semantic carry-forward of staging `user_point`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: level_update_at
+    data_type: text
+    description: Semantic carry-forward of staging `level_update_at`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: level_is_viewed
+    data_type: boolean
+    description: Semantic carry-forward of staging `level_is_viewed`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: level_point_threshold
+    data_type: integer
+    description: Semantic carry-forward of staging `level_point_threshold`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: user_point_offset
+    data_type: integer
+    description: Semantic carry-forward of staging `user_point_offset`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: user_pro
+    data_type: boolean
+    description: Semantic carry-forward of staging `user_pro`. The value is kept unchanged
+      because the staging type is already suitable or the field is intentionally preserved
+      as-is in this intermediate phase.
+- name: int_health_profile_attribute_detail
+  description: Semantic intermediate mirror of `stg_garmin_profile_attribute_detail`.
+    Grain stays identical to staging so each intermediate row maps to exactly one
+    staging row while dropping connector/raw lineage columns and upgrading only fields
+    that can be stably semanticized.
+  tests:
+  - unique_combination:
+      arguments:
+        column_names:
+        - staging_record_id
+        - attribute_name
+        - item_position
+  columns:
+  - name: staging_record_id
+    data_type: uuid
+    description: Technical lineage key carried from the staging `raw_record_id` column.
+    tests:
+    - not_null
+  - name: account_id
+    data_type: uuid
+    description: Application account that owns the intermediate health record.
+    tests:
+    - not_null
+  - name: source_external_id
+    data_type: text
+    description: Source-side business metadata carried forward from staging `source_external_id`
+      after connector and raw lineage columns are removed.
+    tests:
+    - not_null
+  - name: source_record_date
+    data_type: date
+    description: Source-side business metadata carried forward from staging `source_record_date`
+      after connector and raw lineage columns are removed.
+    tests:
+    - not_null
+  - name: source_record_at
+    data_type: timestamp with time zone
+    description: Source-side business metadata carried forward from staging `source_record_at`
+      after connector and raw lineage columns are removed.
+  - name: source_updated_at
+    data_type: timestamp with time zone
+    description: Source-side business metadata carried forward from staging `source_updated_at`
+      after connector and raw lineage columns are removed.
+  - name: profile_id
+    data_type: text
+    description: Semantic carry-forward of staging `profile_id`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: attribute_name
+    data_type: text
+    description: Semantic carry-forward of staging `attribute_name`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+    tests:
+    - not_null
+  - name: item_position
+    data_type: integer
+    description: Semantic carry-forward of staging `item_position`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+    tests:
+    - not_null
+  - name: item
+    data_type: text
+    description: Semantic carry-forward of staging `item`. The value is kept unchanged
+      because the staging type is already suitable or the field is intentionally preserved
+      as-is in this intermediate phase.
+- name: int_health_daily_summary
+  description: Semantic intermediate mirror of `stg_garmin_daily_summary`. Grain stays
+    identical to staging so each intermediate row maps to exactly one staging row
+    while dropping connector/raw lineage columns and upgrading only fields that can
+    be stably semanticized.
+  tests:
+  - unique_combination:
+      arguments:
+        column_names:
+        - staging_record_id
+  columns:
+  - name: staging_record_id
+    data_type: uuid
+    description: Technical lineage key carried from the staging `raw_record_id` column.
+    tests:
+    - not_null
+  - name: account_id
+    data_type: uuid
+    description: Application account that owns the intermediate health record.
+    tests:
+    - not_null
+  - name: source_external_id
+    data_type: text
+    description: Source-side business metadata carried forward from staging `source_external_id`
+      after connector and raw lineage columns are removed.
+    tests:
+    - not_null
+  - name: source_record_date
+    data_type: date
+    description: Source-side business metadata carried forward from staging `source_record_date`
+      after connector and raw lineage columns are removed.
+    tests:
+    - not_null
+  - name: source_record_at
+    data_type: timestamp with time zone
+    description: Source-side business metadata carried forward from staging `source_record_at`
+      after connector and raw lineage columns are removed.
+  - name: source_updated_at
+    data_type: timestamp with time zone
+    description: Source-side business metadata carried forward from staging `source_updated_at`
+      after connector and raw lineage columns are removed.
+  - name: user_profile_id
+    data_type: text
+    description: Semantic carry-forward of staging `user_profile_id`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: user_daily_summary_id
+    data_type: text
+    description: Semantic carry-forward of staging `user_daily_summary_id`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: calendar_date
+    data_type: date
+    description: Business calendar date promoted from the staging text field into
+      a semantic `date` column.
+  - name: summary_uuid
+    data_type: text
+    description: Semantic carry-forward of staging `summary_uuid`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: summary_source
+    data_type: text
+    description: Semantic carry-forward of staging `summary_source`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: total_kilocalories
+    data_type: numeric
+    description: Semantic carry-forward of staging `total_kilocalories`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: active_kilocalories
+    data_type: numeric
+    description: Semantic carry-forward of staging `active_kilocalories`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: bmr_kilocalories
+    data_type: numeric
+    description: Semantic carry-forward of staging `bmr_kilocalories`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: wellness_kilocalories
+    data_type: numeric
+    description: Semantic carry-forward of staging `wellness_kilocalories`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: burned_kilocalories
+    data_type: numeric
+    description: Semantic carry-forward of staging `burned_kilocalories`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: consumed_kilocalories
+    data_type: numeric
+    description: Semantic carry-forward of staging `consumed_kilocalories`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: remaining_kilocalories
+    data_type: numeric
+    description: Semantic carry-forward of staging `remaining_kilocalories`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: net_calorie_goal
+    data_type: numeric
+    description: Semantic carry-forward of staging `net_calorie_goal`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: net_remaining_kilocalories
+    data_type: numeric
+    description: Semantic carry-forward of staging `net_remaining_kilocalories`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: total_steps
+    data_type: bigint
+    description: Semantic carry-forward of staging `total_steps`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: daily_step_goal
+    data_type: bigint
+    description: Semantic carry-forward of staging `daily_step_goal`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: total_distance_meters
+    data_type: numeric
+    description: Semantic carry-forward of staging `total_distance_meters`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: wellness_distance_meters
+    data_type: numeric
+    description: Semantic carry-forward of staging `wellness_distance_meters`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: wellness_active_kilocalories
+    data_type: numeric
+    description: Semantic carry-forward of staging `wellness_active_kilocalories`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: wellness_start_time_gmt
+    data_type: timestamp with time zone
+    description: Wellness-start instant promoted from the staging GMT text field into
+      `timestamptz`.
+  - name: wellness_end_time_gmt
+    data_type: timestamp with time zone
+    description: Wellness-end instant promoted from the staging GMT text field into
+      `timestamptz`.
+  - name: wellness_start_time_local
+    data_type: text
+    description: Semantic carry-forward of staging `wellness_start_time_local`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: wellness_end_time_local
+    data_type: text
+    description: Semantic carry-forward of staging `wellness_end_time_local`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: duration_in_milliseconds
+    data_type: bigint
+    description: Semantic carry-forward of staging `duration_in_milliseconds`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: wellness_description
+    data_type: text
+    description: Semantic carry-forward of staging `wellness_description`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: highly_active_seconds
+    data_type: bigint
+    description: Semantic carry-forward of staging `highly_active_seconds`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: active_seconds
+    data_type: bigint
+    description: Semantic carry-forward of staging `active_seconds`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: sedentary_seconds
+    data_type: bigint
+    description: Semantic carry-forward of staging `sedentary_seconds`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: sleeping_seconds
+    data_type: bigint
+    description: Semantic carry-forward of staging `sleeping_seconds`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: includes_wellness_data
+    data_type: boolean
+    description: Semantic carry-forward of staging `includes_wellness_data`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: includes_activity_data
+    data_type: boolean
+    description: Semantic carry-forward of staging `includes_activity_data`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: includes_calorie_consumed_data
+    data_type: boolean
+    description: Semantic carry-forward of staging `includes_calorie_consumed_data`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: privacy_protected
+    data_type: boolean
+    description: Semantic carry-forward of staging `privacy_protected`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: moderate_intensity_minutes
+    data_type: integer
+    description: Semantic carry-forward of staging `moderate_intensity_minutes`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: vigorous_intensity_minutes
+    data_type: integer
+    description: Semantic carry-forward of staging `vigorous_intensity_minutes`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: intensity_minutes_goal
+    data_type: integer
+    description: Semantic carry-forward of staging `intensity_minutes_goal`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: floors_ascended_in_meters
+    data_type: numeric
+    description: Semantic carry-forward of staging `floors_ascended_in_meters`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: floors_descended_in_meters
+    data_type: numeric
+    description: Semantic carry-forward of staging `floors_descended_in_meters`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: floors_ascended
+    data_type: integer
+    description: Semantic carry-forward of staging `floors_ascended`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: floors_descended
+    data_type: integer
+    description: Semantic carry-forward of staging `floors_descended`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: user_floors_ascended_goal
+    data_type: integer
+    description: Semantic carry-forward of staging `user_floors_ascended_goal`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: min_heart_rate
+    data_type: integer
+    description: Semantic carry-forward of staging `min_heart_rate`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: max_heart_rate
+    data_type: integer
+    description: Semantic carry-forward of staging `max_heart_rate`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: resting_heart_rate
+    data_type: integer
+    description: Semantic carry-forward of staging `resting_heart_rate`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: last_seven_days_avg_resting_heart_rate
+    data_type: integer
+    description: Semantic carry-forward of staging `last_seven_days_avg_resting_heart_rate`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: average_stress_level
+    data_type: numeric
+    description: Semantic carry-forward of staging `average_stress_level`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: max_stress_level
+    data_type: numeric
+    description: Semantic carry-forward of staging `max_stress_level`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: stress_duration
+    data_type: bigint
+    description: Semantic carry-forward of staging `stress_duration`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: rest_stress_duration
+    data_type: bigint
+    description: Semantic carry-forward of staging `rest_stress_duration`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: activity_stress_duration
+    data_type: bigint
+    description: Semantic carry-forward of staging `activity_stress_duration`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: uncategorized_stress_duration
+    data_type: bigint
+    description: Semantic carry-forward of staging `uncategorized_stress_duration`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: total_stress_duration
+    data_type: bigint
+    description: Semantic carry-forward of staging `total_stress_duration`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: low_stress_duration
+    data_type: bigint
+    description: Semantic carry-forward of staging `low_stress_duration`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: medium_stress_duration
+    data_type: bigint
+    description: Semantic carry-forward of staging `medium_stress_duration`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: high_stress_duration
+    data_type: bigint
+    description: Semantic carry-forward of staging `high_stress_duration`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: stress_qualifier
+    data_type: text
+    description: Semantic carry-forward of staging `stress_qualifier`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: measurable_awake_duration
+    data_type: bigint
+    description: Semantic carry-forward of staging `measurable_awake_duration`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: measurable_asleep_duration
+    data_type: bigint
+    description: Semantic carry-forward of staging `measurable_asleep_duration`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: last_sync_timestamp_gmt
+    data_type: timestamp with time zone
+    description: Last Garmin sync instant promoted from the staging GMT text field
+      into `timestamptz`.
+  - name: min_avg_heart_rate
+    data_type: numeric
+    description: Semantic carry-forward of staging `min_avg_heart_rate`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: max_avg_heart_rate
+    data_type: numeric
+    description: Semantic carry-forward of staging `max_avg_heart_rate`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+- name: int_health_activity_detail
+  description: Semantic intermediate mirror of `stg_garmin_activity_detail`. Grain
+    stays identical to staging so each intermediate row maps to exactly one staging
+    row while dropping connector/raw lineage columns and upgrading only fields that
+    can be stably semanticized.
+  tests:
+  - unique_combination:
+      arguments:
+        column_names:
+        - staging_record_id
+  columns:
+  - name: staging_record_id
+    data_type: uuid
+    description: Technical lineage key carried from the staging `raw_record_id` column.
+    tests:
+    - not_null
+  - name: account_id
+    data_type: uuid
+    description: Application account that owns the intermediate health record.
+    tests:
+    - not_null
+  - name: source_external_id
+    data_type: text
+    description: Source-side business metadata carried forward from staging `source_external_id`
+      after connector and raw lineage columns are removed.
+    tests:
+    - not_null
+  - name: source_record_date
+    data_type: date
+    description: Source-side business metadata carried forward from staging `source_record_date`
+      after connector and raw lineage columns are removed.
+    tests:
+    - not_null
+  - name: source_record_at
+    data_type: timestamp with time zone
+    description: Source-side business metadata carried forward from staging `source_record_at`
+      after connector and raw lineage columns are removed.
+  - name: source_updated_at
+    data_type: timestamp with time zone
+    description: Source-side business metadata carried forward from staging `source_updated_at`
+      after connector and raw lineage columns are removed.
+  - name: activity_id
+    data_type: text
+    description: Semantic carry-forward of staging `activity_id`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: activity_uuid
+    data_type: text
+    description: Semantic carry-forward of staging `activity_uuid`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: summary_id
+    data_type: text
+    description: Semantic carry-forward of staging `summary_id`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: owner_id
+    data_type: text
+    description: Semantic carry-forward of staging `owner_id`. The value is kept unchanged
+      because the staging type is already suitable or the field is intentionally preserved
+      as-is in this intermediate phase.
+  - name: device_id
+    data_type: text
+    description: Semantic carry-forward of staging `device_id`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: activity_name
+    data_type: text
+    description: Semantic carry-forward of staging `activity_name`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: description
+    data_type: text
+    description: Semantic carry-forward of staging `description`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: event_type
+    data_type: text
+    description: Semantic carry-forward of staging `event_type`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: activity_type
+    data_type: text
+    description: Semantic carry-forward of staging `activity_type`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: activity_type_type_id
+    data_type: integer
+    description: Semantic carry-forward of staging `activity_type_type_id`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: activity_type_type_key
+    data_type: text
+    description: Semantic carry-forward of staging `activity_type_type_key`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: activity_type_type_name
+    data_type: text
+    description: Semantic carry-forward of staging `activity_type_type_name`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: activity_type_parent_type_id
+    data_type: integer
+    description: Semantic carry-forward of staging `activity_type_parent_type_id`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: activity_type_sort_order
+    data_type: integer
+    description: Semantic carry-forward of staging `activity_type_sort_order`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: activity_type_is_hidden
+    data_type: boolean
+    description: Semantic carry-forward of staging `activity_type_is_hidden`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: activity_type_restricted
+    data_type: boolean
+    description: Semantic carry-forward of staging `activity_type_restricted`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: activity_type_trimmable
+    data_type: boolean
+    description: Semantic carry-forward of staging `activity_type_trimmable`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: start_time_local
+    data_type: text
+    description: Semantic carry-forward of staging `start_time_local`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: start_time_gmt
+    data_type: timestamp with time zone
+    description: Activity start instant promoted from the staging GMT text field into
+      `timestamptz`.
+  - name: update_date
+    data_type: text
+    description: Semantic carry-forward of staging `update_date`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: start_latitude
+    data_type: numeric
+    description: Semantic carry-forward of staging `start_latitude`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: start_longitude
+    data_type: numeric
+    description: Semantic carry-forward of staging `start_longitude`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: end_latitude
+    data_type: numeric
+    description: Semantic carry-forward of staging `end_latitude`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: end_longitude
+    data_type: numeric
+    description: Semantic carry-forward of staging `end_longitude`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: distance
+    data_type: numeric
+    description: Semantic carry-forward of staging `distance`. The value is kept unchanged
+      because the staging type is already suitable or the field is intentionally preserved
+      as-is in this intermediate phase.
+  - name: duration
+    data_type: numeric
+    description: Semantic carry-forward of staging `duration`. The value is kept unchanged
+      because the staging type is already suitable or the field is intentionally preserved
+      as-is in this intermediate phase.
+  - name: moving_duration
+    data_type: numeric
+    description: Semantic carry-forward of staging `moving_duration`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: elapsed_duration
+    data_type: numeric
+    description: Semantic carry-forward of staging `elapsed_duration`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: elevation_gain
+    data_type: numeric
+    description: Semantic carry-forward of staging `elevation_gain`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: elevation_loss
+    data_type: numeric
+    description: Semantic carry-forward of staging `elevation_loss`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: max_elevation
+    data_type: numeric
+    description: Semantic carry-forward of staging `max_elevation`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: min_elevation
+    data_type: numeric
+    description: Semantic carry-forward of staging `min_elevation`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: average_speed
+    data_type: numeric
+    description: Semantic carry-forward of staging `average_speed`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: average_moving_speed
+    data_type: numeric
+    description: Semantic carry-forward of staging `average_moving_speed`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: max_speed
+    data_type: numeric
+    description: Semantic carry-forward of staging `max_speed`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: calories
+    data_type: numeric
+    description: Semantic carry-forward of staging `calories`. The value is kept unchanged
+      because the staging type is already suitable or the field is intentionally preserved
+      as-is in this intermediate phase.
+  - name: bmr_calories
+    data_type: numeric
+    description: Semantic carry-forward of staging `bmr_calories`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: average_hr
+    data_type: integer
+    description: Semantic carry-forward of staging `average_hr`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: average_heart_rate
+    data_type: integer
+    description: Semantic carry-forward of staging `average_heart_rate`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: max_hr
+    data_type: integer
+    description: Semantic carry-forward of staging `max_hr`. The value is kept unchanged
+      because the staging type is already suitable or the field is intentionally preserved
+      as-is in this intermediate phase.
+  - name: max_heart_rate
+    data_type: integer
+    description: Semantic carry-forward of staging `max_heart_rate`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: average_run_cadence
+    data_type: numeric
+    description: Semantic carry-forward of staging `average_run_cadence`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: max_run_cadence
+    data_type: numeric
+    description: Semantic carry-forward of staging `max_run_cadence`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: average_power
+    data_type: numeric
+    description: Semantic carry-forward of staging `average_power`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: max_power
+    data_type: numeric
+    description: Semantic carry-forward of staging `max_power`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: min_power
+    data_type: numeric
+    description: Semantic carry-forward of staging `min_power`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: normalized_power
+    data_type: numeric
+    description: Semantic carry-forward of staging `normalized_power`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: total_work
+    data_type: numeric
+    description: Semantic carry-forward of staging `total_work`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: ground_contact_time
+    data_type: numeric
+    description: Semantic carry-forward of staging `ground_contact_time`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: stride_length
+    data_type: numeric
+    description: Semantic carry-forward of staging `stride_length`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: vertical_oscillation
+    data_type: numeric
+    description: Semantic carry-forward of staging `vertical_oscillation`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: vertical_ratio
+    data_type: numeric
+    description: Semantic carry-forward of staging `vertical_ratio`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: training_effect
+    data_type: numeric
+    description: Semantic carry-forward of staging `training_effect`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: anaerobic_training_effect
+    data_type: numeric
+    description: Semantic carry-forward of staging `anaerobic_training_effect`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: aerobic_training_effect_message
+    data_type: text
+    description: Semantic carry-forward of staging `aerobic_training_effect_message`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: anaerobic_training_effect_message
+    data_type: text
+    description: Semantic carry-forward of staging `anaerobic_training_effect_message`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: training_effect_label
+    data_type: text
+    description: Semantic carry-forward of staging `training_effect_label`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: activity_training_load
+    data_type: numeric
+    description: Semantic carry-forward of staging `activity_training_load`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: min_activity_lap_duration
+    data_type: numeric
+    description: Semantic carry-forward of staging `min_activity_lap_duration`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: direct_workout_feel
+    data_type: text
+    description: Semantic carry-forward of staging `direct_workout_feel`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: direct_workout_rpe
+    data_type: text
+    description: Semantic carry-forward of staging `direct_workout_rpe`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: moderate_intensity_minutes
+    data_type: numeric
+    description: Semantic carry-forward of staging `moderate_intensity_minutes`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: vigorous_intensity_minutes
+    data_type: numeric
+    description: Semantic carry-forward of staging `vigorous_intensity_minutes`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: steps
+    data_type: bigint
+    description: Semantic carry-forward of staging `steps`. The value is kept unchanged
+      because the staging type is already suitable or the field is intentionally preserved
+      as-is in this intermediate phase.
+  - name: recovery_heart_rate
+    data_type: integer
+    description: Semantic carry-forward of staging `recovery_heart_rate`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: avg_grade_adjusted_speed
+    data_type: numeric
+    description: Semantic carry-forward of staging `avg_grade_adjusted_speed`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: difference_body_battery
+    data_type: numeric
+    description: Semantic carry-forward of staging `difference_body_battery`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: max_vertical_speed
+    data_type: numeric
+    description: Semantic carry-forward of staging `max_vertical_speed`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: water_estimated
+    data_type: numeric
+    description: Estimated water-loss value promoted from the staging numeric-looking
+      text field into `numeric`.

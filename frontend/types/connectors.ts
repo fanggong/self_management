@@ -81,6 +81,8 @@ export type MedicalReportParsedItem = {
 
 export type MedicalReportParsedSection = {
   sectionKey: string;
+  examiner: string;
+  examDate: string;
   items: MedicalReportParsedItem[];
 };
 
@@ -90,10 +92,6 @@ export type MedicalReportParseResult = {
   provider: string;
   modelId: string;
   parsedAt: string;
-  form: {
-    examiner: string;
-    examDate: string;
-  };
   sections: MedicalReportParsedSection[];
 };
 
@@ -103,10 +101,6 @@ export type MedicalReportSyncPayload = {
   reportDate: string;
   institution: string;
   fileName: string;
-  form: {
-    examiner: string;
-    examDate: string;
-  };
   sections: MedicalReportParsedSection[];
 };
 

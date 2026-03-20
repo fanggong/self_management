@@ -59,13 +59,13 @@ public class MedicalReportWorkerClient {
       }
 
       WorkerParseData data = response.data();
-      String examiner = data.form() == null ? "" : normalize(data.form().examiner());
-      String examDate = data.form() == null ? "" : normalize(data.form().examDate());
       List<ParsedSection> sections = data.sections() == null
         ? List.of()
         : data.sections().stream()
           .map(section -> new ParsedSection(
             normalize(section.sectionKey()),
+            normalize(section.examiner()),
+            normalize(section.examDate()),
             section.items() == null
               ? List.of()
               : section.items().stream()
@@ -80,7 +80,7 @@ public class MedicalReportWorkerClient {
           ))
           .toList();
 
-      return new ParsedPayload(examiner, examDate, sections);
+      return new ParsedPayload(sections);
     } catch (ApiException exception) {
       throw exception;
     } catch (JsonProcessingException exception) {
@@ -123,15 +123,13 @@ public class MedicalReportWorkerClient {
   ) {
   }
 
-  public record ParsedPayload(
-    String examiner,
-    String examDate,
-    List<ParsedSection> sections
-  ) {
+  public record ParsedPayload(List<ParsedSection> sections) {
   }
 
   public record ParsedSection(
     String sectionKey,
+    String examiner,
+    String examDate,
     List<ParsedItem> items
   ) {
   }
@@ -156,21 +154,15 @@ public class MedicalReportWorkerClient {
 
   @JsonIgnoreProperties(ignoreUnknown = true)
   private record WorkerParseData(
-    WorkerParseForm form,
     List<WorkerParseSection> sections
-  ) {
-  }
-
-  @JsonIgnoreProperties(ignoreUnknown = true)
-  private record WorkerParseForm(
-    String examiner,
-    String examDate
   ) {
   }
 
   @JsonIgnoreProperties(ignoreUnknown = true)
   private record WorkerParseSection(
     String sectionKey,
+    String examiner,
+    String examDate,
     List<WorkerParseItem> items
   ) {
   }

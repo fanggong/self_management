@@ -2,12 +2,114 @@ version: 2
 
 sources:
   - name: raw_health
-    description: Generic health-domain raw records written by the Python sync worker.
     schema: raw
+    description: >
+      Canonical raw health ingestion tables. Each table keeps the original source payload in
+      `payload_jsonb` together with sync lineage metadata before the dbt staging layer parses it
+      into structured health records.
     tables:
       - name: health_snapshot_record
-        description: Pure raw payloads for health snapshot-style endpoints.
+        description: >
+          Raw snapshot records for health connectors. Garmin `profile`, `daily_summary`, `sleep`
+          and `medical_report` currently land here as one raw row per source snapshot.
+        columns:
+          - name: id
+            description: Raw record primary key.
+          - name: account_id
+            description: Application account that owns the raw record.
+          - name: connector_config_id
+            description: Connector configuration instance that produced the raw record.
+          - name: sync_task_id
+            description: Sync task that wrote the raw record.
+          - name: connector_id
+            description: Connector identifier such as `garmin-connect` or `medical-report`.
+          - name: source_stream
+            description: Source stream name within the connector.
+          - name: external_id
+            description: Stable source-side identifier used in the raw-table unique key.
+          - name: source_record_date
+            description: Business date associated with the source record.
+          - name: source_record_at
+            description: Business timestamp associated with the source record.
+          - name: source_updated_at
+            description: Source-side update timestamp for the record when available.
+          - name: payload_hash
+            description: Hash of the source payload content.
+          - name: collected_at
+            description: Timestamp when the worker collected and stored the record.
+          - name: payload_jsonb
+            description: Raw source JSON payload before staging parsing.
+          - name: created_at
+            description: Database creation timestamp for the raw row.
+          - name: updated_at
+            description: Database update timestamp for the raw row.
       - name: health_event_record
-        description: Pure raw payloads for health event-style endpoints.
+        description: >
+          Raw event-level health records. Garmin `activity` records currently land here as one raw
+          row per activity session.
+        columns:
+          - name: id
+            description: Raw record primary key.
+          - name: account_id
+            description: Application account that owns the raw record.
+          - name: connector_config_id
+            description: Connector configuration instance that produced the raw record.
+          - name: sync_task_id
+            description: Sync task that wrote the raw record.
+          - name: connector_id
+            description: Connector identifier such as `garmin-connect`.
+          - name: source_stream
+            description: Source stream name within the connector.
+          - name: external_id
+            description: Stable source-side identifier used in the raw-table unique key.
+          - name: source_record_date
+            description: Business date associated with the source record.
+          - name: source_record_at
+            description: Business timestamp associated with the source record.
+          - name: source_updated_at
+            description: Source-side update timestamp for the record when available.
+          - name: payload_hash
+            description: Hash of the source payload content.
+          - name: collected_at
+            description: Timestamp when the worker collected and stored the record.
+          - name: payload_jsonb
+            description: Raw source JSON payload before staging parsing.
+          - name: created_at
+            description: Database creation timestamp for the raw row.
+          - name: updated_at
+            description: Database update timestamp for the raw row.
       - name: health_timeseries_record
-        description: Pure raw payloads for health timeseries-style endpoints.
+        description: >
+          Raw timeseries health records. Garmin `heart_rate` records currently land here as one raw
+          row per account-date timeseries payload.
+        columns:
+          - name: id
+            description: Raw record primary key.
+          - name: account_id
+            description: Application account that owns the raw record.
+          - name: connector_config_id
+            description: Connector configuration instance that produced the raw record.
+          - name: sync_task_id
+            description: Sync task that wrote the raw record.
+          - name: connector_id
+            description: Connector identifier such as `garmin-connect`.
+          - name: source_stream
+            description: Source stream name within the connector.
+          - name: external_id
+            description: Stable source-side identifier used in the raw-table unique key.
+          - name: source_record_date
+            description: Business date associated with the source record.
+          - name: source_record_at
+            description: Business timestamp associated with the source record.
+          - name: source_updated_at
+            description: Source-side update timestamp for the record when available.
+          - name: payload_hash
+            description: Hash of the source payload content.
+          - name: collected_at
+            description: Timestamp when the worker collected and stored the record.
+          - name: payload_jsonb
+            description: Raw source JSON payload before staging parsing.
+          - name: created_at
+            description: Database creation timestamp for the raw row.
+          - name: updated_at
+            description: Database update timestamp for the raw row.

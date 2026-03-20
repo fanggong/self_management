@@ -228,7 +228,7 @@ class MedicalReportConnectorAdapter:
                 file_name=file_name,
             )
 
-        return _build_structured_result(report_date=report_date, parsed_model_output=parsed_json)
+        return _build_structured_result(parsed_model_output=parsed_json)
 
     def _parse_report_with_chat_completion(
         self,
@@ -244,8 +244,8 @@ class MedicalReportConnectorAdapter:
                     "role": "system",
                     "content": (
                         "You are a medical report parser. Return JSON only. "
-                        "Use keys: form {examiner, examDate} and sections "
-                        "[{sectionKey, items[{itemKey,result,referenceValue,unit,abnormalFlag}]}]. "
+                        "Use keys: sections "
+                        "[{sectionKey, examiner, examDate, items[{itemKey,result,referenceValue,unit,abnormalFlag}]}]. "
                         "Do not translate values. Do not infer or fabricate missing fields. "
                         "If a field is not explicitly available, leave it empty."
                     ),
@@ -817,12 +817,12 @@ def _build_volcengine_extraction_prompt(
         "4. Do not normalize, summarize, infer, calculate, or fabricate missing values.\n"
         "5. Only return items that are explicitly present in the PDF.\n"
         "6. For each matched item, copy result, referenceValue, unit, and abnormalFlag from the same row/cell when available.\n"
-        "7. If examiner is not explicitly shown, return an empty string for form.examiner.\n"
-        "8. If examDate is not explicitly shown, use the provided reportDate string exactly.\n"
-        "9. The response schema is enforced separately. Under sections, use sectionKey objects and itemKey objects exactly as listed below.\n"
+        "7. For each section, if examiner is not explicitly shown for that section, return an empty string for examiner.\n"
+        "8. For each section, if examDate is not explicitly shown for that section, return an empty string for examDate.\n"
+        "9. The response schema is enforced separately. Under sections, use sectionKey values and itemKey values exactly as listed below.\n"
         "10. Omit missing item objects entirely instead of returning guessed values or placeholders.\n\n"
         "Return shape:\n"
-        '{"form":{"examiner":"","examDate":""},"sections":{"general":{"height":{"result":"","referenceValue":"","unit":"","abnormalFlag":""}}}}\n\n'
+        '{"sections":[{"sectionKey":"general","examiner":"","examDate":"","items":[{"itemKey":"height","result":"","referenceValue":"","unit":"","abnormalFlag":""}]}]}\n\n'
         "Provided metadata:\n"
         f"- recordNumber: {record_number}\n"
         f"- reportDate: {report_date}\n"
@@ -833,36 +833,64 @@ def _build_volcengine_extraction_prompt(
     )
 
 
-def _build_structured_result(report_date: str, parsed_model_output: dict[str, Any]) -> dict[str, Any]:
-    form = parsed_model_output.get("form")
-    form_examiner = ""
-    form_exam_date = report_date
-    if isinstance(form, dict):
-        examiner = form.get("examiner")
-        exam_date = form.get("examDate")
-        if isinstance(examiner, str) and examiner.strip():
-            form_examiner = examiner.strip()
-        if isinstance(exam_date, str) and exam_date.strip():
-            form_exam_date = exam_date.strip()
+def _normalize_section_metadata(value: Any) -> dict[str, str]:
+    if not isinstance(value, dict):
+        return {"examiner": "", "examDate": ""}
 
+    examiner = value.get("examiner")
+    exam_date = value.get("examDate")
+    return {
+        "examiner": str(examiner).strip() if isinstance(examiner, str) else "",
+        "examDate": str(exam_date).strip() if isinstance(exam_date, str) else "",
+    }
+
+
+def _extract_section_items(section_key: str, raw_items: Any) -> dict[str, dict[str, str]]:
+    section_items: dict[str, dict[str, str]] = {}
+    allowed_item_keys = SECTION_ITEM_KEYS.get(section_key, [])
+
+    if isinstance(raw_items, dict):
+        for item_key, item_values in raw_items.items():
+            normalized_item_key = str(item_key).strip()
+            if normalized_item_key not in allowed_item_keys or not isinstance(item_values, dict):
+                continue
+            section_items[normalized_item_key] = {
+                "result": str(item_values.get("result", "")).strip(),
+                "referenceValue": str(item_values.get("referenceValue", "")).strip(),
+                "unit": str(item_values.get("unit", "")).strip(),
+                "abnormalFlag": str(item_values.get("abnormalFlag", "")).strip(),
+            }
+        return section_items
+
+    if isinstance(raw_items, list):
+        for item in raw_items:
+            if not isinstance(item, dict):
+                continue
+            item_key = str(item.get("itemKey", "")).strip()
+            if item_key not in allowed_item_keys:
+                continue
+            section_items[item_key] = {
+                "result": str(item.get("result", "")).strip(),
+                "referenceValue": str(item.get("referenceValue", "")).strip(),
+                "unit": str(item.get("unit", "")).strip(),
+                "abnormalFlag": str(item.get("abnormalFlag", "")).strip(),
+            }
+
+    return section_items
+
+
+def _build_structured_result(parsed_model_output: dict[str, Any]) -> dict[str, Any]:
     parsed_sections = parsed_model_output.get("sections")
+    section_metadata: dict[str, dict[str, str]] = {}
     model_values: dict[str, dict[str, dict[str, str]]] = {}
     if isinstance(parsed_sections, dict):
-        for section_key, section_items in parsed_sections.items():
+        for section_key, raw_section in parsed_sections.items():
             normalized_section_key = str(section_key).strip()
-            if normalized_section_key not in SECTION_ITEM_KEYS or not isinstance(section_items, dict):
+            if normalized_section_key not in SECTION_ITEM_KEYS or not isinstance(raw_section, dict):
                 continue
-            model_values.setdefault(normalized_section_key, {})
-            for item_key, item_values in section_items.items():
-                normalized_item_key = str(item_key).strip()
-                if normalized_item_key not in SECTION_ITEM_KEYS[normalized_section_key] or not isinstance(item_values, dict):
-                    continue
-                model_values[normalized_section_key][normalized_item_key] = {
-                    "result": str(item_values.get("result", "")).strip(),
-                    "referenceValue": str(item_values.get("referenceValue", "")).strip(),
-                    "unit": str(item_values.get("unit", "")).strip(),
-                    "abnormalFlag": str(item_values.get("abnormalFlag", "")).strip(),
-                }
+            raw_items = raw_section.get("items") if "items" in raw_section else raw_section
+            section_metadata[normalized_section_key] = _normalize_section_metadata(raw_section)
+            model_values[normalized_section_key] = _extract_section_items(normalized_section_key, raw_items)
     elif isinstance(parsed_sections, list):
         for section in parsed_sections:
             if not isinstance(section, dict):
@@ -870,22 +898,8 @@ def _build_structured_result(report_date: str, parsed_model_output: dict[str, An
             section_key = str(section.get("sectionKey", "")).strip()
             if section_key not in SECTION_ITEM_KEYS:
                 continue
-            model_values.setdefault(section_key, {})
-            items = section.get("items")
-            if not isinstance(items, list):
-                continue
-            for item in items:
-                if not isinstance(item, dict):
-                    continue
-                item_key = str(item.get("itemKey", "")).strip()
-                if item_key not in SECTION_ITEM_KEYS[section_key]:
-                    continue
-                model_values[section_key][item_key] = {
-                    "result": str(item.get("result", "")).strip(),
-                    "referenceValue": str(item.get("referenceValue", "")).strip(),
-                    "unit": str(item.get("unit", "")).strip(),
-                    "abnormalFlag": str(item.get("abnormalFlag", "")).strip(),
-                }
+            section_metadata[section_key] = _normalize_section_metadata(section)
+            model_values[section_key] = _extract_section_items(section_key, section.get("items"))
 
     sections: list[dict[str, Any]] = []
     for section_key, item_keys in SECTION_ITEM_KEYS.items():
@@ -901,58 +915,54 @@ def _build_structured_result(report_date: str, parsed_model_output: dict[str, An
                     "abnormalFlag": values.get("abnormalFlag", ""),
                 }
             )
-        sections.append({"sectionKey": section_key, "items": items})
+        metadata = section_metadata.get(section_key, {"examiner": "", "examDate": ""})
+        sections.append(
+            {
+                "sectionKey": section_key,
+                "examiner": metadata.get("examiner", ""),
+                "examDate": metadata.get("examDate", ""),
+                "items": items,
+            }
+        )
 
-    return {
-        "form": {
-            "examiner": form_examiner,
-            "examDate": form_exam_date,
-        },
-        "sections": sections,
-    }
+    return {"sections": sections}
 
 
 def _build_volcengine_report_json_schema() -> dict[str, Any]:
-    value_schema = {
+    item_value_schema = {
         "type": "object",
         "properties": {
+            "itemKey": {"type": "string", "enum": sorted({item_key for item_keys in SECTION_ITEM_KEYS.values() for item_key in item_keys})},
             "result": {"type": "string"},
             "referenceValue": {"type": "string"},
             "unit": {"type": "string"},
             "abnormalFlag": {"type": "string"},
         },
-        "required": ["result", "referenceValue", "unit", "abnormalFlag"],
+        "required": ["itemKey", "result", "referenceValue", "unit", "abnormalFlag"],
         "additionalProperties": False,
     }
-
-    section_properties: dict[str, Any] = {}
-    for section_key, item_keys in SECTION_ITEM_KEYS.items():
-        item_properties = {item_key: value_schema for item_key in item_keys}
-        section_properties[section_key] = {
-            "type": "object",
-            "properties": item_properties,
-            "additionalProperties": False,
-        }
 
     return {
         "type": "object",
         "properties": {
-            "form": {
-                "type": "object",
-                "properties": {
-                    "examiner": {"type": "string"},
-                    "examDate": {"type": "string"},
-                },
-                "required": ["examiner", "examDate"],
-                "additionalProperties": False,
-            },
             "sections": {
-                "type": "object",
-                "properties": section_properties,
-                "required": [],
-                "additionalProperties": False,
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "sectionKey": {"type": "string", "enum": sorted(SECTION_ITEM_KEYS.keys())},
+                        "examiner": {"type": "string"},
+                        "examDate": {"type": "string"},
+                        "items": {
+                            "type": "array",
+                            "items": item_value_schema,
+                        },
+                    },
+                    "required": ["sectionKey", "examiner", "examDate", "items"],
+                    "additionalProperties": False,
+                },
             },
         },
-        "required": ["form", "sections"],
+        "required": ["sections"],
         "additionalProperties": False,
     }

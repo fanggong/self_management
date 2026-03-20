@@ -1,0 +1,184 @@
+version: 2
+models:
+- name: int_health_medical_report_snapshot
+  description: Semantic intermediate mirror of `stg_medical_report_snapshot`. Grain
+    stays identical to staging so each intermediate row maps to exactly one staging
+    row while dropping connector/raw lineage columns and upgrading only fields that
+    can be stably semanticized.
+  tests:
+  - unique_combination:
+      arguments:
+        column_names:
+        - staging_record_id
+  columns:
+  - name: staging_record_id
+    data_type: uuid
+    description: Technical lineage key carried from the staging `raw_record_id` column.
+    tests:
+    - not_null
+  - name: account_id
+    data_type: uuid
+    description: Application account that owns the intermediate health record.
+    tests:
+    - not_null
+  - name: source_external_id
+    data_type: text
+    description: Source-side business metadata carried forward from staging `source_external_id`
+      after connector and raw lineage columns are removed.
+    tests:
+    - not_null
+  - name: source_record_date
+    data_type: date
+    description: Source-side business metadata carried forward from staging `source_record_date`
+      after connector and raw lineage columns are removed.
+    tests:
+    - not_null
+  - name: source_record_at
+    data_type: timestamp with time zone
+    description: Source-side business metadata carried forward from staging `source_record_at`
+      after connector and raw lineage columns are removed.
+  - name: source_updated_at
+    data_type: timestamp with time zone
+    description: Source-side business metadata carried forward from staging `source_updated_at`
+      after connector and raw lineage columns are removed.
+  - name: record_number
+    data_type: text
+    description: Semantic carry-forward of staging `record_number`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: report_date
+    data_type: date
+    description: Medical report date promoted from staging text into `date`.
+  - name: institution
+    data_type: text
+    description: Semantic carry-forward of staging `institution`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: file_name
+    data_type: text
+    description: Semantic carry-forward of staging `file_name`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+- name: int_health_medical_report_item_detail
+  description: Semantic intermediate mirror of `stg_medical_report_item_detail`. Grain
+    stays identical to staging so each intermediate row maps to exactly one staging
+    row while dropping connector/raw lineage columns and upgrading only fields that
+    can be stably semanticized.
+  tests:
+  - unique_combination:
+      arguments:
+        column_names:
+        - staging_record_id
+        - section_position
+        - item_position
+  columns:
+  - name: staging_record_id
+    data_type: uuid
+    description: Technical lineage key carried from the staging `raw_record_id` column.
+    tests:
+    - not_null
+  - name: account_id
+    data_type: uuid
+    description: Application account that owns the intermediate health record.
+    tests:
+    - not_null
+  - name: source_external_id
+    data_type: text
+    description: Source-side business metadata carried forward from staging `source_external_id`
+      after connector and raw lineage columns are removed.
+    tests:
+    - not_null
+  - name: source_record_date
+    data_type: date
+    description: Source-side business metadata carried forward from staging `source_record_date`
+      after connector and raw lineage columns are removed.
+    tests:
+    - not_null
+  - name: source_record_at
+    data_type: timestamp with time zone
+    description: Source-side business metadata carried forward from staging `source_record_at`
+      after connector and raw lineage columns are removed.
+  - name: source_updated_at
+    data_type: timestamp with time zone
+    description: Source-side business metadata carried forward from staging `source_updated_at`
+      after connector and raw lineage columns are removed.
+  - name: record_number
+    data_type: text
+    description: Semantic carry-forward of staging `record_number`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: report_date
+    data_type: date
+    description: Medical report date promoted from staging text into `date`.
+  - name: institution
+    data_type: text
+    description: Semantic carry-forward of staging `institution`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: file_name
+    data_type: text
+    description: Semantic carry-forward of staging `file_name`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: section_position
+    data_type: integer
+    description: Semantic carry-forward of staging `section_position`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+    tests:
+    - not_null
+  - name: item_position
+    data_type: integer
+    description: Semantic carry-forward of staging `item_position`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+    tests:
+    - not_null
+  - name: section_key
+    data_type: text
+    description: Semantic carry-forward of staging `section_key`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+    tests:
+    - not_null
+  - name: section_examiner
+    data_type: text
+    description: Semantic carry-forward of staging `section_examiner`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: section_exam_date
+    data_type: date
+    description: Section-level medical examination date promoted from staging text into
+      `date`.
+  - name: item_key
+    data_type: text
+    description: Semantic carry-forward of staging `item_key`. The value is kept unchanged
+      because the staging type is already suitable or the field is intentionally preserved
+      as-is in this intermediate phase.
+    tests:
+    - not_null
+  - name: result
+    data_type: text
+    description: Semantic carry-forward of staging `result`. The value is kept unchanged
+      because the staging type is already suitable or the field is intentionally preserved
+      as-is in this intermediate phase.
+  - name: reference_value_min
+    data_type: numeric
+    description: Lower bound parsed from the staging `reference_value` text when it
+      matches an unsigned numeric range such as `4.9-5.3` or `4.30--5.80`; otherwise
+      null.
+  - name: reference_value_max
+    data_type: numeric
+    description: Upper bound parsed from the staging `reference_value` text when it
+      matches an unsigned numeric range such as `4.9-5.3` or `4.30--5.80`; otherwise
+      null.
+  - name: unit
+    data_type: text
+    description: Semantic carry-forward of staging `unit`. The value is kept unchanged
+      because the staging type is already suitable or the field is intentionally preserved
+      as-is in this intermediate phase.
+  - name: abnormal_flag
+    data_type: text
+    description: Semantic carry-forward of staging `abnormal_flag`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.

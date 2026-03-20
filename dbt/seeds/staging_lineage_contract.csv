@@ -1,0 +1,569 @@
+connector_id,source_stream,staging_model,staging_column,mapping_type,raw_path,notes
+garmin-connect,activity,stg_garmin_activity_detail,account_id,raw_column,raw.account_id,Raw table account identifier.
+garmin-connect,activity,stg_garmin_activity_detail,activity_id,raw_leaf,activityId,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,activity_name,raw_leaf,activityName,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,activity_training_load,raw_leaf,activityTrainingLoad,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,activity_type_is_hidden,raw_leaf,activityType.isHidden,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,activity_type_parent_type_id,raw_leaf,activityType.parentTypeId,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,activity_type_restricted,raw_leaf,activityType.restricted,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,activity_type_trimmable,raw_leaf,activityType.trimmable,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,activity_type_type_id,raw_leaf,activityType.typeId,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,activity_type_type_key,raw_leaf,activityType.typeKey,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,activity_uuid,raw_leaf,activityUUID,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,aerobic_training_effect,raw_leaf,aerobicTrainingEffect,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,aerobic_training_effect_message,raw_leaf,aerobicTrainingEffectMessage,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,anaerobic_training_effect,raw_leaf,anaerobicTrainingEffect,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,anaerobic_training_effect_message,raw_leaf,anaerobicTrainingEffectMessage,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,atp_activity,raw_leaf,atpActivity,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,auto_calc_calories,raw_leaf,autoCalcCalories,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,average_hr,raw_leaf,averageHR,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,average_speed,raw_leaf,averageSpeed,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,begin_timestamp,raw_leaf,beginTimestamp,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,bmr_calories,raw_leaf,bmrCalories,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,calories,raw_leaf,calories,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,collected_at,raw_column,raw.collected_at,Raw table collection timestamp.
+garmin-connect,activity,stg_garmin_activity_detail,connector_config_id,raw_column,raw.connector_config_id,Raw table connector configuration identifier.
+garmin-connect,activity,stg_garmin_activity_detail,connector_id,raw_column,raw.connector_id,Raw table connector identifier.
+garmin-connect,activity,stg_garmin_activity_detail,deco_dive,raw_leaf,decoDive,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,device_id,raw_leaf,deviceId,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,difference_body_battery,raw_leaf,differenceBodyBattery,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,distance,raw_leaf,distance,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,duration,raw_leaf,duration,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,elapsed_duration,raw_leaf,elapsedDuration,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,elevation_corrected,raw_leaf,elevationCorrected,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,elevation_gain,raw_leaf,elevationGain,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,elevation_loss,raw_leaf,elevationLoss,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,end_latitude,raw_leaf,endLatitude,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,end_longitude,raw_leaf,endLongitude,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,end_time_gmt,raw_leaf,endTimeGMT,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,event_type_sort_order,raw_leaf,eventType.sortOrder,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,event_type_type_id,raw_leaf,eventType.typeId,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,event_type_type_key,raw_leaf,eventType.typeKey,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,fastest_split_40000,raw_leaf,fastestSplit_40000,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,favorite,raw_leaf,favorite,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,has_heat_map,raw_leaf,hasHeatMap,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,has_images,raw_leaf,hasImages,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,has_polyline,raw_leaf,hasPolyline,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,has_splits,raw_leaf,hasSplits,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,has_video,raw_leaf,hasVideo,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,hr_time_in_zone_1,raw_leaf,hrTimeInZone_1,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,hr_time_in_zone_2,raw_leaf,hrTimeInZone_2,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,hr_time_in_zone_3,raw_leaf,hrTimeInZone_3,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,hr_time_in_zone_4,raw_leaf,hrTimeInZone_4,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,hr_time_in_zone_5,raw_leaf,hrTimeInZone_5,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,lap_count,raw_leaf,lapCount,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,location_name,raw_leaf,locationName,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,manual_activity,raw_leaf,manualActivity,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,manufacturer,raw_leaf,manufacturer,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,max_elevation,raw_leaf,maxElevation,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,max_ftp,raw_leaf,maxFtp,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,max_hr,raw_leaf,maxHR,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,max_speed,raw_leaf,maxSpeed,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,max_vertical_speed,raw_leaf,maxVerticalSpeed,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,min_activity_lap_duration,raw_leaf,minActivityLapDuration,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,min_elevation,raw_leaf,minElevation,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,moderate_intensity_minutes,raw_leaf,moderateIntensityMinutes,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,moving_duration,raw_leaf,movingDuration,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,owner_display_name,raw_leaf,ownerDisplayName,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,owner_full_name,raw_leaf,ownerFullName,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,owner_id,raw_leaf,ownerId,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,owner_profile_image_url_large,raw_leaf,ownerProfileImageUrlLarge,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,owner_profile_image_url_medium,raw_leaf,ownerProfileImageUrlMedium,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,owner_profile_image_url_small,raw_leaf,ownerProfileImageUrlSmall,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,parent,raw_leaf,parent,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,payload_hash,raw_column,raw.payload_hash,Raw table payload hash.
+garmin-connect,activity,stg_garmin_activity_detail,pr,raw_leaf,pr,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,privacy_type_id,raw_leaf,privacy.typeId,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,privacy_type_key,raw_leaf,privacy.typeKey,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,purposeful,raw_leaf,purposeful,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,qualifying_dive,raw_leaf,qualifyingDive,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,raw_created_at,raw_column,raw.created_at,Raw table creation timestamp.
+garmin-connect,activity,stg_garmin_activity_detail,raw_record_id,raw_column,raw.id,Raw table primary key.
+garmin-connect,activity,stg_garmin_activity_detail,raw_updated_at,raw_column,raw.updated_at,Raw table update timestamp.
+garmin-connect,activity,stg_garmin_activity_detail,source_external_id,raw_column,raw.external_id,Raw table external identifier.
+garmin-connect,activity,stg_garmin_activity_detail,source_record_at,raw_column,raw.source_record_at,Raw table source record timestamp.
+garmin-connect,activity,stg_garmin_activity_detail,source_record_date,raw_column,raw.source_record_date,Raw table source record date.
+garmin-connect,activity,stg_garmin_activity_detail,source_stream,raw_column,raw.source_stream,Raw table source stream.
+garmin-connect,activity,stg_garmin_activity_detail,source_updated_at,raw_column,raw.source_updated_at,Raw table source updated timestamp.
+garmin-connect,activity,stg_garmin_activity_detail,sport_type_id,raw_leaf,sportTypeId,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,start_latitude,raw_leaf,startLatitude,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,start_longitude,raw_leaf,startLongitude,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,start_time_gmt,raw_leaf,startTimeGMT,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,start_time_local,raw_leaf,startTimeLocal,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,sync_task_id,raw_column,raw.sync_task_id,Raw table sync task identifier.
+garmin-connect,activity,stg_garmin_activity_detail,time_zone_id,raw_leaf,timeZoneId,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,training_effect_label,raw_leaf,trainingEffectLabel,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,user_pro,raw_leaf,userPro,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,vigorous_intensity_minutes,raw_leaf,vigorousIntensityMinutes,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_detail,water_estimated,raw_leaf,waterEstimated,Direct raw leaf mapping.
+garmin-connect,activity,stg_garmin_activity_role_detail,account_id,raw_column,raw.account_id,Raw table account identifier.
+garmin-connect,activity,stg_garmin_activity_role_detail,activity_id,raw_leaf,activityId,Direct activity identifier leaf.
+garmin-connect,activity,stg_garmin_activity_role_detail,collected_at,raw_column,raw.collected_at,Raw table collection timestamp.
+garmin-connect,activity,stg_garmin_activity_role_detail,connector_config_id,raw_column,raw.connector_config_id,Raw table connector configuration identifier.
+garmin-connect,activity,stg_garmin_activity_role_detail,connector_id,raw_column,raw.connector_id,Raw table connector identifier.
+garmin-connect,activity,stg_garmin_activity_role_detail,item_position,structural,userRoles[],Derived array ordinality.
+garmin-connect,activity,stg_garmin_activity_role_detail,payload_hash,raw_column,raw.payload_hash,Raw table payload hash.
+garmin-connect,activity,stg_garmin_activity_role_detail,raw_created_at,raw_column,raw.created_at,Raw table creation timestamp.
+garmin-connect,activity,stg_garmin_activity_role_detail,raw_record_id,raw_column,raw.id,Raw table primary key.
+garmin-connect,activity,stg_garmin_activity_role_detail,raw_updated_at,raw_column,raw.updated_at,Raw table update timestamp.
+garmin-connect,activity,stg_garmin_activity_role_detail,role,raw_leaf,userRoles[],Exploded activity user role value.
+garmin-connect,activity,stg_garmin_activity_role_detail,source_external_id,raw_column,raw.external_id,Raw table external identifier.
+garmin-connect,activity,stg_garmin_activity_role_detail,source_record_at,raw_column,raw.source_record_at,Raw table source record timestamp.
+garmin-connect,activity,stg_garmin_activity_role_detail,source_record_date,raw_column,raw.source_record_date,Raw table source record date.
+garmin-connect,activity,stg_garmin_activity_role_detail,source_stream,raw_column,raw.source_stream,Raw table source stream.
+garmin-connect,activity,stg_garmin_activity_role_detail,source_updated_at,raw_column,raw.source_updated_at,Raw table source updated timestamp.
+garmin-connect,activity,stg_garmin_activity_role_detail,sync_task_id,raw_column,raw.sync_task_id,Raw table sync task identifier.
+garmin-connect,daily_summary,stg_garmin_daily_summary,abnormal_heart_rate_alerts_count,raw_leaf,abnormalHeartRateAlertsCount,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,account_id,raw_column,raw.account_id,Raw table account identifier.
+garmin-connect,daily_summary,stg_garmin_daily_summary,active_kilocalories,raw_leaf,activeKilocalories,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,active_seconds,raw_leaf,activeSeconds,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,activity_stress_duration,raw_leaf,activityStressDuration,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,activity_stress_percentage,raw_leaf,activityStressPercentage,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,average_monitoring_environment_altitude,raw_leaf,averageMonitoringEnvironmentAltitude,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,average_spo2,raw_leaf,averageSpo2,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,average_stress_level,raw_leaf,averageStressLevel,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,avg_waking_respiration_value,raw_leaf,avgWakingRespirationValue,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,bmr_kilocalories,raw_leaf,bmrKilocalories,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,body_battery_at_wake_time,raw_leaf,bodyBatteryAtWakeTime,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,body_battery_charged_value,raw_leaf,bodyBatteryChargedValue,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,body_battery_drained_value,raw_leaf,bodyBatteryDrainedValue,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,body_battery_during_sleep,raw_leaf,bodyBatteryDuringSleep,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,body_battery_highest_value,raw_leaf,bodyBatteryHighestValue,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,body_battery_lowest_value,raw_leaf,bodyBatteryLowestValue,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,body_battery_most_recent_value,raw_leaf,bodyBatteryMostRecentValue,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,body_battery_version,raw_leaf,bodyBatteryVersion,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,burned_kilocalories,raw_leaf,burnedKilocalories,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,calendar_date,raw_leaf,calendarDate,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,collected_at,raw_column,raw.collected_at,Raw table collection timestamp.
+garmin-connect,daily_summary,stg_garmin_daily_summary,connector_config_id,raw_column,raw.connector_config_id,Raw table connector configuration identifier.
+garmin-connect,daily_summary,stg_garmin_daily_summary,connector_id,raw_column,raw.connector_id,Raw table connector identifier.
+garmin-connect,daily_summary,stg_garmin_daily_summary,consumed_kilocalories,raw_leaf,consumedKilocalories,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,daily_step_goal,raw_leaf,dailyStepGoal,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,display_name,raw_leaf,displayName,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,duration_in_milliseconds,raw_leaf,durationInMilliseconds,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,floors_ascended,raw_leaf,floorsAscended,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,floors_ascended_in_meters,raw_leaf,floorsAscendedInMeters,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,floors_descended,raw_leaf,floorsDescended,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,floors_descended_in_meters,raw_leaf,floorsDescendedInMeters,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,high_stress_duration,raw_leaf,highStressDuration,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,high_stress_percentage,raw_leaf,highStressPercentage,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,highest_respiration_value,raw_leaf,highestRespirationValue,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,highly_active_seconds,raw_leaf,highlyActiveSeconds,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,includes_activity_data,raw_leaf,includesActivityData,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,includes_calorie_consumed_data,raw_leaf,includesCalorieConsumedData,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,includes_wellness_data,raw_leaf,includesWellnessData,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,intensity_minutes_goal,raw_leaf,intensityMinutesGoal,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,last_seven_days_avg_resting_heart_rate,raw_leaf,lastSevenDaysAvgRestingHeartRate,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,last_sync_timestamp_gmt,raw_leaf,lastSyncTimestampGMT,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,latest_respiration_time_gmt,raw_leaf,latestRespirationTimeGMT,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,latest_respiration_value,raw_leaf,latestRespirationValue,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,latest_spo2,raw_leaf,latestSpo2,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,latest_spo2_reading_time_gmt,raw_leaf,latestSpo2ReadingTimeGmt,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,latest_spo2_reading_time_local,raw_leaf,latestSpo2ReadingTimeLocal,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,low_stress_duration,raw_leaf,lowStressDuration,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,low_stress_percentage,raw_leaf,lowStressPercentage,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,lowest_respiration_value,raw_leaf,lowestRespirationValue,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,lowest_spo2,raw_leaf,lowestSpo2,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,max_avg_heart_rate,raw_leaf,maxAvgHeartRate,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,max_heart_rate,raw_leaf,maxHeartRate,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,max_stress_level,raw_leaf,maxStressLevel,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,measurable_asleep_duration,raw_leaf,measurableAsleepDuration,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,measurable_awake_duration,raw_leaf,measurableAwakeDuration,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,medium_stress_duration,raw_leaf,mediumStressDuration,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,medium_stress_percentage,raw_leaf,mediumStressPercentage,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,min_avg_heart_rate,raw_leaf,minAvgHeartRate,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,min_heart_rate,raw_leaf,minHeartRate,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,moderate_intensity_minutes,raw_leaf,moderateIntensityMinutes,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,net_calorie_goal,raw_leaf,netCalorieGoal,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,net_remaining_kilocalories,raw_leaf,netRemainingKilocalories,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,payload_hash,raw_column,raw.payload_hash,Raw table payload hash.
+garmin-connect,daily_summary,stg_garmin_daily_summary,privacy_protected,raw_leaf,privacyProtected,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,raw_created_at,raw_column,raw.created_at,Raw table creation timestamp.
+garmin-connect,daily_summary,stg_garmin_daily_summary,raw_record_id,raw_column,raw.id,Raw table primary key.
+garmin-connect,daily_summary,stg_garmin_daily_summary,raw_updated_at,raw_column,raw.updated_at,Raw table update timestamp.
+garmin-connect,daily_summary,stg_garmin_daily_summary,remaining_kilocalories,raw_leaf,remainingKilocalories,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,respiration_algorithm_version,raw_leaf,respirationAlgorithmVersion,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,rest_stress_duration,raw_leaf,restStressDuration,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,rest_stress_percentage,raw_leaf,restStressPercentage,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,resting_calories_from_activity,raw_leaf,restingCaloriesFromActivity,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,resting_heart_rate,raw_leaf,restingHeartRate,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,rule_type_id,raw_leaf,rule.typeId,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,rule_type_key,raw_leaf,rule.typeKey,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,sedentary_seconds,raw_leaf,sedentarySeconds,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,sleeping_seconds,raw_leaf,sleepingSeconds,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,source_external_id,raw_column,raw.external_id,Raw table external identifier.
+garmin-connect,daily_summary,stg_garmin_daily_summary,source_record_at,raw_column,raw.source_record_at,Raw table source record timestamp.
+garmin-connect,daily_summary,stg_garmin_daily_summary,source_record_date,raw_column,raw.source_record_date,Raw table source record date.
+garmin-connect,daily_summary,stg_garmin_daily_summary,source_stream,raw_column,raw.source_stream,Raw table source stream.
+garmin-connect,daily_summary,stg_garmin_daily_summary,source_updated_at,raw_column,raw.source_updated_at,Raw table source updated timestamp.
+garmin-connect,daily_summary,stg_garmin_daily_summary,stress_duration,raw_leaf,stressDuration,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,stress_percentage,raw_leaf,stressPercentage,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,stress_qualifier,raw_leaf,stressQualifier,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,summary_source,raw_leaf,source,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,summary_uuid,raw_leaf,uuid,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,sync_task_id,raw_column,raw.sync_task_id,Raw table sync task identifier.
+garmin-connect,daily_summary,stg_garmin_daily_summary,total_distance_meters,raw_leaf,totalDistanceMeters,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,total_kilocalories,raw_leaf,totalKilocalories,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,total_steps,raw_leaf,totalSteps,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,total_stress_duration,raw_leaf,totalStressDuration,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,uncategorized_stress_duration,raw_leaf,uncategorizedStressDuration,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,uncategorized_stress_percentage,raw_leaf,uncategorizedStressPercentage,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,user_daily_summary_id,raw_leaf,userDailySummaryId,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,user_floors_ascended_goal,raw_leaf,userFloorsAscendedGoal,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,user_profile_id,raw_leaf,userProfileId,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,vigorous_intensity_minutes,raw_leaf,vigorousIntensityMinutes,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,wellness_active_kilocalories,raw_leaf,wellnessActiveKilocalories,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,wellness_description,raw_leaf,wellnessDescription,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,wellness_distance_meters,raw_leaf,wellnessDistanceMeters,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,wellness_end_time_gmt,raw_leaf,wellnessEndTimeGmt,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,wellness_end_time_local,raw_leaf,wellnessEndTimeLocal,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,wellness_kilocalories,raw_leaf,wellnessKilocalories,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,wellness_start_time_gmt,raw_leaf,wellnessStartTimeGmt,Direct raw leaf mapping.
+garmin-connect,daily_summary,stg_garmin_daily_summary,wellness_start_time_local,raw_leaf,wellnessStartTimeLocal,Direct raw leaf mapping.
+garmin-connect,heart_rate,stg_garmin_heart_rate_sample_detail,account_id,raw_column,raw.account_id,Raw table account identifier.
+garmin-connect,heart_rate,stg_garmin_heart_rate_sample_detail,calendar_date,raw_leaf,calendarDate,Direct heart-rate calendar date leaf.
+garmin-connect,heart_rate,stg_garmin_heart_rate_sample_detail,collected_at,raw_column,raw.collected_at,Raw table collection timestamp.
+garmin-connect,heart_rate,stg_garmin_heart_rate_sample_detail,connector_config_id,raw_column,raw.connector_config_id,Raw table connector configuration identifier.
+garmin-connect,heart_rate,stg_garmin_heart_rate_sample_detail,connector_id,raw_column,raw.connector_id,Raw table connector identifier.
+garmin-connect,heart_rate,stg_garmin_heart_rate_sample_detail,heart_rate_value,decoded,heartRateValueDescriptors[].index,Decoded from descriptor indexes and heart-rate value rows.
+garmin-connect,heart_rate,stg_garmin_heart_rate_sample_detail,heart_rate_value,decoded,heartRateValueDescriptors[].key,Decoded from descriptor keys and heart-rate value rows.
+garmin-connect,heart_rate,stg_garmin_heart_rate_sample_detail,heart_rate_value,decoded,heartRateValues[][],Decoded from heart-rate value rows.
+garmin-connect,heart_rate,stg_garmin_heart_rate_sample_detail,payload_hash,raw_column,raw.payload_hash,Raw table payload hash.
+garmin-connect,heart_rate,stg_garmin_heart_rate_sample_detail,raw_created_at,raw_column,raw.created_at,Raw table creation timestamp.
+garmin-connect,heart_rate,stg_garmin_heart_rate_sample_detail,raw_record_id,raw_column,raw.id,Raw table primary key.
+garmin-connect,heart_rate,stg_garmin_heart_rate_sample_detail,raw_updated_at,raw_column,raw.updated_at,Raw table update timestamp.
+garmin-connect,heart_rate,stg_garmin_heart_rate_sample_detail,sample_position,structural,heartRateValues[][],Derived sample ordinality within the decoded value matrix.
+garmin-connect,heart_rate,stg_garmin_heart_rate_sample_detail,sample_timestamp,decoded,heartRateValueDescriptors[].index,Decoded from descriptor indexes and heart-rate value rows.
+garmin-connect,heart_rate,stg_garmin_heart_rate_sample_detail,sample_timestamp,decoded,heartRateValueDescriptors[].key,Decoded from descriptor keys and heart-rate value rows.
+garmin-connect,heart_rate,stg_garmin_heart_rate_sample_detail,sample_timestamp,decoded,heartRateValues[][],Decoded from heart-rate value rows.
+garmin-connect,heart_rate,stg_garmin_heart_rate_sample_detail,source_external_id,raw_column,raw.external_id,Raw table external identifier.
+garmin-connect,heart_rate,stg_garmin_heart_rate_sample_detail,source_record_at,raw_column,raw.source_record_at,Raw table source record timestamp.
+garmin-connect,heart_rate,stg_garmin_heart_rate_sample_detail,source_record_date,raw_column,raw.source_record_date,Raw table source record date.
+garmin-connect,heart_rate,stg_garmin_heart_rate_sample_detail,source_stream,raw_column,raw.source_stream,Raw table source stream.
+garmin-connect,heart_rate,stg_garmin_heart_rate_sample_detail,source_updated_at,raw_column,raw.source_updated_at,Raw table source updated timestamp.
+garmin-connect,heart_rate,stg_garmin_heart_rate_sample_detail,sync_task_id,raw_column,raw.sync_task_id,Raw table sync task identifier.
+garmin-connect,heart_rate,stg_garmin_heart_rate_summary,account_id,raw_column,raw.account_id,Raw table account identifier.
+garmin-connect,heart_rate,stg_garmin_heart_rate_summary,calendar_date,raw_leaf,calendarDate,Direct raw leaf mapping.
+garmin-connect,heart_rate,stg_garmin_heart_rate_summary,collected_at,raw_column,raw.collected_at,Raw table collection timestamp.
+garmin-connect,heart_rate,stg_garmin_heart_rate_summary,connector_config_id,raw_column,raw.connector_config_id,Raw table connector configuration identifier.
+garmin-connect,heart_rate,stg_garmin_heart_rate_summary,connector_id,raw_column,raw.connector_id,Raw table connector identifier.
+garmin-connect,heart_rate,stg_garmin_heart_rate_summary,end_timestamp_gmt,raw_leaf,endTimestampGMT,Direct raw leaf mapping.
+garmin-connect,heart_rate,stg_garmin_heart_rate_summary,end_timestamp_local,raw_leaf,endTimestampLocal,Direct raw leaf mapping.
+garmin-connect,heart_rate,stg_garmin_heart_rate_summary,last_seven_days_avg_resting_heart_rate,raw_leaf,lastSevenDaysAvgRestingHeartRate,Direct raw leaf mapping.
+garmin-connect,heart_rate,stg_garmin_heart_rate_summary,max_heart_rate,raw_leaf,maxHeartRate,Direct raw leaf mapping.
+garmin-connect,heart_rate,stg_garmin_heart_rate_summary,min_heart_rate,raw_leaf,minHeartRate,Direct raw leaf mapping.
+garmin-connect,heart_rate,stg_garmin_heart_rate_summary,payload_hash,raw_column,raw.payload_hash,Raw table payload hash.
+garmin-connect,heart_rate,stg_garmin_heart_rate_summary,raw_created_at,raw_column,raw.created_at,Raw table creation timestamp.
+garmin-connect,heart_rate,stg_garmin_heart_rate_summary,raw_record_id,raw_column,raw.id,Raw table primary key.
+garmin-connect,heart_rate,stg_garmin_heart_rate_summary,raw_updated_at,raw_column,raw.updated_at,Raw table update timestamp.
+garmin-connect,heart_rate,stg_garmin_heart_rate_summary,resting_heart_rate,raw_leaf,restingHeartRate,Direct raw leaf mapping.
+garmin-connect,heart_rate,stg_garmin_heart_rate_summary,source_external_id,raw_column,raw.external_id,Raw table external identifier.
+garmin-connect,heart_rate,stg_garmin_heart_rate_summary,source_record_at,raw_column,raw.source_record_at,Raw table source record timestamp.
+garmin-connect,heart_rate,stg_garmin_heart_rate_summary,source_record_date,raw_column,raw.source_record_date,Raw table source record date.
+garmin-connect,heart_rate,stg_garmin_heart_rate_summary,source_stream,raw_column,raw.source_stream,Raw table source stream.
+garmin-connect,heart_rate,stg_garmin_heart_rate_summary,source_updated_at,raw_column,raw.source_updated_at,Raw table source updated timestamp.
+garmin-connect,heart_rate,stg_garmin_heart_rate_summary,start_timestamp_gmt,raw_leaf,startTimestampGMT,Direct raw leaf mapping.
+garmin-connect,heart_rate,stg_garmin_heart_rate_summary,start_timestamp_local,raw_leaf,startTimestampLocal,Direct raw leaf mapping.
+garmin-connect,heart_rate,stg_garmin_heart_rate_summary,sync_task_id,raw_column,raw.sync_task_id,Raw table sync task identifier.
+garmin-connect,heart_rate,stg_garmin_heart_rate_summary,user_profile_pk,raw_leaf,userProfilePK,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_attribute_detail,account_id,raw_column,raw.account_id,Raw table account identifier.
+garmin-connect,profile,stg_garmin_profile_attribute_detail,attribute_name,structural,userRoles[],Derived from the exploded raw array name.
+garmin-connect,profile,stg_garmin_profile_attribute_detail,collected_at,raw_column,raw.collected_at,Raw table collection timestamp.
+garmin-connect,profile,stg_garmin_profile_attribute_detail,connector_config_id,raw_column,raw.connector_config_id,Raw table connector configuration identifier.
+garmin-connect,profile,stg_garmin_profile_attribute_detail,connector_id,raw_column,raw.connector_id,Raw table connector identifier.
+garmin-connect,profile,stg_garmin_profile_attribute_detail,item,raw_leaf,userRoles[],Exploded user role value.
+garmin-connect,profile,stg_garmin_profile_attribute_detail,item_position,structural,userRoles[],Derived array ordinality.
+garmin-connect,profile,stg_garmin_profile_attribute_detail,payload_hash,raw_column,raw.payload_hash,Raw table payload hash.
+garmin-connect,profile,stg_garmin_profile_attribute_detail,profile_id,raw_leaf,profileId,Direct profile identifier leaf.
+garmin-connect,profile,stg_garmin_profile_attribute_detail,raw_created_at,raw_column,raw.created_at,Raw table creation timestamp.
+garmin-connect,profile,stg_garmin_profile_attribute_detail,raw_record_id,raw_column,raw.id,Raw table primary key.
+garmin-connect,profile,stg_garmin_profile_attribute_detail,raw_updated_at,raw_column,raw.updated_at,Raw table update timestamp.
+garmin-connect,profile,stg_garmin_profile_attribute_detail,source_external_id,raw_column,raw.external_id,Raw table external identifier.
+garmin-connect,profile,stg_garmin_profile_attribute_detail,source_record_at,raw_column,raw.source_record_at,Raw table source record timestamp.
+garmin-connect,profile,stg_garmin_profile_attribute_detail,source_record_date,raw_column,raw.source_record_date,Raw table source record date.
+garmin-connect,profile,stg_garmin_profile_attribute_detail,source_stream,raw_column,raw.source_stream,Raw table source stream.
+garmin-connect,profile,stg_garmin_profile_attribute_detail,source_updated_at,raw_column,raw.source_updated_at,Raw table source updated timestamp.
+garmin-connect,profile,stg_garmin_profile_attribute_detail,sync_task_id,raw_column,raw.sync_task_id,Raw table sync task identifier.
+garmin-connect,profile,stg_garmin_profile_snapshot,account_id,raw_column,raw.account_id,Raw table account identifier.
+garmin-connect,profile,stg_garmin_profile_snapshot,activity_heart_rate_visibility,raw_leaf,activityHeartRateVisibility,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,activity_map_visibility,raw_leaf,activityMapVisibility,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,activity_power_visibility,raw_leaf,activityPowerVisibility,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,activity_start_visibility,raw_leaf,activityStartVisibility,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,allow_golf_live_scoring,raw_leaf,allowGolfLiveScoring,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,allow_golf_scoring_by_connections,raw_leaf,allowGolfScoringByConnections,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,badge_visibility,raw_leaf,badgeVisibility,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,bio,raw_leaf,bio,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,collected_at,raw_column,raw.collected_at,Raw table collection timestamp.
+garmin-connect,profile,stg_garmin_profile_snapshot,connector_config_id,raw_column,raw.connector_config_id,Raw table connector configuration identifier.
+garmin-connect,profile,stg_garmin_profile_snapshot,connector_id,raw_column,raw.connector_id,Raw table connector identifier.
+garmin-connect,profile,stg_garmin_profile_snapshot,course_visibility,raw_leaf,courseVisibility,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,cycling_classification,raw_leaf,cyclingClassification,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,cycling_max_avg_power,raw_leaf,cyclingMaxAvgPower,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,cycling_training_speed,raw_leaf,cyclingTrainingSpeed,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,display_name,raw_leaf,displayName,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,facebook_url,raw_leaf,facebookUrl,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,full_name,raw_leaf,fullName,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,garmin_guid,raw_leaf,garminGUID,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,level_is_viewed,raw_leaf,levelIsViewed,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,level_point_threshold,raw_leaf,levelPointThreshold,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,level_update_at,raw_leaf,levelUpdateDate,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,location,raw_leaf,location,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,make_golf_scorecards_private,raw_leaf,makeGolfScorecardsPrivate,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,motivation,raw_leaf,motivation,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,name_approved,raw_leaf,nameApproved,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,other_activity,raw_leaf,otherActivity,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,other_motivation,raw_leaf,otherMotivation,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,other_primary_activity,raw_leaf,otherPrimaryActivity,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,payload_hash,raw_column,raw.payload_hash,Raw table payload hash.
+garmin-connect,profile,stg_garmin_profile_snapshot,payload_id,raw_leaf,id,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,personal_website,raw_leaf,personalWebsite,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,primary_activity,raw_leaf,primaryActivity,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,profile_id,raw_leaf,profileId,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,profile_image_type,raw_leaf,profileImageType,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,profile_image_url_large,raw_leaf,profileImageUrlLarge,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,profile_image_url_medium,raw_leaf,profileImageUrlMedium,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,profile_image_url_small,raw_leaf,profileImageUrlSmall,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,profile_visibility,raw_leaf,profileVisibility,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,raw_created_at,raw_column,raw.created_at,Raw table creation timestamp.
+garmin-connect,profile,stg_garmin_profile_snapshot,raw_record_id,raw_column,raw.id,Raw table primary key.
+garmin-connect,profile,stg_garmin_profile_snapshot,raw_updated_at,raw_column,raw.updated_at,Raw table update timestamp.
+garmin-connect,profile,stg_garmin_profile_snapshot,running_training_speed,raw_leaf,runningTrainingSpeed,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,show_activity_class,raw_leaf,showActivityClass,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,show_age,raw_leaf,showAge,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,show_age_range,raw_leaf,showAgeRange,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,show_badges,raw_leaf,showBadges,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,show_gender,raw_leaf,showGender,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,show_height,raw_leaf,showHeight,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,show_last_12_months,raw_leaf,showLast12Months,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,show_lifetime_totals,raw_leaf,showLifetimeTotals,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,show_personal_records,raw_leaf,showPersonalRecords,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,show_recent_device,raw_leaf,showRecentDevice,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,show_recent_favorites,raw_leaf,showRecentFavorites,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,show_recent_gear,raw_leaf,showRecentGear,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,show_upcoming_events,raw_leaf,showUpcomingEvents,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,show_vo2_max,raw_leaf,showVO2Max,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,show_weight,raw_leaf,showWeight,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,show_weight_class,raw_leaf,showWeightClass,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,source_external_id,raw_column,raw.external_id,Raw table external identifier.
+garmin-connect,profile,stg_garmin_profile_snapshot,source_record_at,raw_column,raw.source_record_at,Raw table source record timestamp.
+garmin-connect,profile,stg_garmin_profile_snapshot,source_record_date,raw_column,raw.source_record_date,Raw table source record date.
+garmin-connect,profile,stg_garmin_profile_snapshot,source_stream,raw_column,raw.source_stream,Raw table source stream.
+garmin-connect,profile,stg_garmin_profile_snapshot,source_updated_at,raw_column,raw.source_updated_at,Raw table source updated timestamp.
+garmin-connect,profile,stg_garmin_profile_snapshot,swimming_training_speed,raw_leaf,swimmingTrainingSpeed,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,sync_task_id,raw_column,raw.sync_task_id,Raw table sync task identifier.
+garmin-connect,profile,stg_garmin_profile_snapshot,twitter_url,raw_leaf,twitterUrl,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,user_level,raw_leaf,userLevel,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,user_name,raw_leaf,userName,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,user_point,raw_leaf,userPoint,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,user_point_offset,raw_leaf,userPointOffset,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,user_pro,raw_leaf,userPro,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,user_profile_full_name,raw_leaf,userProfileFullName,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,account_id,raw_column,raw.account_id,Raw table account identifier.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,collected_at,raw_column,raw.collected_at,Raw table collection timestamp.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,connector_config_id,raw_column,raw.connector_config_id,Raw table connector configuration identifier.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,connector_id,raw_column,raw.connector_id,Raw table connector identifier.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,metric_name,structural,hrvData[],Derived from the exploded raw array name.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,metric_name,structural,sleepBodyBattery[],Derived from the exploded raw array name.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,metric_name,structural,sleepHeartRate[],Derived from the exploded raw array name.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,metric_name,structural,sleepRestlessMoments[],Derived from the exploded raw array name.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,metric_name,structural,sleepStress[],Derived from the exploded raw array name.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,metric_name,structural,wellnessEpochRespirationAveragesList[],Derived from the exploded raw array name.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,metric_name,structural,wellnessEpochRespirationDataDTOList[],Derived from the exploded raw array name.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,payload_hash,raw_column,raw.payload_hash,Raw table payload hash.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,raw_created_at,raw_column,raw.created_at,Raw table creation timestamp.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,raw_record_id,raw_column,raw.id,Raw table primary key.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,raw_updated_at,raw_column,raw.updated_at,Raw table update timestamp.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,sample_at,raw_leaf,hrvData[].startGMT,Exploded metric sample timestamp.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,sample_at,raw_leaf,sleepBodyBattery[].startGMT,Exploded metric sample timestamp.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,sample_at,raw_leaf,sleepHeartRate[].startGMT,Exploded metric sample timestamp.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,sample_at,raw_leaf,sleepRestlessMoments[].startGMT,Exploded metric sample timestamp.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,sample_at,raw_leaf,sleepStress[].startGMT,Exploded metric sample timestamp.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,sample_at,raw_leaf,wellnessEpochRespirationAveragesList[].epochEndTimestampGmt,Exploded respiration average timestamp.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,sample_at,raw_leaf,wellnessEpochRespirationDataDTOList[].startTimeGMT,Exploded respiration sample timestamp.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,sample_position,structural,hrvData[],Derived array ordinality.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,sample_position,structural,sleepBodyBattery[],Derived array ordinality.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,sample_position,structural,sleepHeartRate[],Derived array ordinality.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,sample_position,structural,sleepRestlessMoments[],Derived array ordinality.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,sample_position,structural,sleepStress[],Derived array ordinality.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,sample_position,structural,wellnessEpochRespirationAveragesList[],Derived array ordinality.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,sample_position,structural,wellnessEpochRespirationDataDTOList[],Derived array ordinality.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,sleep_id,raw_leaf,dailySleepDTO.id,Direct sleep identifier leaf.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,source_external_id,raw_column,raw.external_id,Raw table external identifier.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,source_record_at,raw_column,raw.source_record_at,Raw table source record timestamp.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,source_record_date,raw_column,raw.source_record_date,Raw table source record date.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,source_stream,raw_column,raw.source_stream,Raw table source stream.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,source_updated_at,raw_column,raw.source_updated_at,Raw table source updated timestamp.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,sync_task_id,raw_column,raw.sync_task_id,Raw table sync task identifier.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,value,raw_leaf,hrvData[].value,Exploded metric value.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,value,raw_leaf,sleepBodyBattery[].value,Exploded metric value.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,value,raw_leaf,sleepHeartRate[].value,Exploded metric value.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,value,raw_leaf,sleepRestlessMoments[].value,Exploded metric value.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,value,raw_leaf,sleepStress[].value,Exploded metric value.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,value,raw_leaf,wellnessEpochRespirationAveragesList[].respirationAverageValue,Exploded respiration average value.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,value,raw_leaf,wellnessEpochRespirationAveragesList[].respirationHighValue,Exploded respiration high value.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,value,raw_leaf,wellnessEpochRespirationAveragesList[].respirationLowValue,Exploded respiration low value.
+garmin-connect,sleep,stg_garmin_sleep_metric_detail,value,raw_leaf,wellnessEpochRespirationDataDTOList[].respirationValue,Exploded respiration sample value.
+garmin-connect,sleep,stg_garmin_sleep_stage_detail,account_id,raw_column,raw.account_id,Raw table account identifier.
+garmin-connect,sleep,stg_garmin_sleep_stage_detail,activity_level,raw_leaf,sleepLevels[].activityLevel,Exploded stage activity level.
+garmin-connect,sleep,stg_garmin_sleep_stage_detail,activity_level,raw_leaf,sleepMovement[].activityLevel,Exploded movement activity level.
+garmin-connect,sleep,stg_garmin_sleep_stage_detail,collected_at,raw_column,raw.collected_at,Raw table collection timestamp.
+garmin-connect,sleep,stg_garmin_sleep_stage_detail,connector_config_id,raw_column,raw.connector_config_id,Raw table connector configuration identifier.
+garmin-connect,sleep,stg_garmin_sleep_stage_detail,connector_id,raw_column,raw.connector_id,Raw table connector identifier.
+garmin-connect,sleep,stg_garmin_sleep_stage_detail,payload_hash,raw_column,raw.payload_hash,Raw table payload hash.
+garmin-connect,sleep,stg_garmin_sleep_stage_detail,raw_created_at,raw_column,raw.created_at,Raw table creation timestamp.
+garmin-connect,sleep,stg_garmin_sleep_stage_detail,raw_record_id,raw_column,raw.id,Raw table primary key.
+garmin-connect,sleep,stg_garmin_sleep_stage_detail,raw_updated_at,raw_column,raw.updated_at,Raw table update timestamp.
+garmin-connect,sleep,stg_garmin_sleep_stage_detail,sleep_id,raw_leaf,dailySleepDTO.id,Direct sleep identifier leaf.
+garmin-connect,sleep,stg_garmin_sleep_stage_detail,source_external_id,raw_column,raw.external_id,Raw table external identifier.
+garmin-connect,sleep,stg_garmin_sleep_stage_detail,source_record_at,raw_column,raw.source_record_at,Raw table source record timestamp.
+garmin-connect,sleep,stg_garmin_sleep_stage_detail,source_record_date,raw_column,raw.source_record_date,Raw table source record date.
+garmin-connect,sleep,stg_garmin_sleep_stage_detail,source_stream,raw_column,raw.source_stream,Raw table source stream.
+garmin-connect,sleep,stg_garmin_sleep_stage_detail,source_updated_at,raw_column,raw.source_updated_at,Raw table source updated timestamp.
+garmin-connect,sleep,stg_garmin_sleep_stage_detail,stage_end_at,raw_leaf,sleepLevels[].endGMT,Exploded stage end timestamp.
+garmin-connect,sleep,stg_garmin_sleep_stage_detail,stage_end_at,raw_leaf,sleepMovement[].endGMT,Exploded movement end timestamp.
+garmin-connect,sleep,stg_garmin_sleep_stage_detail,stage_name,structural,sleepLevels[],Derived from the exploded raw array name.
+garmin-connect,sleep,stg_garmin_sleep_stage_detail,stage_name,structural,sleepMovement[],Derived from the exploded raw array name.
+garmin-connect,sleep,stg_garmin_sleep_stage_detail,stage_position,structural,sleepLevels[],Derived array ordinality.
+garmin-connect,sleep,stg_garmin_sleep_stage_detail,stage_position,structural,sleepMovement[],Derived array ordinality.
+garmin-connect,sleep,stg_garmin_sleep_stage_detail,stage_start_at,raw_leaf,sleepLevels[].startGMT,Exploded stage start timestamp.
+garmin-connect,sleep,stg_garmin_sleep_stage_detail,stage_start_at,raw_leaf,sleepMovement[].startGMT,Exploded movement start timestamp.
+garmin-connect,sleep,stg_garmin_sleep_stage_detail,sync_task_id,raw_column,raw.sync_task_id,Raw table sync task identifier.
+garmin-connect,sleep,stg_garmin_sleep_summary,account_id,raw_column,raw.account_id,Raw table account identifier.
+garmin-connect,sleep,stg_garmin_sleep_summary,age_group,raw_leaf,dailySleepDTO.ageGroup,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,auto_sleep_end_timestamp_gmt,raw_leaf,dailySleepDTO.autoSleepEndTimestampGMT,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,auto_sleep_start_timestamp_gmt,raw_leaf,dailySleepDTO.autoSleepStartTimestampGMT,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,average_respiration_value,raw_leaf,dailySleepDTO.averageRespirationValue,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,avg_overnight_hrv,raw_leaf,avgOvernightHrv,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,avg_sleep_stress,raw_leaf,dailySleepDTO.avgSleepStress,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,awake_count,raw_leaf,dailySleepDTO.awakeCount,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,awake_count_score_optimal_end,raw_leaf,dailySleepDTO.sleepScores.awakeCount.optimalEnd,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,awake_count_score_optimal_start,raw_leaf,dailySleepDTO.sleepScores.awakeCount.optimalStart,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,awake_count_score_qualifier_key,raw_leaf,dailySleepDTO.sleepScores.awakeCount.qualifierKey,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,awake_sleep_seconds,raw_leaf,dailySleepDTO.awakeSleepSeconds,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,body_battery_change,raw_leaf,bodyBatteryChange,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,calendar_date,raw_leaf,dailySleepDTO.calendarDate,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,collected_at,raw_column,raw.collected_at,Raw table collection timestamp.
+garmin-connect,sleep,stg_garmin_sleep_summary,connector_config_id,raw_column,raw.connector_config_id,Raw table connector configuration identifier.
+garmin-connect,sleep,stg_garmin_sleep_summary,connector_id,raw_column,raw.connector_id,Raw table connector identifier.
+garmin-connect,sleep,stg_garmin_sleep_summary,daily_sleep_dto,raw_leaf,dailySleepDTO,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,deep_percentage_score_ideal_end_in_seconds,raw_leaf,dailySleepDTO.sleepScores.deepPercentage.idealEndInSeconds,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,deep_percentage_score_ideal_start_in_seconds,raw_leaf,dailySleepDTO.sleepScores.deepPercentage.idealStartInSeconds,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,deep_percentage_score_optimal_end,raw_leaf,dailySleepDTO.sleepScores.deepPercentage.optimalEnd,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,deep_percentage_score_optimal_start,raw_leaf,dailySleepDTO.sleepScores.deepPercentage.optimalStart,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,deep_percentage_score_qualifier_key,raw_leaf,dailySleepDTO.sleepScores.deepPercentage.qualifierKey,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,deep_percentage_score_value,raw_leaf,dailySleepDTO.sleepScores.deepPercentage.value,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,deep_sleep_seconds,raw_leaf,dailySleepDTO.deepSleepSeconds,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,device_rem_capable,raw_leaf,dailySleepDTO.deviceRemCapable,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,highest_respiration_value,raw_leaf,dailySleepDTO.highestRespirationValue,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,hrv_status,raw_leaf,hrvStatus,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,light_percentage_score_ideal_end_in_seconds,raw_leaf,dailySleepDTO.sleepScores.lightPercentage.idealEndInSeconds,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,light_percentage_score_ideal_start_in_seconds,raw_leaf,dailySleepDTO.sleepScores.lightPercentage.idealStartInSeconds,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,light_percentage_score_optimal_end,raw_leaf,dailySleepDTO.sleepScores.lightPercentage.optimalEnd,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,light_percentage_score_optimal_start,raw_leaf,dailySleepDTO.sleepScores.lightPercentage.optimalStart,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,light_percentage_score_qualifier_key,raw_leaf,dailySleepDTO.sleepScores.lightPercentage.qualifierKey,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,light_percentage_score_value,raw_leaf,dailySleepDTO.sleepScores.lightPercentage.value,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,light_sleep_seconds,raw_leaf,dailySleepDTO.lightSleepSeconds,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,lowest_respiration_value,raw_leaf,dailySleepDTO.lowestRespirationValue,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,nap_time_seconds,raw_leaf,dailySleepDTO.napTimeSeconds,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,overall_score_qualifier_key,raw_leaf,dailySleepDTO.sleepScores.overall.qualifierKey,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,overall_score_value,raw_leaf,dailySleepDTO.sleepScores.overall.value,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,payload_hash,raw_column,raw.payload_hash,Raw table payload hash.
+garmin-connect,sleep,stg_garmin_sleep_summary,raw_created_at,raw_column,raw.created_at,Raw table creation timestamp.
+garmin-connect,sleep,stg_garmin_sleep_summary,raw_record_id,raw_column,raw.id,Raw table primary key.
+garmin-connect,sleep,stg_garmin_sleep_summary,raw_updated_at,raw_column,raw.updated_at,Raw table update timestamp.
+garmin-connect,sleep,stg_garmin_sleep_summary,rem_percentage_score_ideal_end_in_seconds,raw_leaf,dailySleepDTO.sleepScores.remPercentage.idealEndInSeconds,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,rem_percentage_score_ideal_start_in_seconds,raw_leaf,dailySleepDTO.sleepScores.remPercentage.idealStartInSeconds,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,rem_percentage_score_optimal_end,raw_leaf,dailySleepDTO.sleepScores.remPercentage.optimalEnd,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,rem_percentage_score_optimal_start,raw_leaf,dailySleepDTO.sleepScores.remPercentage.optimalStart,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,rem_percentage_score_qualifier_key,raw_leaf,dailySleepDTO.sleepScores.remPercentage.qualifierKey,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,rem_percentage_score_value,raw_leaf,dailySleepDTO.sleepScores.remPercentage.value,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,rem_sleep_data,raw_leaf,remSleepData,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,rem_sleep_seconds,raw_leaf,dailySleepDTO.remSleepSeconds,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,respiration_version,raw_leaf,respirationVersion,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,resting_heart_rate,raw_leaf,restingHeartRate,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,restless_moments_count,raw_leaf,restlessMomentsCount,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,restlessness_score_optimal_end,raw_leaf,dailySleepDTO.sleepScores.restlessness.optimalEnd,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,restlessness_score_optimal_start,raw_leaf,dailySleepDTO.sleepScores.restlessness.optimalStart,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,restlessness_score_qualifier_key,raw_leaf,dailySleepDTO.sleepScores.restlessness.qualifierKey,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,retro,raw_leaf,dailySleepDTO.retro,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,skin_temp_data_exists,raw_leaf,skinTempDataExists,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,sleep_end_timestamp_gmt,raw_leaf,dailySleepDTO.sleepEndTimestampGMT,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,sleep_end_timestamp_local,raw_leaf,dailySleepDTO.sleepEndTimestampLocal,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,sleep_from_device,raw_leaf,dailySleepDTO.sleepFromDevice,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,sleep_id,raw_leaf,dailySleepDTO.id,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,sleep_quality_type_pk,raw_leaf,dailySleepDTO.sleepQualityTypePK,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,sleep_result_type_pk,raw_leaf,dailySleepDTO.sleepResultTypePK,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,sleep_score_feedback,raw_leaf,dailySleepDTO.sleepScoreFeedback,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,sleep_score_insight,raw_leaf,dailySleepDTO.sleepScoreInsight,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,sleep_score_personalized_insight,raw_leaf,dailySleepDTO.sleepScorePersonalizedInsight,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,sleep_scores,raw_leaf,dailySleepDTO.sleepScores,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,sleep_start_timestamp_gmt,raw_leaf,dailySleepDTO.sleepStartTimestampGMT,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,sleep_start_timestamp_local,raw_leaf,dailySleepDTO.sleepStartTimestampLocal,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,sleep_time_seconds,raw_leaf,dailySleepDTO.sleepTimeSeconds,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,sleep_version,raw_leaf,dailySleepDTO.sleepVersion,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,sleep_window_confirmation_type,raw_leaf,dailySleepDTO.sleepWindowConfirmationType,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,sleep_window_confirmed,raw_leaf,dailySleepDTO.sleepWindowConfirmed,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,source_external_id,raw_column,raw.external_id,Raw table external identifier.
+garmin-connect,sleep,stg_garmin_sleep_summary,source_record_at,raw_column,raw.source_record_at,Raw table source record timestamp.
+garmin-connect,sleep,stg_garmin_sleep_summary,source_record_date,raw_column,raw.source_record_date,Raw table source record date.
+garmin-connect,sleep,stg_garmin_sleep_summary,source_stream,raw_column,raw.source_stream,Raw table source stream.
+garmin-connect,sleep,stg_garmin_sleep_summary,source_updated_at,raw_column,raw.source_updated_at,Raw table source updated timestamp.
+garmin-connect,sleep,stg_garmin_sleep_summary,stress_score_optimal_end,raw_leaf,dailySleepDTO.sleepScores.stress.optimalEnd,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,stress_score_optimal_start,raw_leaf,dailySleepDTO.sleepScores.stress.optimalStart,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,stress_score_qualifier_key,raw_leaf,dailySleepDTO.sleepScores.stress.qualifierKey,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,sync_task_id,raw_column,raw.sync_task_id,Raw table sync task identifier.
+garmin-connect,sleep,stg_garmin_sleep_summary,total_duration_score_optimal_end,raw_leaf,dailySleepDTO.sleepScores.totalDuration.optimalEnd,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,total_duration_score_optimal_start,raw_leaf,dailySleepDTO.sleepScores.totalDuration.optimalStart,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,total_duration_score_qualifier_key,raw_leaf,dailySleepDTO.sleepScores.totalDuration.qualifierKey,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,unmeasurable_sleep_seconds,raw_leaf,dailySleepDTO.unmeasurableSleepSeconds,Direct raw leaf mapping.
+garmin-connect,sleep,stg_garmin_sleep_summary,user_profile_pk,raw_leaf,dailySleepDTO.userProfilePK,Direct raw leaf mapping.
+medical-report,medical_report,stg_medical_report_item_detail,abnormal_flag,raw_leaf,sections[].items[].abnormalFlag,Exploded abnormal flag leaf.
+medical-report,medical_report,stg_medical_report_item_detail,account_id,raw_column,raw.account_id,Raw table account identifier.
+medical-report,medical_report,stg_medical_report_item_detail,collected_at,raw_column,raw.collected_at,Raw table collection timestamp.
+medical-report,medical_report,stg_medical_report_item_detail,connector_config_id,raw_column,raw.connector_config_id,Raw table connector configuration identifier.
+medical-report,medical_report,stg_medical_report_item_detail,connector_id,raw_column,raw.connector_id,Raw table connector identifier.
+medical-report,medical_report,stg_medical_report_item_detail,file_name,raw_leaf,fileName,Direct file name leaf.
+medical-report,medical_report,stg_medical_report_item_detail,institution,raw_leaf,institution,Direct institution leaf.
+medical-report,medical_report,stg_medical_report_item_detail,item_key,raw_leaf,sections[].items[].itemKey,Exploded item key leaf.
+medical-report,medical_report,stg_medical_report_item_detail,item_position,structural,sections[].items[],Derived item array ordinality.
+medical-report,medical_report,stg_medical_report_item_detail,parse_session_id,raw_leaf,parseSessionId,Direct report session identifier leaf.
+medical-report,medical_report,stg_medical_report_item_detail,payload_hash,raw_column,raw.payload_hash,Raw table payload hash.
+medical-report,medical_report,stg_medical_report_item_detail,raw_created_at,raw_column,raw.created_at,Raw table creation timestamp.
+medical-report,medical_report,stg_medical_report_item_detail,raw_record_id,raw_column,raw.id,Raw table primary key.
+medical-report,medical_report,stg_medical_report_item_detail,raw_updated_at,raw_column,raw.updated_at,Raw table update timestamp.
+medical-report,medical_report,stg_medical_report_item_detail,record_number,raw_leaf,recordNumber,Direct report number leaf.
+medical-report,medical_report,stg_medical_report_item_detail,reference_value,raw_leaf,sections[].items[].referenceValue,Exploded reference value leaf.
+medical-report,medical_report,stg_medical_report_item_detail,report_date,raw_leaf,reportDate,Direct report date leaf.
+medical-report,medical_report,stg_medical_report_item_detail,result,raw_leaf,sections[].items[].result,Exploded result leaf.
+medical-report,medical_report,stg_medical_report_item_detail,section_key,raw_leaf,sections[].sectionKey,Exploded section key leaf.
+medical-report,medical_report,stg_medical_report_item_detail,section_exam_date,raw_leaf,sections[].examDate,Exploded section exam date leaf.
+medical-report,medical_report,stg_medical_report_item_detail,section_examiner,raw_leaf,sections[].examiner,Exploded section examiner leaf.
+medical-report,medical_report,stg_medical_report_item_detail,section_position,structural,sections[],Derived section array ordinality.
+medical-report,medical_report,stg_medical_report_item_detail,source_external_id,raw_column,raw.external_id,Raw table external identifier.
+medical-report,medical_report,stg_medical_report_item_detail,source_record_at,raw_column,raw.source_record_at,Raw table source record timestamp.
+medical-report,medical_report,stg_medical_report_item_detail,source_record_date,raw_column,raw.source_record_date,Raw table source record date.
+medical-report,medical_report,stg_medical_report_item_detail,source_stream,raw_column,raw.source_stream,Raw table source stream.
+medical-report,medical_report,stg_medical_report_item_detail,source_updated_at,raw_column,raw.source_updated_at,Raw table source updated timestamp.
+medical-report,medical_report,stg_medical_report_item_detail,sync_task_id,raw_column,raw.sync_task_id,Raw table sync task identifier.
+medical-report,medical_report,stg_medical_report_item_detail,unit,raw_leaf,sections[].items[].unit,Exploded unit leaf.
+medical-report,medical_report,stg_medical_report_snapshot,account_id,raw_column,raw.account_id,Raw table account identifier.
+medical-report,medical_report,stg_medical_report_snapshot,collected_at,raw_column,raw.collected_at,Raw table collection timestamp.
+medical-report,medical_report,stg_medical_report_snapshot,connector_config_id,raw_column,raw.connector_config_id,Raw table connector configuration identifier.
+medical-report,medical_report,stg_medical_report_snapshot,connector_id,raw_column,raw.connector_id,Raw table connector identifier.
+medical-report,medical_report,stg_medical_report_snapshot,file_name,raw_leaf,fileName,Direct raw leaf mapping.
+medical-report,medical_report,stg_medical_report_snapshot,institution,raw_leaf,institution,Direct raw leaf mapping.
+medical-report,medical_report,stg_medical_report_snapshot,model_id,raw_leaf,modelId,Direct raw leaf mapping.
+medical-report,medical_report,stg_medical_report_snapshot,parse_session_id,raw_leaf,parseSessionId,Direct raw leaf mapping.
+medical-report,medical_report,stg_medical_report_snapshot,payload_hash,raw_column,raw.payload_hash,Raw table payload hash.
+medical-report,medical_report,stg_medical_report_snapshot,provider,raw_leaf,provider,Direct raw leaf mapping.
+medical-report,medical_report,stg_medical_report_snapshot,raw_created_at,raw_column,raw.created_at,Raw table creation timestamp.
+medical-report,medical_report,stg_medical_report_snapshot,raw_record_id,raw_column,raw.id,Raw table primary key.
+medical-report,medical_report,stg_medical_report_snapshot,raw_updated_at,raw_column,raw.updated_at,Raw table update timestamp.
+medical-report,medical_report,stg_medical_report_snapshot,record_number,raw_leaf,recordNumber,Direct raw leaf mapping.
+medical-report,medical_report,stg_medical_report_snapshot,report_date,raw_leaf,reportDate,Direct raw leaf mapping.
+medical-report,medical_report,stg_medical_report_snapshot,source_external_id,raw_column,raw.external_id,Raw table external identifier.
+medical-report,medical_report,stg_medical_report_snapshot,source_record_at,raw_column,raw.source_record_at,Raw table source record timestamp.
+medical-report,medical_report,stg_medical_report_snapshot,source_record_date,raw_column,raw.source_record_date,Raw table source record date.
+medical-report,medical_report,stg_medical_report_snapshot,source_stream,raw_column,raw.source_stream,Raw table source stream.
+medical-report,medical_report,stg_medical_report_snapshot,source_updated_at,raw_column,raw.source_updated_at,Raw table source updated timestamp.
+medical-report,medical_report,stg_medical_report_snapshot,sync_task_id,raw_column,raw.sync_task_id,Raw table sync task identifier.

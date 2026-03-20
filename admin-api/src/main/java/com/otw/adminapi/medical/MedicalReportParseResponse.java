@@ -9,17 +9,12 @@ public record MedicalReportParseResponse(
   String provider,
   String modelId,
   String parsedAt,
-  FormView form,
   List<SectionView> sections
 ) {
-  public record FormView(
-    String examiner,
-    String examDate
-  ) {
-  }
-
   public record SectionView(
     String sectionKey,
+    String examiner,
+    String examDate,
     List<ItemView> items
   ) {
   }

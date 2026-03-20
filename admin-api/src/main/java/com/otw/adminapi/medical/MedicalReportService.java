@@ -162,18 +162,6 @@ public class MedicalReportService {
     );
 
     List<MedicalReportParseResponse.SectionView> sections = mergeParsedSections(parsedPayload.sections());
-    LocalDate examDate = reportDate;
-    if (parsedPayload.examDate() != null && !parsedPayload.examDate().isBlank()) {
-      try {
-        examDate = LocalDate.parse(parsedPayload.examDate().trim());
-      } catch (DateTimeParseException ignored) {
-        examDate = reportDate;
-      }
-    }
-    String examiner = parsedPayload.examiner() == null || parsedPayload.examiner().isBlank()
-      ? "AI Parser"
-      : parsedPayload.examiner().trim();
-    MedicalReportParseResponse.FormView form = new MedicalReportParseResponse.FormView(examiner, examDate.toString());
 
     MedicalReportParseSessionEntity session = new MedicalReportParseSessionEntity();
     session.setAccountId(authenticatedUser.accountId());
@@ -185,7 +173,7 @@ public class MedicalReportService {
     session.setInstitution(normalizedInstitution);
     session.setFileName(fileName);
     session.setFileHash(fileHash);
-    session.setParsedPayloadJsonb(writeJson(Map.of("form", form, "sections", sections)));
+    session.setParsedPayloadJsonb(writeJson(Map.of("sections", sections)));
     session.setStatus("parsed");
     session.setExpiresAt(parsedAt.plusSeconds(SESSION_TTL_HOURS * 3600L));
     parseSessionRepository.save(session);
@@ -196,7 +184,6 @@ public class MedicalReportService {
       provider,
       modelId,
       DateTimeFormats.formatNullable(parsedAt, zoneId),
-      form,
       sections
     );
   }
@@ -219,15 +206,11 @@ public class MedicalReportService {
     LocalDate reportDate = parseDate(request.reportDate(), "Report date must use YYYY-MM-DD format.");
     String institution = normalizeRequired(request.institution(), "Medical institution is required.");
     String fileName = normalizeRequired(request.fileName(), "Medical report file name is required.");
-    if (request.form() == null) {
-      throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Form is required.");
-    }
-    String examiner = normalizeRequired(request.form().examiner(), "Examiner is required.");
-    LocalDate examDate = parseDate(request.form().examDate(), "Exam date must use YYYY-MM-DD format.");
+    List<NormalizedSectionPayload> normalizedSections = normalizeSections(request.sections());
 
     Instant windowStart = reportDate.atStartOfDay(zoneId).toInstant();
     Instant windowEnd = reportDate.plusDays(1).atStartOfDay(zoneId).toInstant();
-    Instant sourceRecordAt = examDate.atStartOfDay(zoneId).toInstant();
+    Instant sourceRecordAt = reportDate.atStartOfDay(zoneId).toInstant();
 
     SyncTaskEntity task = new SyncTaskEntity();
     task.setAccountId(authenticatedUser.accountId());
@@ -242,7 +225,9 @@ public class MedicalReportService {
     task = syncTaskRepository.saveAndFlush(task);
 
     try {
-      List<Map<String, Object>> sections = normalizeSections(request.sections());
+      List<Map<String, Object>> sections = normalizedSections.stream()
+        .map(NormalizedSectionPayload::toMap)
+        .toList();
       String payloadJson = writeJson(Map.of(
         "parseSessionId", session.getId().toString(),
         "provider", session.getProvider(),
@@ -251,7 +236,6 @@ public class MedicalReportService {
         "reportDate", reportDate.toString(),
         "institution", institution,
         "fileName", fileName,
-        "form", Map.of("examiner", examiner, "examDate", examDate.toString()),
         "sections", sections
       ));
       String payloadHash = sha256Hex(payloadJson.getBytes(StandardCharsets.UTF_8));
@@ -432,16 +416,25 @@ public class MedicalReportService {
     return UpsertAction.UPDATED;
   }
 
-  private List<Map<String, Object>> normalizeSections(List<MedicalReportSyncRequest.MedicalReportSectionInput> sections) {
+  private List<NormalizedSectionPayload> normalizeSections(List<MedicalReportSyncRequest.MedicalReportSectionInput> sections) {
     if (sections == null) {
       return List.of();
     }
 
     return sections.stream()
-      .map(section -> Map.<String, Object>of(
-        "sectionKey", normalizeRequired(section.sectionKey(), "Section key is required."),
-        "items", normalizeItems(section.items())
-      ))
+      .map(section -> {
+        String normalizedExamDate = normalizeOptional(section.examDate());
+        if (!normalizedExamDate.isBlank()) {
+          normalizedExamDate = parseDate(normalizedExamDate, "Section exam date must use YYYY-MM-DD format.").toString();
+        }
+
+        return new NormalizedSectionPayload(
+          normalizeRequired(section.sectionKey(), "Section key is required."),
+          normalizeOptional(section.examiner()),
+          normalizedExamDate,
+          normalizeItems(section.items())
+        );
+      })
       .collect(Collectors.toList());
   }
 
@@ -477,7 +470,7 @@ public class MedicalReportService {
           );
         })
         .toList();
-      sections.add(new MedicalReportParseResponse.SectionView(sectionKey, items));
+      sections.add(new MedicalReportParseResponse.SectionView(sectionKey, "", "", items));
     }
     return sections;
   }
@@ -487,22 +480,25 @@ public class MedicalReportService {
       return buildMockSections();
     }
 
-    Map<String, Map<String, MedicalReportWorkerClient.ParsedItem>> sectionItemLookup = parsedSections.stream()
+    Map<String, MedicalReportWorkerClient.ParsedSection> sectionLookup = parsedSections.stream()
       .collect(Collectors.toMap(
         section -> normalizeRequired(section.sectionKey(), "Section key is required."),
-        section -> (section.items() == null ? List.<MedicalReportWorkerClient.ParsedItem>of() : section.items()).stream()
-          .collect(Collectors.toMap(
-            item -> normalizeRequired(item.itemKey(), "Item key is required."),
-            item -> item,
-            (left, right) -> right
-          )),
+        section -> section,
         (left, right) -> right
       ));
 
     List<MedicalReportParseResponse.SectionView> sections = new ArrayList<>();
     for (Map.Entry<String, List<String>> entry : SECTION_ITEM_KEYS.entrySet()) {
       String sectionKey = entry.getKey();
-      Map<String, MedicalReportWorkerClient.ParsedItem> parsedItems = sectionItemLookup.getOrDefault(sectionKey, Map.of());
+      MedicalReportWorkerClient.ParsedSection parsedSection = sectionLookup.get(sectionKey);
+      Map<String, MedicalReportWorkerClient.ParsedItem> parsedItems = parsedSection == null
+        ? Map.of()
+        : (parsedSection.items() == null ? List.<MedicalReportWorkerClient.ParsedItem>of() : parsedSection.items()).stream()
+          .collect(Collectors.toMap(
+            item -> normalizeRequired(item.itemKey(), "Item key is required."),
+            item -> item,
+            (left, right) -> right
+          ));
 
       List<MedicalReportParseResponse.ItemView> items = entry.getValue().stream()
         .map(itemKey -> {
@@ -528,7 +524,12 @@ public class MedicalReportService {
         })
         .toList();
 
-      sections.add(new MedicalReportParseResponse.SectionView(sectionKey, items));
+      sections.add(new MedicalReportParseResponse.SectionView(
+        sectionKey,
+        parsedSection == null ? "" : normalizeOptional(parsedSection.examiner()),
+        parsedSection == null ? "" : normalizeOptional(parsedSection.examDate()),
+        items
+      ));
     }
 
     return sections;
@@ -620,6 +621,22 @@ public class MedicalReportService {
 
   private String normalizeOptional(String value) {
     return value == null ? "" : value.trim();
+  }
+
+  private record NormalizedSectionPayload(
+    String sectionKey,
+    String examiner,
+    String examDate,
+    List<Map<String, Object>> items
+  ) {
+    private Map<String, Object> toMap() {
+      return Map.of(
+        "sectionKey", sectionKey,
+        "examiner", examiner,
+        "examDate", examDate,
+        "items", items
+      );
+    }
   }
 
   private enum UpsertAction {

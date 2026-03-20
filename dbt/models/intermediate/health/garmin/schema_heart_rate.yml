@@ -1,0 +1,168 @@
+version: 2
+models:
+- name: int_health_heart_rate_summary
+  description: Semantic intermediate mirror of `stg_garmin_heart_rate_summary`. Grain
+    stays identical to staging so each intermediate row maps to exactly one staging
+    row while dropping connector/raw lineage columns and upgrading only fields that
+    can be stably semanticized.
+  tests:
+  - unique_combination:
+      arguments:
+        column_names:
+        - staging_record_id
+  columns:
+  - name: staging_record_id
+    data_type: uuid
+    description: Technical lineage key carried from the staging `raw_record_id` column.
+    tests:
+    - not_null
+  - name: account_id
+    data_type: uuid
+    description: Application account that owns the intermediate health record.
+    tests:
+    - not_null
+  - name: source_external_id
+    data_type: text
+    description: Source-side business metadata carried forward from staging `source_external_id`
+      after connector and raw lineage columns are removed.
+    tests:
+    - not_null
+  - name: source_record_date
+    data_type: date
+    description: Source-side business metadata carried forward from staging `source_record_date`
+      after connector and raw lineage columns are removed.
+    tests:
+    - not_null
+  - name: source_record_at
+    data_type: timestamp with time zone
+    description: Source-side business metadata carried forward from staging `source_record_at`
+      after connector and raw lineage columns are removed.
+  - name: source_updated_at
+    data_type: timestamp with time zone
+    description: Source-side business metadata carried forward from staging `source_updated_at`
+      after connector and raw lineage columns are removed.
+  - name: user_profile_pk
+    data_type: text
+    description: Semantic carry-forward of staging `user_profile_pk`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: calendar_date
+    data_type: date
+    description: Heart-rate summary date promoted from staging text into `date`.
+  - name: start_timestamp_gmt
+    data_type: timestamp with time zone
+    description: Heart-rate window start promoted from the staging GMT field into
+      `timestamptz`.
+  - name: end_timestamp_gmt
+    data_type: timestamp with time zone
+    description: Heart-rate window end promoted from the staging GMT field into `timestamptz`.
+  - name: start_timestamp_local
+    data_type: text
+    description: Semantic carry-forward of staging `start_timestamp_local`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: end_timestamp_local
+    data_type: text
+    description: Semantic carry-forward of staging `end_timestamp_local`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: resting_heart_rate
+    data_type: integer
+    description: Semantic carry-forward of staging `resting_heart_rate`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: min_heart_rate
+    data_type: integer
+    description: Semantic carry-forward of staging `min_heart_rate`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: max_heart_rate
+    data_type: integer
+    description: Semantic carry-forward of staging `max_heart_rate`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: last_seven_days_avg_resting_heart_rate
+    data_type: integer
+    description: Semantic carry-forward of staging `last_seven_days_avg_resting_heart_rate`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: average_heart_rate
+    data_type: numeric
+    description: Semantic carry-forward of staging `average_heart_rate`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: sample_count
+    data_type: bigint
+    description: Semantic carry-forward of staging `sample_count`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: descriptor_count
+    data_type: integer
+    description: Semantic carry-forward of staging `descriptor_count`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: sample_row_count
+    data_type: bigint
+    description: Semantic carry-forward of staging `sample_row_count`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+- name: int_health_heart_rate_sample_detail
+  description: Semantic intermediate mirror of `stg_garmin_heart_rate_sample_detail`.
+    Grain stays identical to staging so each intermediate row maps to exactly one
+    staging row while dropping connector/raw lineage columns and upgrading only fields
+    that can be stably semanticized.
+  tests:
+  - unique_combination:
+      arguments:
+        column_names:
+        - staging_record_id
+        - sample_position
+  columns:
+  - name: staging_record_id
+    data_type: uuid
+    description: Technical lineage key carried from the staging `raw_record_id` column.
+    tests:
+    - not_null
+  - name: account_id
+    data_type: uuid
+    description: Application account that owns the intermediate health record.
+    tests:
+    - not_null
+  - name: source_external_id
+    data_type: text
+    description: Source-side business metadata carried forward from staging `source_external_id`
+      after connector and raw lineage columns are removed.
+    tests:
+    - not_null
+  - name: source_record_date
+    data_type: date
+    description: Source-side business metadata carried forward from staging `source_record_date`
+      after connector and raw lineage columns are removed.
+    tests:
+    - not_null
+  - name: source_record_at
+    data_type: timestamp with time zone
+    description: Source-side business metadata carried forward from staging `source_record_at`
+      after connector and raw lineage columns are removed.
+  - name: source_updated_at
+    data_type: timestamp with time zone
+    description: Source-side business metadata carried forward from staging `source_updated_at`
+      after connector and raw lineage columns are removed.
+  - name: calendar_date
+    data_type: date
+    description: Heart-rate sample date promoted from staging text into `date`.
+  - name: sample_position
+    data_type: integer
+    description: Semantic carry-forward of staging `sample_position`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+    tests:
+    - not_null
+  - name: sample_timestamp
+    data_type: timestamp with time zone
+    description: Heart-rate sample instant promoted from epoch staging text into `timestamptz`.
+  - name: heart_rate_value
+    data_type: integer
+    description: Semantic carry-forward of staging `heart_rate_value`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.

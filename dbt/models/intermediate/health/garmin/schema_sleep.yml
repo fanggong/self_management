@@ -1,0 +1,748 @@
+version: 2
+models:
+- name: int_health_sleep_summary
+  description: Semantic intermediate mirror of `stg_garmin_sleep_summary`. Grain stays
+    identical to staging so each intermediate row maps to exactly one staging row
+    while dropping connector/raw lineage columns and upgrading only fields that can
+    be stably semanticized.
+  tests:
+  - unique_combination:
+      arguments:
+        column_names:
+        - staging_record_id
+  columns:
+  - name: staging_record_id
+    data_type: uuid
+    description: Technical lineage key carried from the staging `raw_record_id` column.
+    tests:
+    - not_null
+  - name: account_id
+    data_type: uuid
+    description: Application account that owns the intermediate health record.
+    tests:
+    - not_null
+  - name: source_external_id
+    data_type: text
+    description: Source-side business metadata carried forward from staging `source_external_id`
+      after connector and raw lineage columns are removed.
+    tests:
+    - not_null
+  - name: source_record_date
+    data_type: date
+    description: Source-side business metadata carried forward from staging `source_record_date`
+      after connector and raw lineage columns are removed.
+    tests:
+    - not_null
+  - name: source_record_at
+    data_type: timestamp with time zone
+    description: Source-side business metadata carried forward from staging `source_record_at`
+      after connector and raw lineage columns are removed.
+  - name: source_updated_at
+    data_type: timestamp with time zone
+    description: Source-side business metadata carried forward from staging `source_updated_at`
+      after connector and raw lineage columns are removed.
+  - name: sleep_id
+    data_type: text
+    description: Semantic carry-forward of staging `sleep_id`. The value is kept unchanged
+      because the staging type is already suitable or the field is intentionally preserved
+      as-is in this intermediate phase.
+  - name: user_profile_pk
+    data_type: text
+    description: Semantic carry-forward of staging `user_profile_pk`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: calendar_date
+    data_type: date
+    description: Sleep calendar date promoted from the staging text field into a semantic
+      `date` column.
+  - name: sleep_time_seconds
+    data_type: bigint
+    description: Semantic carry-forward of staging `sleep_time_seconds`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: nap_time_seconds
+    data_type: bigint
+    description: Semantic carry-forward of staging `nap_time_seconds`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: sleep_window_confirmed
+    data_type: boolean
+    description: Semantic carry-forward of staging `sleep_window_confirmed`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: sleep_window_confirmation_type
+    data_type: text
+    description: Semantic carry-forward of staging `sleep_window_confirmation_type`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: sleep_start_timestamp_gmt
+    data_type: timestamp with time zone
+    description: Sleep-start instant promoted from the staging GMT timestamp field
+      into `timestamptz`.
+  - name: sleep_end_timestamp_gmt
+    data_type: timestamp with time zone
+    description: Sleep-end instant promoted from the staging GMT timestamp field into
+      `timestamptz`.
+  - name: sleep_start_timestamp_local
+    data_type: timestamp with time zone
+    description: Sleep-start instant promoted from the staging local epoch field into
+      `timestamptz`.
+  - name: sleep_end_timestamp_local
+    data_type: timestamp with time zone
+    description: Sleep-end instant promoted from the staging local epoch field into
+      `timestamptz`.
+  - name: auto_sleep_start_timestamp_gmt
+    data_type: timestamp with time zone
+    description: Auto-detected sleep-start instant promoted from the staging GMT timestamp
+      field into `timestamptz`.
+  - name: auto_sleep_end_timestamp_gmt
+    data_type: timestamp with time zone
+    description: Auto-detected sleep-end instant promoted from the staging GMT timestamp
+      field into `timestamptz`.
+  - name: sleep_quality_type_pk
+    data_type: text
+    description: Semantic carry-forward of staging `sleep_quality_type_pk`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: sleep_result_type_pk
+    data_type: text
+    description: Semantic carry-forward of staging `sleep_result_type_pk`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: unmeasurable_sleep_seconds
+    data_type: bigint
+    description: Semantic carry-forward of staging `unmeasurable_sleep_seconds`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: deep_sleep_seconds
+    data_type: bigint
+    description: Semantic carry-forward of staging `deep_sleep_seconds`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: light_sleep_seconds
+    data_type: bigint
+    description: Semantic carry-forward of staging `light_sleep_seconds`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: rem_sleep_seconds
+    data_type: bigint
+    description: Semantic carry-forward of staging `rem_sleep_seconds`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: awake_sleep_seconds
+    data_type: bigint
+    description: Semantic carry-forward of staging `awake_sleep_seconds`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: device_rem_capable
+    data_type: boolean
+    description: Semantic carry-forward of staging `device_rem_capable`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: retro
+    data_type: boolean
+    description: Semantic carry-forward of staging `retro`. The value is kept unchanged
+      because the staging type is already suitable or the field is intentionally preserved
+      as-is in this intermediate phase.
+  - name: sleep_from_device
+    data_type: boolean
+    description: Semantic carry-forward of staging `sleep_from_device`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: average_respiration_value
+    data_type: numeric
+    description: Semantic carry-forward of staging `average_respiration_value`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: lowest_respiration_value
+    data_type: numeric
+    description: Semantic carry-forward of staging `lowest_respiration_value`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: highest_respiration_value
+    data_type: numeric
+    description: Semantic carry-forward of staging `highest_respiration_value`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: awake_count
+    data_type: integer
+    description: Semantic carry-forward of staging `awake_count`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: avg_sleep_stress
+    data_type: numeric
+    description: Semantic carry-forward of staging `avg_sleep_stress`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+  - name: age_group
+    data_type: text
+    description: Semantic carry-forward of staging `age_group`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: sleep_score_feedback
+    data_type: text
+    description: Semantic carry-forward of staging `sleep_score_feedback`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: sleep_score_insight
+    data_type: text
+    description: Semantic carry-forward of staging `sleep_score_insight`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: sleep_score_personalized_insight
+    data_type: text
+    description: Semantic carry-forward of staging `sleep_score_personalized_insight`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: sleep_version
+    data_type: text
+    description: Semantic carry-forward of staging `sleep_version`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: total_duration_score_value
+    data_type: numeric
+    description: Semantic carry-forward of staging `total_duration_score_value`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: total_duration_score_qualifier_key
+    data_type: text
+    description: Semantic carry-forward of staging `total_duration_score_qualifier_key`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: total_duration_score_ideal_start
+    data_type: numeric
+    description: Semantic carry-forward of staging `total_duration_score_ideal_start`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: total_duration_score_ideal_end
+    data_type: numeric
+    description: Semantic carry-forward of staging `total_duration_score_ideal_end`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: total_duration_score_optimal_start
+    data_type: numeric
+    description: Semantic carry-forward of staging `total_duration_score_optimal_start`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: total_duration_score_optimal_end
+    data_type: numeric
+    description: Semantic carry-forward of staging `total_duration_score_optimal_end`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: stress_score_value
+    data_type: numeric
+    description: Semantic carry-forward of staging `stress_score_value`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: stress_score_qualifier_key
+    data_type: text
+    description: Semantic carry-forward of staging `stress_score_qualifier_key`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: stress_score_ideal_start
+    data_type: numeric
+    description: Semantic carry-forward of staging `stress_score_ideal_start`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: stress_score_ideal_end
+    data_type: numeric
+    description: Semantic carry-forward of staging `stress_score_ideal_end`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: stress_score_optimal_start
+    data_type: numeric
+    description: Semantic carry-forward of staging `stress_score_optimal_start`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: stress_score_optimal_end
+    data_type: numeric
+    description: Semantic carry-forward of staging `stress_score_optimal_end`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: awake_count_score_value
+    data_type: numeric
+    description: Semantic carry-forward of staging `awake_count_score_value`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: awake_count_score_qualifier_key
+    data_type: text
+    description: Semantic carry-forward of staging `awake_count_score_qualifier_key`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: awake_count_score_ideal_start
+    data_type: numeric
+    description: Semantic carry-forward of staging `awake_count_score_ideal_start`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: awake_count_score_ideal_end
+    data_type: numeric
+    description: Semantic carry-forward of staging `awake_count_score_ideal_end`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: awake_count_score_optimal_start
+    data_type: numeric
+    description: Semantic carry-forward of staging `awake_count_score_optimal_start`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: awake_count_score_optimal_end
+    data_type: numeric
+    description: Semantic carry-forward of staging `awake_count_score_optimal_end`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: overall_score_value
+    data_type: numeric
+    description: Semantic carry-forward of staging `overall_score_value`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: overall_score_qualifier_key
+    data_type: text
+    description: Semantic carry-forward of staging `overall_score_qualifier_key`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: overall_score_ideal_start
+    data_type: numeric
+    description: Semantic carry-forward of staging `overall_score_ideal_start`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: overall_score_ideal_end
+    data_type: numeric
+    description: Semantic carry-forward of staging `overall_score_ideal_end`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: overall_score_optimal_start
+    data_type: numeric
+    description: Semantic carry-forward of staging `overall_score_optimal_start`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: overall_score_optimal_end
+    data_type: numeric
+    description: Semantic carry-forward of staging `overall_score_optimal_end`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: rem_percentage_score_value
+    data_type: numeric
+    description: Semantic carry-forward of staging `rem_percentage_score_value`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: rem_percentage_score_qualifier_key
+    data_type: text
+    description: Semantic carry-forward of staging `rem_percentage_score_qualifier_key`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: rem_percentage_score_ideal_start
+    data_type: numeric
+    description: Semantic carry-forward of staging `rem_percentage_score_ideal_start`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: rem_percentage_score_ideal_end
+    data_type: numeric
+    description: Semantic carry-forward of staging `rem_percentage_score_ideal_end`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: rem_percentage_score_optimal_start
+    data_type: numeric
+    description: Semantic carry-forward of staging `rem_percentage_score_optimal_start`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: rem_percentage_score_optimal_end
+    data_type: numeric
+    description: Semantic carry-forward of staging `rem_percentage_score_optimal_end`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: restlessness_score_value
+    data_type: numeric
+    description: Semantic carry-forward of staging `restlessness_score_value`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: restlessness_score_qualifier_key
+    data_type: text
+    description: Semantic carry-forward of staging `restlessness_score_qualifier_key`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: restlessness_score_ideal_start
+    data_type: numeric
+    description: Semantic carry-forward of staging `restlessness_score_ideal_start`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: restlessness_score_ideal_end
+    data_type: numeric
+    description: Semantic carry-forward of staging `restlessness_score_ideal_end`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: restlessness_score_optimal_start
+    data_type: numeric
+    description: Semantic carry-forward of staging `restlessness_score_optimal_start`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: restlessness_score_optimal_end
+    data_type: numeric
+    description: Semantic carry-forward of staging `restlessness_score_optimal_end`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: light_percentage_score_value
+    data_type: numeric
+    description: Semantic carry-forward of staging `light_percentage_score_value`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: light_percentage_score_qualifier_key
+    data_type: text
+    description: Semantic carry-forward of staging `light_percentage_score_qualifier_key`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: light_percentage_score_ideal_start
+    data_type: numeric
+    description: Semantic carry-forward of staging `light_percentage_score_ideal_start`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: light_percentage_score_ideal_end
+    data_type: numeric
+    description: Semantic carry-forward of staging `light_percentage_score_ideal_end`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: light_percentage_score_optimal_start
+    data_type: numeric
+    description: Semantic carry-forward of staging `light_percentage_score_optimal_start`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: light_percentage_score_optimal_end
+    data_type: numeric
+    description: Semantic carry-forward of staging `light_percentage_score_optimal_end`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: deep_percentage_score_value
+    data_type: numeric
+    description: Semantic carry-forward of staging `deep_percentage_score_value`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: deep_percentage_score_qualifier_key
+    data_type: text
+    description: Semantic carry-forward of staging `deep_percentage_score_qualifier_key`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: deep_percentage_score_ideal_start
+    data_type: numeric
+    description: Semantic carry-forward of staging `deep_percentage_score_ideal_start`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: deep_percentage_score_ideal_end
+    data_type: numeric
+    description: Semantic carry-forward of staging `deep_percentage_score_ideal_end`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: deep_percentage_score_optimal_start
+    data_type: numeric
+    description: Semantic carry-forward of staging `deep_percentage_score_optimal_start`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: deep_percentage_score_optimal_end
+    data_type: numeric
+    description: Semantic carry-forward of staging `deep_percentage_score_optimal_end`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: sleep_need_user_profile_pk
+    data_type: text
+    description: Semantic carry-forward of staging `sleep_need_user_profile_pk`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: sleep_need_calendar_date
+    data_type: date
+    description: Sleep-need calendar date promoted from staging text into `date`.
+  - name: sleep_need_device_id
+    data_type: text
+    description: Semantic carry-forward of staging `sleep_need_device_id`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: sleep_need_timestamp_gmt
+    data_type: timestamp with time zone
+    description: Sleep-need reference instant promoted from the staging GMT field
+      into `timestamptz`.
+  - name: sleep_need_baseline
+    data_type: numeric
+    description: Semantic carry-forward of staging `sleep_need_baseline`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: sleep_need_actual
+    data_type: numeric
+    description: Semantic carry-forward of staging `sleep_need_actual`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: sleep_need_feedback
+    data_type: text
+    description: Semantic carry-forward of staging `sleep_need_feedback`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: sleep_need_training_feedback
+    data_type: text
+    description: Semantic carry-forward of staging `sleep_need_training_feedback`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: sleep_need_sleep_history_adjustment
+    data_type: numeric
+    description: Semantic carry-forward of staging `sleep_need_sleep_history_adjustment`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: sleep_need_hrv_adjustment
+    data_type: numeric
+    description: Semantic carry-forward of staging `sleep_need_hrv_adjustment`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: sleep_need_nap_adjustment
+    data_type: numeric
+    description: Semantic carry-forward of staging `sleep_need_nap_adjustment`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: sleep_need_displayed_for_the_day
+    data_type: boolean
+    description: Semantic carry-forward of staging `sleep_need_displayed_for_the_day`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: sleep_need_preferred_activity_tracker
+    data_type: text
+    description: Semantic carry-forward of staging `sleep_need_preferred_activity_tracker`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: next_sleep_need_user_profile_pk
+    data_type: text
+    description: Semantic carry-forward of staging `next_sleep_need_user_profile_pk`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: next_sleep_need_calendar_date
+    data_type: date
+    description: Next sleep-need calendar date promoted from staging text into `date`.
+  - name: next_sleep_need_device_id
+    data_type: text
+    description: Semantic carry-forward of staging `next_sleep_need_device_id`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: next_sleep_need_timestamp_gmt
+    data_type: timestamp with time zone
+    description: Next sleep-need reference instant promoted from the staging GMT field
+      into `timestamptz`.
+  - name: next_sleep_need_baseline
+    data_type: numeric
+    description: Semantic carry-forward of staging `next_sleep_need_baseline`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: next_sleep_need_actual
+    data_type: numeric
+    description: Semantic carry-forward of staging `next_sleep_need_actual`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: next_sleep_need_feedback
+    data_type: text
+    description: Semantic carry-forward of staging `next_sleep_need_feedback`. The
+      value is kept unchanged because the staging type is already suitable or the
+      field is intentionally preserved as-is in this intermediate phase.
+  - name: next_sleep_need_training_feedback
+    data_type: text
+    description: Semantic carry-forward of staging `next_sleep_need_training_feedback`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: next_sleep_need_sleep_history_adjustment
+    data_type: numeric
+    description: Semantic carry-forward of staging `next_sleep_need_sleep_history_adjustment`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: next_sleep_need_hrv_adjustment
+    data_type: numeric
+    description: Semantic carry-forward of staging `next_sleep_need_hrv_adjustment`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: next_sleep_need_nap_adjustment
+    data_type: numeric
+    description: Semantic carry-forward of staging `next_sleep_need_nap_adjustment`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: next_sleep_need_displayed_for_the_day
+    data_type: boolean
+    description: Semantic carry-forward of staging `next_sleep_need_displayed_for_the_day`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: next_sleep_need_preferred_activity_tracker
+    data_type: text
+    description: Semantic carry-forward of staging `next_sleep_need_preferred_activity_tracker`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: restless_moments_count
+    data_type: integer
+    description: Semantic carry-forward of staging `restless_moments_count`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: skin_temp_data_exists
+    data_type: boolean
+    description: Semantic carry-forward of staging `skin_temp_data_exists`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: avg_overnight_hrv
+    data_type: numeric
+    description: Semantic carry-forward of staging `avg_overnight_hrv`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: hrv_status
+    data_type: text
+    description: Semantic carry-forward of staging `hrv_status`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+  - name: body_battery_change
+    data_type: numeric
+    description: Semantic carry-forward of staging `body_battery_change`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: resting_heart_rate
+    data_type: integer
+    description: Semantic carry-forward of staging `resting_heart_rate`. The value
+      is kept unchanged because the staging type is already suitable or the field
+      is intentionally preserved as-is in this intermediate phase.
+  - name: wellness_spo2_sleep_summary_present
+    data_type: boolean
+    description: Semantic carry-forward of staging `wellness_spo2_sleep_summary_present`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+  - name: wellness_epoch_spo2_sample_count
+    data_type: integer
+    description: Semantic carry-forward of staging `wellness_epoch_spo2_sample_count`.
+      The value is kept unchanged because the staging type is already suitable or
+      the field is intentionally preserved as-is in this intermediate phase.
+- name: int_health_sleep_stage_detail
+  description: Semantic intermediate mirror of `stg_garmin_sleep_stage_detail`. Grain
+    stays identical to staging so each intermediate row maps to exactly one staging
+    row while dropping connector/raw lineage columns and upgrading only fields that
+    can be stably semanticized.
+  tests:
+  - unique_combination:
+      arguments:
+        column_names:
+        - staging_record_id
+        - stage_name
+        - stage_position
+  columns:
+  - name: staging_record_id
+    data_type: uuid
+    description: Technical lineage key carried from the staging `raw_record_id` column.
+    tests:
+    - not_null
+  - name: account_id
+    data_type: uuid
+    description: Application account that owns the intermediate health record.
+    tests:
+    - not_null
+  - name: source_external_id
+    data_type: text
+    description: Source-side business metadata carried forward from staging `source_external_id`
+      after connector and raw lineage columns are removed.
+    tests:
+    - not_null
+  - name: source_record_date
+    data_type: date
+    description: Source-side business metadata carried forward from staging `source_record_date`
+      after connector and raw lineage columns are removed.
+    tests:
+    - not_null
+  - name: source_record_at
+    data_type: timestamp with time zone
+    description: Source-side business metadata carried forward from staging `source_record_at`
+      after connector and raw lineage columns are removed.
+  - name: source_updated_at
+    data_type: timestamp with time zone
+    description: Source-side business metadata carried forward from staging `source_updated_at`
+      after connector and raw lineage columns are removed.
+  - name: sleep_id
+    data_type: text
+    description: Semantic carry-forward of staging `sleep_id`. The value is kept unchanged
+      because the staging type is already suitable or the field is intentionally preserved
+      as-is in this intermediate phase.
+  - name: stage_name
+    data_type: text
+    description: Semantic carry-forward of staging `stage_name`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+    tests:
+    - not_null
+  - name: stage_position
+    data_type: integer
+    description: Semantic carry-forward of staging `stage_position`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+    tests:
+    - not_null
+  - name: stage_start_at
+    data_type: timestamp with time zone
+    description: Sleep-stage start instant promoted from staging text into `timestamptz`.
+  - name: stage_end_at
+    data_type: timestamp with time zone
+    description: Sleep-stage end instant promoted from staging text into `timestamptz`.
+  - name: activity_level
+    data_type: integer
+    description: Sleep-stage activity level promoted from numeric-looking staging
+      text into `integer`.
+- name: int_health_sleep_metric_detail
+  description: Semantic intermediate mirror of `stg_garmin_sleep_metric_detail`. Grain
+    stays identical to staging so each intermediate row maps to exactly one staging
+    row while dropping connector/raw lineage columns and upgrading only fields that
+    can be stably semanticized.
+  tests:
+  - unique_combination:
+      arguments:
+        column_names:
+        - staging_record_id
+        - metric_name
+        - sample_position
+  columns:
+  - name: staging_record_id
+    data_type: uuid
+    description: Technical lineage key carried from the staging `raw_record_id` column.
+    tests:
+    - not_null
+  - name: account_id
+    data_type: uuid
+    description: Application account that owns the intermediate health record.
+    tests:
+    - not_null
+  - name: source_external_id
+    data_type: text
+    description: Source-side business metadata carried forward from staging `source_external_id`
+      after connector and raw lineage columns are removed.
+    tests:
+    - not_null
+  - name: source_record_date
+    data_type: date
+    description: Source-side business metadata carried forward from staging `source_record_date`
+      after connector and raw lineage columns are removed.
+    tests:
+    - not_null
+  - name: source_record_at
+    data_type: timestamp with time zone
+    description: Source-side business metadata carried forward from staging `source_record_at`
+      after connector and raw lineage columns are removed.
+  - name: source_updated_at
+    data_type: timestamp with time zone
+    description: Source-side business metadata carried forward from staging `source_updated_at`
+      after connector and raw lineage columns are removed.
+  - name: sleep_id
+    data_type: text
+    description: Semantic carry-forward of staging `sleep_id`. The value is kept unchanged
+      because the staging type is already suitable or the field is intentionally preserved
+      as-is in this intermediate phase.
+  - name: metric_name
+    data_type: text
+    description: Semantic carry-forward of staging `metric_name`. The value is kept
+      unchanged because the staging type is already suitable or the field is intentionally
+      preserved as-is in this intermediate phase.
+    tests:
+    - not_null
+  - name: sample_position
+    data_type: integer
+    description: Semantic carry-forward of staging `sample_position`. The value is
+      kept unchanged because the staging type is already suitable or the field is
+      intentionally preserved as-is in this intermediate phase.
+    tests:
+    - not_null
+  - name: sample_at
+    data_type: timestamp with time zone
+    description: Metric sample instant promoted from mixed epoch/ISO staging text
+      into `timestamptz`.
+  - name: value
+    data_type: numeric
+    description: Semantic carry-forward of staging `value`. The value is kept unchanged
+      because the staging type is already suitable or the field is intentionally preserved
+      as-is in this intermediate phase.

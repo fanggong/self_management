@@ -65,6 +65,11 @@ type MedicalReportEditableField = 'result' | 'referenceValue' | 'unit' | 'abnorm
 
 type MedicalReportSectionCellValues = Record<MedicalReportEditableField, string>;
 
+type MedicalReportSectionMetaValues = {
+  examiner: string;
+  examTime: Date | null;
+};
+
 type MedicalReportItemDefinition = {
   key: string;
   itemName: string;
@@ -292,6 +297,21 @@ const createMedicalReportSectionInputState = () => {
   return state;
 };
 
+const cloneMedicalReportSectionMetaValues = (value?: Partial<MedicalReportSectionMetaValues> | null): MedicalReportSectionMetaValues => ({
+  examiner: String(value?.examiner ?? ''),
+  examTime: value?.examTime instanceof Date ? new Date(value.examTime.getTime()) : null
+});
+
+const createMedicalReportSectionMetaState = () => {
+  const state = {} as Record<MedicalReportSectionKey, MedicalReportSectionMetaValues>;
+
+  for (const section of medicalReportSectionItems) {
+    state[section.key] = cloneMedicalReportSectionMetaValues();
+  }
+
+  return state;
+};
+
 const connectorRecords = ref<ConnectorRecord[]>([]);
 const connectorLoading = ref(false);
 const connectorLoadError = ref('');
@@ -331,6 +351,9 @@ const medicalReportSectionForm = reactive<{
   examiner: '',
   examTime: null
 });
+const medicalReportSectionMetadata = reactive<Record<MedicalReportSectionKey, MedicalReportSectionMetaValues>>(
+  createMedicalReportSectionMetaState()
+);
 const medicalReportSectionInputs = reactive<Record<MedicalReportSectionKey, Record<string, MedicalReportSectionCellValues>>>(
   createMedicalReportSectionInputState()
 );
@@ -588,6 +611,15 @@ const isMedicalReportSyncDialog = computed(() => {
 const activeMedicalReportSectionKey = computed<MedicalReportSectionKey>(() => {
   return medicalReportSectionItems[medicalReportSectionActiveIndex.value]?.key ?? 'general';
 });
+
+const syncMedicalReportSectionForm = (sectionKey: MedicalReportSectionKey = activeMedicalReportSectionKey.value) => {
+  const metadata = medicalReportSectionMetadata[sectionKey];
+  medicalReportSectionForm.examiner = metadata?.examiner ?? '';
+  medicalReportSectionForm.examTime = metadata?.examTime instanceof Date
+    ? new Date(metadata.examTime.getTime())
+    : null;
+};
+
 const medicalReportSectionRows = computed<MedicalReportSectionRow[]>(() => {
   const sectionKey = activeMedicalReportSectionKey.value;
   const items = medicalReportItemCatalog[sectionKey] ?? [];
@@ -767,10 +799,16 @@ const updateMedicalReportSyncTextField = (field: 'recordNumber' | 'institution',
 };
 
 const getPrimeInputDomValue = (inputRef: { $el?: unknown; value?: unknown } | null | undefined) => {
+  const hostElement = inputRef?.$el instanceof HTMLElement
+    ? inputRef.$el
+    : inputRef instanceof HTMLElement
+      ? inputRef
+      : null;
+  const nestedInput = hostElement?.querySelector('input');
   const element = inputRef?.$el instanceof HTMLInputElement
     ? inputRef.$el
-    : inputRef?.$el?.querySelector?.('input') instanceof HTMLInputElement
-      ? inputRef.$el.querySelector('input')
+    : nestedInput instanceof HTMLInputElement
+      ? nestedInput
       : inputRef instanceof HTMLInputElement
         ? inputRef
         : null;
@@ -802,6 +840,12 @@ const resetMedicalReportSectionData = () => {
     delete medicalReportSectionInputs[sectionKey];
   }
   Object.assign(medicalReportSectionInputs, nextState);
+
+  const nextMetaState = createMedicalReportSectionMetaState();
+  for (const sectionKey of Object.keys(medicalReportSectionMetadata) as MedicalReportSectionKey[]) {
+    delete medicalReportSectionMetadata[sectionKey];
+  }
+  Object.assign(medicalReportSectionMetadata, nextMetaState);
 };
 
 const MEDICAL_REPORT_SECTION_KEY_SET = new Set<MedicalReportSectionKey>(medicalReportSectionItems.map((item) => item.key));
@@ -824,11 +868,18 @@ const toMedicalReportSectionCellValues = (value: Partial<MedicalReportSectionCel
 
 const applyMedicalReportParsedSections = (sections: MedicalReportParsedSection[]) => {
   const nextState = createMedicalReportSectionInputState();
+  const nextMetaState = createMedicalReportSectionMetaState();
   for (const section of sections) {
     const sectionKey = normalizeMedicalReportSectionKey(String(section.sectionKey ?? ''));
     if (!sectionKey) {
       continue;
     }
+
+    const parsedExamDate = parseMedicalReportDate(String(section.examDate ?? ''));
+    nextMetaState[sectionKey] = {
+      examiner: String(section.examiner ?? '').trim(),
+      examTime: parsedExamDate.success && parsedExamDate.date ? parsedExamDate.date : null
+    };
 
     for (const item of section.items ?? []) {
       const itemKey = String(item.itemKey ?? '').trim();
@@ -844,13 +895,22 @@ const applyMedicalReportParsedSections = (sections: MedicalReportParsedSection[]
     delete medicalReportSectionInputs[sectionKey];
   }
   Object.assign(medicalReportSectionInputs, nextState);
+
+  for (const sectionKey of Object.keys(medicalReportSectionMetadata) as MedicalReportSectionKey[]) {
+    delete medicalReportSectionMetadata[sectionKey];
+  }
+  Object.assign(medicalReportSectionMetadata, nextMetaState);
+  syncMedicalReportSectionForm();
 };
 
 const buildMedicalReportSectionsPayload = (): MedicalReportParsedSection[] => {
   return (Object.entries(medicalReportItemCatalog) as [MedicalReportSectionKey, MedicalReportItemDefinition[]][])
     .map(([sectionKey, items]) => {
+      const metadata = medicalReportSectionMetadata[sectionKey];
       return {
         sectionKey,
+        examiner: String(metadata?.examiner ?? '').trim(),
+        examDate: metadata?.examTime instanceof Date ? formatMedicalReportDate(metadata.examTime) : '',
         items: items.map((item) => {
           const values = medicalReportSectionInputs[sectionKey]?.[item.key];
           return {
@@ -863,6 +923,24 @@ const buildMedicalReportSectionsPayload = (): MedicalReportParsedSection[] => {
         })
       };
     });
+};
+
+const handleMedicalReportSectionExaminerModelUpdate = (value: string | null | undefined) => {
+  const normalizedValue = String(value ?? '').trim();
+  const sectionKey = activeMedicalReportSectionKey.value;
+  medicalReportSectionForm.examiner = normalizedValue;
+  medicalReportSectionMetadata[sectionKey].examiner = normalizedValue;
+};
+
+const handleMedicalReportSectionExamTimeModelUpdate = (
+  value: Date | Date[] | (Date | null)[] | null | undefined
+) => {
+  const normalizedValue = value instanceof Date ? value : null;
+  const sectionKey = activeMedicalReportSectionKey.value;
+  medicalReportSectionForm.examTime = normalizedValue;
+  medicalReportSectionMetadata[sectionKey].examTime = normalizedValue
+    ? new Date(normalizedValue.getTime())
+    : null;
 };
 
 const copyTaskJobId = async (jobId: string) => {
@@ -1377,13 +1455,6 @@ const parseMedicalReport = async () => {
 
     applyMedicalReportParsedSections(result.data.sections ?? []);
     medicalReportSyncForm.parseSessionId = result.data.parseSessionId;
-    medicalReportSectionForm.examiner = String(result.data.form?.examiner ?? '').trim();
-
-    const parsedExamDate = parseMedicalReportDate(String(result.data.form?.examDate ?? ''));
-    medicalReportSectionForm.examTime = parsedExamDate.success && parsedExamDate.date
-      ? parsedExamDate.date
-      : new Date((medicalReportSyncForm.reportTime as Date).getTime());
-
     medicalReportParsed.value = true;
     showToast('success', result.message ?? 'Medical report parsed successfully.');
   } finally {
@@ -1516,16 +1587,6 @@ const confirmSync = async () => {
       return;
     }
 
-    if (!medicalReportSectionForm.examiner.trim()) {
-      showToast('error', 'Examiner is required.');
-      return;
-    }
-
-    if (!(medicalReportSectionForm.examTime instanceof Date)) {
-      showToast('error', 'Exam date is required.');
-      return;
-    }
-
     syncSubmitting.value = true;
     let result: Awaited<ReturnType<typeof connectorApi.syncMedicalReport>> | null = null;
     try {
@@ -1535,10 +1596,6 @@ const confirmSync = async () => {
         reportDate: formatMedicalReportDate(medicalReportSyncForm.reportTime as Date),
         institution: medicalReportSyncForm.institution.trim(),
         fileName: medicalReportSyncForm.file.name,
-        form: {
-          examiner: medicalReportSectionForm.examiner.trim(),
-          examDate: formatMedicalReportDate(medicalReportSectionForm.examTime)
-        },
         sections: buildMedicalReportSectionsPayload()
       });
     } finally {
@@ -1623,6 +1680,7 @@ const onConnectorTabChange = (event: TabChangeEvent) => {
 const onMedicalReportSectionTabChange = (event: TabChangeEvent) => {
   medicalReportSectionActiveIndex.value = event.index;
   hideMedicalReportHint();
+  syncMedicalReportSectionForm();
 };
 
 const updateMedicalReportHintPosition = () => {
@@ -2464,9 +2522,10 @@ watch(
                     <label for="medical-report-section-examiner" class="auth-label">Examiner</label>
                     <InputText
                       id="medical-report-section-examiner"
-                      v-model.trim="medicalReportSectionForm.examiner"
+                      :model-value="medicalReportSectionForm.examiner"
                       class="w-full"
                       placeholder="Enter examiner"
+                      @update:model-value="handleMedicalReportSectionExaminerModelUpdate"
                     />
                   </div>
 
@@ -2474,7 +2533,7 @@ watch(
                     <label for="medical-report-section-exam-time" class="auth-label">Exam Date</label>
                     <DatePicker
                       id="medical-report-section-exam-time"
-                      v-model="medicalReportSectionForm.examTime"
+                      :model-value="medicalReportSectionForm.examTime"
                       class="w-full"
                       input-class="w-full"
                       placeholder="YYYY-MM-DD"
@@ -2482,6 +2541,7 @@ watch(
                       show-icon
                       icon-display="input"
                       :manual-input="true"
+                      @update:model-value="handleMedicalReportSectionExamTimeModelUpdate"
                     />
                   </div>
                 </div>

@@ -1,0 +1,226 @@
+version: 2
+models:
+  - name: stg_medical_report_snapshot
+    description: 'Medical report snapshot staging table. Grain is one row per raw `medical_report` record from `raw.health_snapshot_record`. The model keeps raw lineage columns and exposes report-level scalar fields from the payload as structured columns.'
+    tests:
+      - unique_combination:
+          arguments:
+            column_names:
+              - raw_record_id
+    columns:
+      - name: raw_record_id
+        description: 'Primary key of the raw parent record that produced this staging row.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: account_id
+        description: 'Application account that owns the staged record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: connector_config_id
+        description: 'Connector configuration instance that produced the raw record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: sync_task_id
+        description: 'Sync task that loaded the raw record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: connector_id
+        description: 'Connector identifier from the raw layer.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: source_stream
+        description: 'Source stream name from the raw layer.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: source_external_id
+        description: 'Source-side stable identifier from the raw layer.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: source_record_date
+        description: 'Business date assigned to the raw record.'
+        data_type: 'date'
+        tests:
+          - not_null
+      - name: source_record_at
+        description: 'Business timestamp assigned to the raw record.'
+        data_type: 'timestamp with time zone'
+      - name: source_updated_at
+        description: 'Source-side update timestamp captured in raw storage.'
+        data_type: 'timestamp with time zone'
+      - name: collected_at
+        description: 'Timestamp when the worker collected the source payload.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: payload_hash
+        description: 'Hash of the raw payload content.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: raw_created_at
+        description: 'Creation timestamp of the raw parent row.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: raw_updated_at
+        description: 'Last update timestamp of the raw parent row.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: parse_session_id
+        description: 'Structured `parseSessionId` leaf copied from the raw medical-report `medical_report` payload.'
+        data_type: 'text'
+      - name: provider
+        description: 'Structured `provider` leaf copied from the raw medical-report `medical_report` payload.'
+        data_type: 'text'
+      - name: model_id
+        description: 'Structured `modelId` leaf copied from the raw medical-report `medical_report` payload.'
+        data_type: 'text'
+      - name: record_number
+        description: 'Structured `recordNumber` leaf copied from the raw medical-report `medical_report` payload.'
+        data_type: 'text'
+      - name: report_date
+        description: 'Structured `reportDate` leaf copied from the raw medical-report `medical_report` payload.'
+        data_type: 'text'
+      - name: institution
+        description: 'Structured `institution` leaf copied from the raw medical-report `medical_report` payload.'
+        data_type: 'text'
+      - name: file_name
+        description: 'Structured `fileName` leaf copied from the raw medical-report `medical_report` payload.'
+        data_type: 'text'
+  - name: stg_medical_report_item_detail
+    description: 'Medical report item detail staging table. Grain is one row per `sections[].items[]` element from a raw `medical_report` payload. The model preserves section/item order and exposes section-level metadata together with each item leaf as structured columns.'
+    tests:
+      - unique_combination:
+          arguments:
+            column_names:
+              - raw_record_id
+              - section_position
+              - item_position
+    columns:
+      - name: raw_record_id
+        description: 'Primary key of the raw parent record that produced this staging row.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: account_id
+        description: 'Application account that owns the staged record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: connector_config_id
+        description: 'Connector configuration instance that produced the raw record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: sync_task_id
+        description: 'Sync task that loaded the raw record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: connector_id
+        description: 'Connector identifier from the raw layer.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: source_stream
+        description: 'Source stream name from the raw layer.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: source_external_id
+        description: 'Source-side stable identifier from the raw layer.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: source_record_date
+        description: 'Business date assigned to the raw record.'
+        data_type: 'date'
+        tests:
+          - not_null
+      - name: source_record_at
+        description: 'Business timestamp assigned to the raw record.'
+        data_type: 'timestamp with time zone'
+      - name: source_updated_at
+        description: 'Source-side update timestamp captured in raw storage.'
+        data_type: 'timestamp with time zone'
+      - name: collected_at
+        description: 'Timestamp when the worker collected the source payload.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: payload_hash
+        description: 'Hash of the raw payload content.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: raw_created_at
+        description: 'Creation timestamp of the raw parent row.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: raw_updated_at
+        description: 'Last update timestamp of the raw parent row.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: parse_session_id
+        description: 'Structured `parseSessionId` leaf copied from the raw medical-report `medical_report` payload.'
+        data_type: 'text'
+      - name: record_number
+        description: 'Structured `recordNumber` leaf copied from the raw medical-report `medical_report` payload.'
+        data_type: 'text'
+      - name: report_date
+        description: 'Structured `reportDate` leaf copied from the raw medical-report `medical_report` payload.'
+        data_type: 'text'
+      - name: institution
+        description: 'Structured `institution` leaf copied from the raw medical-report `medical_report` payload.'
+        data_type: 'text'
+      - name: file_name
+        description: 'Structured `fileName` leaf copied from the raw medical-report `medical_report` payload.'
+        data_type: 'text'
+      - name: section_position
+        description: 'Structural staging column derived while exploding raw paths `sections[]`. Derived section array ordinality.'
+        data_type: 'bigint'
+        tests:
+          - not_null
+      - name: item_position
+        description: 'Structural staging column derived while exploding raw paths `sections[].items[]`. Derived item array ordinality.'
+        data_type: 'bigint'
+        tests:
+          - not_null
+      - name: section_key
+        description: 'Structured `sections[].sectionKey` leaf copied from the raw medical-report `medical_report` payload.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: section_examiner
+        description: 'Structured `sections[].examiner` leaf copied from the raw medical-report `medical_report` payload.'
+        data_type: 'text'
+      - name: section_exam_date
+        description: 'Structured `sections[].examDate` leaf copied from the raw medical-report `medical_report` payload.'
+        data_type: 'text'
+      - name: item_key
+        description: 'Structured `sections[].items[].itemKey` leaf copied from the raw medical-report `medical_report` payload.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: result
+        description: 'Structured `sections[].items[].result` leaf copied from the raw medical-report `medical_report` payload.'
+        data_type: 'text'
+      - name: reference_value
+        description: 'Structured `sections[].items[].referenceValue` leaf copied from the raw medical-report `medical_report` payload.'
+        data_type: 'text'
+      - name: unit
+        description: 'Structured `sections[].items[].unit` leaf copied from the raw medical-report `medical_report` payload.'
+        data_type: 'text'
+      - name: abnormal_flag
+        description: 'Structured `sections[].items[].abnormalFlag` leaf copied from the raw medical-report `medical_report` payload.'
+        data_type: 'text'

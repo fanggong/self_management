@@ -10,6 +10,7 @@ admin-api/target
 **/.pytest_cache
 dbt/target
 dbt/logs
+dbt/profiles/.user.yml
 
 # Local environment files
 .env

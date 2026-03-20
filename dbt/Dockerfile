@@ -8,6 +8,8 @@ COPY dbt_project.yml ./dbt_project.yml
 COPY packages.yml ./packages.yml
 COPY macros ./macros
 COPY models ./models
+COPY seeds ./seeds
 COPY profiles ./profiles
+COPY tests ./tests
 EXPOSE 8090
 CMD ["python", "app.py"]

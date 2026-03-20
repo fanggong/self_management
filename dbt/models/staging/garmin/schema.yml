@@ -1,45 +1,1810 @@
 version: 2
-
 models:
-  - name: stg_garmin_profile
-    description: Standardized Garmin profile records.
+  - name: stg_garmin_profile_snapshot
+    description: 'Garmin profile snapshot staging table. Grain is one row per raw Garmin `profile` record from `raw.health_snapshot_record`. The model keeps raw lineage columns and exposes every currently observed scalar profile leaf as a structured non-JSON column.'
+    tests:
+      - unique_combination:
+          arguments:
+            column_names:
+              - raw_record_id
     columns:
-      - name: profile_external_id
+      - name: raw_record_id
+        description: 'Primary key of the raw parent record that produced this staging row.'
+        data_type: 'uuid'
         tests:
           - not_null
+      - name: account_id
+        description: 'Application account that owns the staged record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: connector_config_id
+        description: 'Connector configuration instance that produced the raw record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: sync_task_id
+        description: 'Sync task that loaded the raw record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: connector_id
+        description: 'Connector identifier from the raw layer.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: source_stream
+        description: 'Source stream name from the raw layer.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: source_external_id
+        description: 'Source-side stable identifier from the raw layer.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: source_record_date
+        description: 'Business date assigned to the raw record.'
+        data_type: 'date'
+        tests:
+          - not_null
+      - name: source_record_at
+        description: 'Business timestamp assigned to the raw record.'
+        data_type: 'timestamp with time zone'
+      - name: source_updated_at
+        description: 'Source-side update timestamp captured in raw storage.'
+        data_type: 'timestamp with time zone'
+      - name: collected_at
+        description: 'Timestamp when the worker collected the source payload.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: payload_hash
+        description: 'Hash of the raw payload content.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: raw_created_at
+        description: 'Creation timestamp of the raw parent row.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: raw_updated_at
+        description: 'Last update timestamp of the raw parent row.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: payload_id
+        description: 'Structured `id` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
+      - name: profile_id
+        description: 'Structured `profileId` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
+      - name: garmin_guid
+        description: 'Structured `garminGUID` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
+      - name: display_name
+        description: 'Structured `displayName` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
+      - name: full_name
+        description: 'Structured `fullName` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
+      - name: user_name
+        description: 'Structured `userName` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
+      - name: user_profile_full_name
+        description: 'Structured `userProfileFullName` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
+      - name: profile_image_type
+        description: 'Structured `profileImageType` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
+      - name: profile_image_url_large
+        description: 'Structured `profileImageUrlLarge` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
+      - name: profile_image_url_medium
+        description: 'Structured `profileImageUrlMedium` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
+      - name: profile_image_url_small
+        description: 'Structured `profileImageUrlSmall` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
+      - name: location
+        description: 'Structured `location` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
+      - name: facebook_url
+        description: 'Structured `facebookUrl` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
+      - name: twitter_url
+        description: 'Structured `twitterUrl` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
+      - name: personal_website
+        description: 'Structured `personalWebsite` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
+      - name: motivation
+        description: 'Structured `motivation` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
+      - name: bio
+        description: 'Structured `bio` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
+      - name: primary_activity
+        description: 'Structured `primaryActivity` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
+      - name: other_primary_activity
+        description: 'Structured `otherPrimaryActivity` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
+      - name: running_training_speed
+        description: 'Structured `runningTrainingSpeed` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'numeric'
+      - name: cycling_training_speed
+        description: 'Structured `cyclingTrainingSpeed` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'numeric'
+      - name: swimming_training_speed
+        description: 'Structured `swimmingTrainingSpeed` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'numeric'
+      - name: cycling_classification
+        description: 'Structured `cyclingClassification` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
+      - name: cycling_max_avg_power
+        description: 'Structured `cyclingMaxAvgPower` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'numeric'
+      - name: other_activity
+        description: 'Structured `otherActivity` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
+      - name: other_motivation
+        description: 'Structured `otherMotivation` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
+      - name: profile_visibility
+        description: 'Structured `profileVisibility` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
+      - name: activity_start_visibility
+        description: 'Structured `activityStartVisibility` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
+      - name: activity_map_visibility
+        description: 'Structured `activityMapVisibility` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
+      - name: course_visibility
+        description: 'Structured `courseVisibility` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
+      - name: activity_heart_rate_visibility
+        description: 'Structured `activityHeartRateVisibility` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
+      - name: activity_power_visibility
+        description: 'Structured `activityPowerVisibility` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
+      - name: badge_visibility
+        description: 'Structured `badgeVisibility` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
+      - name: show_age
+        description: 'Structured `showAge` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'boolean'
+      - name: show_weight
+        description: 'Structured `showWeight` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'boolean'
+      - name: show_height
+        description: 'Structured `showHeight` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'boolean'
+      - name: show_weight_class
+        description: 'Structured `showWeightClass` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'boolean'
+      - name: show_age_range
+        description: 'Structured `showAgeRange` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'boolean'
+      - name: show_gender
+        description: 'Structured `showGender` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'boolean'
+      - name: show_activity_class
+        description: 'Structured `showActivityClass` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'boolean'
+      - name: show_vo2_max
+        description: 'Structured `showVO2Max` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'boolean'
+      - name: show_personal_records
+        description: 'Structured `showPersonalRecords` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'boolean'
+      - name: show_last_12_months
+        description: 'Structured `showLast12Months` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'boolean'
+      - name: show_lifetime_totals
+        description: 'Structured `showLifetimeTotals` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'boolean'
+      - name: show_upcoming_events
+        description: 'Structured `showUpcomingEvents` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'boolean'
+      - name: show_recent_favorites
+        description: 'Structured `showRecentFavorites` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'boolean'
+      - name: show_recent_device
+        description: 'Structured `showRecentDevice` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'boolean'
+      - name: show_recent_gear
+        description: 'Structured `showRecentGear` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'boolean'
+      - name: show_badges
+        description: 'Structured `showBadges` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'boolean'
+      - name: name_approved
+        description: 'Structured `nameApproved` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'boolean'
+      - name: make_golf_scorecards_private
+        description: 'Structured `makeGolfScorecardsPrivate` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'boolean'
+      - name: allow_golf_live_scoring
+        description: 'Structured `allowGolfLiveScoring` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'boolean'
+      - name: allow_golf_scoring_by_connections
+        description: 'Structured `allowGolfScoringByConnections` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'boolean'
+      - name: user_level
+        description: 'Structured `userLevel` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'integer'
+      - name: user_point
+        description: 'Structured `userPoint` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'integer'
+      - name: level_update_at
+        description: 'Structured `levelUpdateDate` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
+      - name: level_is_viewed
+        description: 'Structured `levelIsViewed` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'boolean'
+      - name: level_point_threshold
+        description: 'Structured `levelPointThreshold` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'integer'
+      - name: user_point_offset
+        description: 'Structured `userPointOffset` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'integer'
+      - name: user_pro
+        description: 'Structured `userPro` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'boolean'
+  - name: stg_garmin_profile_attribute_detail
+    description: 'Garmin profile attribute detail staging table. Grain is one row per exploded `userRoles[]` element from a raw Garmin `profile` payload. The model keeps raw lineage columns plus the array discriminator and ordinality needed to preserve source order.'
+    tests:
+      - unique_combination:
+          arguments:
+            column_names:
+              - raw_record_id
+              - attribute_name
+              - item_position
+    columns:
+      - name: raw_record_id
+        description: 'Primary key of the raw parent record that produced this staging row.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: account_id
+        description: 'Application account that owns the staged record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: connector_config_id
+        description: 'Connector configuration instance that produced the raw record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: sync_task_id
+        description: 'Sync task that loaded the raw record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: connector_id
+        description: 'Connector identifier from the raw layer.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: source_stream
+        description: 'Source stream name from the raw layer.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: source_external_id
+        description: 'Source-side stable identifier from the raw layer.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: source_record_date
+        description: 'Business date assigned to the raw record.'
+        data_type: 'date'
+        tests:
+          - not_null
+      - name: source_record_at
+        description: 'Business timestamp assigned to the raw record.'
+        data_type: 'timestamp with time zone'
+      - name: source_updated_at
+        description: 'Source-side update timestamp captured in raw storage.'
+        data_type: 'timestamp with time zone'
+      - name: collected_at
+        description: 'Timestamp when the worker collected the source payload.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: payload_hash
+        description: 'Hash of the raw payload content.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: raw_created_at
+        description: 'Creation timestamp of the raw parent row.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: raw_updated_at
+        description: 'Last update timestamp of the raw parent row.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: profile_id
+        description: 'Structured `profileId` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
+      - name: attribute_name
+        description: 'Structural staging column derived while exploding raw paths `userRoles[]`. Derived from the exploded raw array name.'
+        data_type: 'text'
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - 'userRoles'
+      - name: item_position
+        description: 'Structural staging column derived while exploding raw paths `userRoles[]`. Derived array ordinality.'
+        data_type: 'bigint'
+        tests:
+          - not_null
+      - name: item
+        description: 'Structured `userRoles[]` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
   - name: stg_garmin_daily_summary
-    description: Standardized Garmin daily summary records.
+    description: 'Garmin daily summary staging table. Grain is one row per raw Garmin `daily_summary` record from `raw.health_snapshot_record`. The model mirrors every currently observed scalar leaf from the daily summary payload without adding derived rollups.'
+    tests:
+      - unique_combination:
+          arguments:
+            column_names:
+              - raw_record_id
     columns:
-      - name: summary_external_id
+      - name: raw_record_id
+        description: 'Primary key of the raw parent record that produced this staging row.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: account_id
+        description: 'Application account that owns the staged record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: connector_config_id
+        description: 'Connector configuration instance that produced the raw record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: sync_task_id
+        description: 'Sync task that loaded the raw record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: connector_id
+        description: 'Connector identifier from the raw layer.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: source_stream
+        description: 'Source stream name from the raw layer.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: source_external_id
+        description: 'Source-side stable identifier from the raw layer.'
+        data_type: 'text'
         tests:
           - not_null
       - name: source_record_date
+        description: 'Business date assigned to the raw record.'
+        data_type: 'date'
         tests:
           - not_null
-  - name: stg_garmin_activity
-    description: Standardized Garmin activity records.
+      - name: source_record_at
+        description: 'Business timestamp assigned to the raw record.'
+        data_type: 'timestamp with time zone'
+      - name: source_updated_at
+        description: 'Source-side update timestamp captured in raw storage.'
+        data_type: 'timestamp with time zone'
+      - name: collected_at
+        description: 'Timestamp when the worker collected the source payload.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: payload_hash
+        description: 'Hash of the raw payload content.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: raw_created_at
+        description: 'Creation timestamp of the raw parent row.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: raw_updated_at
+        description: 'Last update timestamp of the raw parent row.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: user_profile_id
+        description: 'Structured `userProfileId` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'text'
+      - name: user_daily_summary_id
+        description: 'Structured `userDailySummaryId` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'text'
+      - name: calendar_date
+        description: 'Structured `calendarDate` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'text'
+      - name: summary_uuid
+        description: 'Structured `uuid` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'text'
+      - name: summary_source
+        description: 'Structured `source` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'text'
+      - name: display_name
+        description: 'Structured `displayName` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'text'
+      - name: total_kilocalories
+        description: 'Structured `totalKilocalories` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: active_kilocalories
+        description: 'Structured `activeKilocalories` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: bmr_kilocalories
+        description: 'Structured `bmrKilocalories` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: wellness_kilocalories
+        description: 'Structured `wellnessKilocalories` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: burned_kilocalories
+        description: 'Structured `burnedKilocalories` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: consumed_kilocalories
+        description: 'Structured `consumedKilocalories` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: remaining_kilocalories
+        description: 'Structured `remainingKilocalories` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: net_calorie_goal
+        description: 'Structured `netCalorieGoal` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: net_remaining_kilocalories
+        description: 'Structured `netRemainingKilocalories` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: total_steps
+        description: 'Structured `totalSteps` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'bigint'
+      - name: daily_step_goal
+        description: 'Structured `dailyStepGoal` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'bigint'
+      - name: total_distance_meters
+        description: 'Structured `totalDistanceMeters` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: wellness_distance_meters
+        description: 'Structured `wellnessDistanceMeters` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: wellness_active_kilocalories
+        description: 'Structured `wellnessActiveKilocalories` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: wellness_start_time_gmt
+        description: 'Structured `wellnessStartTimeGmt` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'text'
+      - name: wellness_end_time_gmt
+        description: 'Structured `wellnessEndTimeGmt` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'text'
+      - name: wellness_start_time_local
+        description: 'Structured `wellnessStartTimeLocal` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'text'
+      - name: wellness_end_time_local
+        description: 'Structured `wellnessEndTimeLocal` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'text'
+      - name: duration_in_milliseconds
+        description: 'Structured `durationInMilliseconds` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'bigint'
+      - name: wellness_description
+        description: 'Structured `wellnessDescription` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'text'
+      - name: highly_active_seconds
+        description: 'Structured `highlyActiveSeconds` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'bigint'
+      - name: active_seconds
+        description: 'Structured `activeSeconds` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'bigint'
+      - name: sedentary_seconds
+        description: 'Structured `sedentarySeconds` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'bigint'
+      - name: sleeping_seconds
+        description: 'Structured `sleepingSeconds` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'bigint'
+      - name: includes_wellness_data
+        description: 'Structured `includesWellnessData` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'boolean'
+      - name: includes_activity_data
+        description: 'Structured `includesActivityData` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'boolean'
+      - name: includes_calorie_consumed_data
+        description: 'Structured `includesCalorieConsumedData` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'boolean'
+      - name: privacy_protected
+        description: 'Structured `privacyProtected` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'boolean'
+      - name: moderate_intensity_minutes
+        description: 'Structured `moderateIntensityMinutes` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'integer'
+      - name: vigorous_intensity_minutes
+        description: 'Structured `vigorousIntensityMinutes` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'integer'
+      - name: intensity_minutes_goal
+        description: 'Structured `intensityMinutesGoal` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'integer'
+      - name: floors_ascended_in_meters
+        description: 'Structured `floorsAscendedInMeters` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: floors_descended_in_meters
+        description: 'Structured `floorsDescendedInMeters` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: floors_ascended
+        description: 'Structured `floorsAscended` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'integer'
+      - name: floors_descended
+        description: 'Structured `floorsDescended` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'integer'
+      - name: user_floors_ascended_goal
+        description: 'Structured `userFloorsAscendedGoal` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'integer'
+      - name: min_heart_rate
+        description: 'Structured `minHeartRate` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'integer'
+      - name: max_heart_rate
+        description: 'Structured `maxHeartRate` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'integer'
+      - name: abnormal_heart_rate_alerts_count
+        description: 'Structured `abnormalHeartRateAlertsCount` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'integer'
+      - name: resting_heart_rate
+        description: 'Structured `restingHeartRate` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'integer'
+      - name: last_seven_days_avg_resting_heart_rate
+        description: 'Structured `lastSevenDaysAvgRestingHeartRate` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'integer'
+      - name: average_stress_level
+        description: 'Structured `averageStressLevel` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: max_stress_level
+        description: 'Structured `maxStressLevel` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: stress_percentage
+        description: 'Structured `stressPercentage` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: stress_duration
+        description: 'Structured `stressDuration` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'bigint'
+      - name: activity_stress_percentage
+        description: 'Structured `activityStressPercentage` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: rest_stress_duration
+        description: 'Structured `restStressDuration` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'bigint'
+      - name: rest_stress_percentage
+        description: 'Structured `restStressPercentage` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: activity_stress_duration
+        description: 'Structured `activityStressDuration` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'bigint'
+      - name: uncategorized_stress_duration
+        description: 'Structured `uncategorizedStressDuration` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'bigint'
+      - name: uncategorized_stress_percentage
+        description: 'Structured `uncategorizedStressPercentage` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: total_stress_duration
+        description: 'Structured `totalStressDuration` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'bigint'
+      - name: low_stress_duration
+        description: 'Structured `lowStressDuration` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'bigint'
+      - name: low_stress_percentage
+        description: 'Structured `lowStressPercentage` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: medium_stress_duration
+        description: 'Structured `mediumStressDuration` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'bigint'
+      - name: medium_stress_percentage
+        description: 'Structured `mediumStressPercentage` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: high_stress_duration
+        description: 'Structured `highStressDuration` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'bigint'
+      - name: high_stress_percentage
+        description: 'Structured `highStressPercentage` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: stress_qualifier
+        description: 'Structured `stressQualifier` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'text'
+      - name: measurable_awake_duration
+        description: 'Structured `measurableAwakeDuration` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'bigint'
+      - name: measurable_asleep_duration
+        description: 'Structured `measurableAsleepDuration` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'bigint'
+      - name: last_sync_timestamp_gmt
+        description: 'Structured `lastSyncTimestampGMT` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'text'
+      - name: min_avg_heart_rate
+        description: 'Structured `minAvgHeartRate` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: max_avg_heart_rate
+        description: 'Structured `maxAvgHeartRate` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: average_monitoring_environment_altitude
+        description: 'Structured `averageMonitoringEnvironmentAltitude` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: body_battery_at_wake_time
+        description: 'Structured `bodyBatteryAtWakeTime` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: body_battery_charged_value
+        description: 'Structured `bodyBatteryChargedValue` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: body_battery_drained_value
+        description: 'Structured `bodyBatteryDrainedValue` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: body_battery_during_sleep
+        description: 'Structured `bodyBatteryDuringSleep` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: body_battery_highest_value
+        description: 'Structured `bodyBatteryHighestValue` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: body_battery_lowest_value
+        description: 'Structured `bodyBatteryLowestValue` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: body_battery_most_recent_value
+        description: 'Structured `bodyBatteryMostRecentValue` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: body_battery_version
+        description: 'Structured `bodyBatteryVersion` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'integer'
+      - name: average_spo2
+        description: 'Structured `averageSpo2` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: latest_spo2
+        description: 'Structured `latestSpo2` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: lowest_spo2
+        description: 'Structured `lowestSpo2` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: latest_spo2_reading_time_gmt
+        description: 'Structured `latestSpo2ReadingTimeGmt` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'text'
+      - name: latest_spo2_reading_time_local
+        description: 'Structured `latestSpo2ReadingTimeLocal` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'text'
+      - name: avg_waking_respiration_value
+        description: 'Structured `avgWakingRespirationValue` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: highest_respiration_value
+        description: 'Structured `highestRespirationValue` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: lowest_respiration_value
+        description: 'Structured `lowestRespirationValue` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: latest_respiration_time_gmt
+        description: 'Structured `latestRespirationTimeGMT` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'text'
+      - name: latest_respiration_value
+        description: 'Structured `latestRespirationValue` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: respiration_algorithm_version
+        description: 'Structured `respirationAlgorithmVersion` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'integer'
+      - name: resting_calories_from_activity
+        description: 'Structured `restingCaloriesFromActivity` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'numeric'
+      - name: rule_type_id
+        description: 'Structured `rule.typeId` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'integer'
+      - name: rule_type_key
+        description: 'Structured `rule.typeKey` leaf copied from the raw Garmin `daily_summary` payload.'
+        data_type: 'text'
+  - name: stg_garmin_activity_detail
+    description: 'Garmin activity detail staging table. Grain is one row per raw Garmin `activity` record from `raw.health_event_record`. The model expands every currently observed scalar or nested-object leaf into a structured staging column, without adding convenience fields that do not exist in raw.'
+    tests:
+      - unique_combination:
+          arguments:
+            column_names:
+              - raw_record_id
     columns:
-      - name: activity_external_id
+      - name: raw_record_id
+        description: 'Primary key of the raw parent record that produced this staging row.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: account_id
+        description: 'Application account that owns the staged record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: connector_config_id
+        description: 'Connector configuration instance that produced the raw record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: sync_task_id
+        description: 'Sync task that loaded the raw record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: connector_id
+        description: 'Connector identifier from the raw layer.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: source_stream
+        description: 'Source stream name from the raw layer.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: source_external_id
+        description: 'Source-side stable identifier from the raw layer.'
+        data_type: 'text'
         tests:
           - not_null
       - name: source_record_date
+        description: 'Business date assigned to the raw record.'
+        data_type: 'date'
         tests:
           - not_null
-  - name: stg_garmin_sleep
-    description: Standardized Garmin sleep records.
+      - name: source_record_at
+        description: 'Business timestamp assigned to the raw record.'
+        data_type: 'timestamp with time zone'
+      - name: source_updated_at
+        description: 'Source-side update timestamp captured in raw storage.'
+        data_type: 'timestamp with time zone'
+      - name: collected_at
+        description: 'Timestamp when the worker collected the source payload.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: payload_hash
+        description: 'Hash of the raw payload content.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: raw_created_at
+        description: 'Creation timestamp of the raw parent row.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: raw_updated_at
+        description: 'Last update timestamp of the raw parent row.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: activity_id
+        description: 'Structured `activityId` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'text'
+      - name: activity_uuid
+        description: 'Structured `activityUUID` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'text'
+      - name: device_id
+        description: 'Structured `deviceId` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'text'
+      - name: activity_name
+        description: 'Structured `activityName` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'text'
+      - name: favorite
+        description: 'Structured `favorite` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'boolean'
+      - name: manual_activity
+        description: 'Structured `manualActivity` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'boolean'
+      - name: purposeful
+        description: 'Structured `purposeful` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'boolean'
+      - name: pr
+        description: 'Structured `pr` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'boolean'
+      - name: parent
+        description: 'Structured `parent` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'boolean'
+      - name: user_pro
+        description: 'Structured `userPro` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'boolean'
+      - name: deco_dive
+        description: 'Structured `decoDive` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'boolean'
+      - name: qualifying_dive
+        description: 'Structured `qualifyingDive` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'boolean'
+      - name: atp_activity
+        description: 'Structured `atpActivity` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'boolean'
+      - name: auto_calc_calories
+        description: 'Structured `autoCalcCalories` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'boolean'
+      - name: elevation_corrected
+        description: 'Structured `elevationCorrected` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'boolean'
+      - name: has_polyline
+        description: 'Structured `hasPolyline` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'boolean'
+      - name: has_images
+        description: 'Structured `hasImages` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'boolean'
+      - name: has_heat_map
+        description: 'Structured `hasHeatMap` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'boolean'
+      - name: has_splits
+        description: 'Structured `hasSplits` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'boolean'
+      - name: has_video
+        description: 'Structured `hasVideo` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'boolean'
+      - name: event_type_type_key
+        description: 'Structured `eventType.typeKey` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'text'
+      - name: event_type_type_id
+        description: 'Structured `eventType.typeId` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'integer'
+      - name: event_type_sort_order
+        description: 'Structured `eventType.sortOrder` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'integer'
+      - name: activity_type_type_id
+        description: 'Structured `activityType.typeId` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'integer'
+      - name: activity_type_type_key
+        description: 'Structured `activityType.typeKey` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'text'
+      - name: activity_type_parent_type_id
+        description: 'Structured `activityType.parentTypeId` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'integer'
+      - name: activity_type_is_hidden
+        description: 'Structured `activityType.isHidden` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'boolean'
+      - name: activity_type_restricted
+        description: 'Structured `activityType.restricted` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'boolean'
+      - name: activity_type_trimmable
+        description: 'Structured `activityType.trimmable` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'boolean'
+      - name: start_time_local
+        description: 'Structured `startTimeLocal` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'text'
+      - name: start_time_gmt
+        description: 'Structured `startTimeGMT` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'text'
+      - name: end_time_gmt
+        description: 'Structured `endTimeGMT` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'text'
+      - name: begin_timestamp
+        description: 'Structured `beginTimestamp` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'text'
+      - name: time_zone_id
+        description: 'Structured `timeZoneId` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'text'
+      - name: start_latitude
+        description: 'Structured `startLatitude` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'numeric'
+      - name: start_longitude
+        description: 'Structured `startLongitude` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'numeric'
+      - name: end_latitude
+        description: 'Structured `endLatitude` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'numeric'
+      - name: end_longitude
+        description: 'Structured `endLongitude` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'numeric'
+      - name: distance
+        description: 'Structured `distance` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'numeric'
+      - name: duration
+        description: 'Structured `duration` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'numeric'
+      - name: moving_duration
+        description: 'Structured `movingDuration` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'numeric'
+      - name: elapsed_duration
+        description: 'Structured `elapsedDuration` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'numeric'
+      - name: elevation_gain
+        description: 'Structured `elevationGain` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'numeric'
+      - name: elevation_loss
+        description: 'Structured `elevationLoss` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'numeric'
+      - name: max_elevation
+        description: 'Structured `maxElevation` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'numeric'
+      - name: min_elevation
+        description: 'Structured `minElevation` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'numeric'
+      - name: average_speed
+        description: 'Structured `averageSpeed` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'numeric'
+      - name: max_speed
+        description: 'Structured `maxSpeed` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'numeric'
+      - name: calories
+        description: 'Structured `calories` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'numeric'
+      - name: bmr_calories
+        description: 'Structured `bmrCalories` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'numeric'
+      - name: average_hr
+        description: 'Structured `averageHR` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'integer'
+      - name: max_hr
+        description: 'Structured `maxHR` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'integer'
+      - name: aerobic_training_effect
+        description: 'Structured `aerobicTrainingEffect` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'numeric'
+      - name: anaerobic_training_effect
+        description: 'Structured `anaerobicTrainingEffect` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'numeric'
+      - name: aerobic_training_effect_message
+        description: 'Structured `aerobicTrainingEffectMessage` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'text'
+      - name: anaerobic_training_effect_message
+        description: 'Structured `anaerobicTrainingEffectMessage` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'text'
+      - name: training_effect_label
+        description: 'Structured `trainingEffectLabel` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'text'
+      - name: activity_training_load
+        description: 'Structured `activityTrainingLoad` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'numeric'
+      - name: min_activity_lap_duration
+        description: 'Structured `minActivityLapDuration` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'numeric'
+      - name: moderate_intensity_minutes
+        description: 'Structured `moderateIntensityMinutes` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'numeric'
+      - name: vigorous_intensity_minutes
+        description: 'Structured `vigorousIntensityMinutes` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'numeric'
+      - name: difference_body_battery
+        description: 'Structured `differenceBodyBattery` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'numeric'
+      - name: max_vertical_speed
+        description: 'Structured `maxVerticalSpeed` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'numeric'
+      - name: fastest_split_40000
+        description: 'Structured `fastestSplit_40000` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'numeric'
+      - name: lap_count
+        description: 'Structured `lapCount` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'integer'
+      - name: max_ftp
+        description: 'Structured `maxFtp` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'numeric'
+      - name: sport_type_id
+        description: 'Structured `sportTypeId` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'integer'
+      - name: hr_time_in_zone_1
+        description: 'Structured `hrTimeInZone_1` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'bigint'
+      - name: hr_time_in_zone_2
+        description: 'Structured `hrTimeInZone_2` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'bigint'
+      - name: hr_time_in_zone_3
+        description: 'Structured `hrTimeInZone_3` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'bigint'
+      - name: hr_time_in_zone_4
+        description: 'Structured `hrTimeInZone_4` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'bigint'
+      - name: hr_time_in_zone_5
+        description: 'Structured `hrTimeInZone_5` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'bigint'
+      - name: manufacturer
+        description: 'Structured `manufacturer` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'text'
+      - name: location_name
+        description: 'Structured `locationName` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'text'
+      - name: owner_id
+        description: 'Structured `ownerId` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'text'
+      - name: owner_display_name
+        description: 'Structured `ownerDisplayName` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'text'
+      - name: owner_full_name
+        description: 'Structured `ownerFullName` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'text'
+      - name: owner_profile_image_url_large
+        description: 'Structured `ownerProfileImageUrlLarge` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'text'
+      - name: owner_profile_image_url_medium
+        description: 'Structured `ownerProfileImageUrlMedium` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'text'
+      - name: owner_profile_image_url_small
+        description: 'Structured `ownerProfileImageUrlSmall` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'text'
+      - name: privacy_type_id
+        description: 'Structured `privacy.typeId` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'integer'
+      - name: privacy_type_key
+        description: 'Structured `privacy.typeKey` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'text'
+      - name: water_estimated
+        description: 'Structured `waterEstimated` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'text'
+  - name: stg_garmin_activity_role_detail
+    description: 'Garmin activity role detail staging table. Grain is one row per exploded `userRoles[]` element from a raw Garmin `activity` payload. The model preserves raw lineage, activity identity, and the original role ordinality.'
+    tests:
+      - unique_combination:
+          arguments:
+            column_names:
+              - raw_record_id
+              - item_position
     columns:
-      - name: sleep_external_id
+      - name: raw_record_id
+        description: 'Primary key of the raw parent record that produced this staging row.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: account_id
+        description: 'Application account that owns the staged record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: connector_config_id
+        description: 'Connector configuration instance that produced the raw record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: sync_task_id
+        description: 'Sync task that loaded the raw record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: connector_id
+        description: 'Connector identifier from the raw layer.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: source_stream
+        description: 'Source stream name from the raw layer.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: source_external_id
+        description: 'Source-side stable identifier from the raw layer.'
+        data_type: 'text'
         tests:
           - not_null
       - name: source_record_date
+        description: 'Business date assigned to the raw record.'
+        data_type: 'date'
         tests:
           - not_null
-  - name: stg_garmin_heart_rate
-    description: Standardized Garmin heart rate records.
+      - name: source_record_at
+        description: 'Business timestamp assigned to the raw record.'
+        data_type: 'timestamp with time zone'
+      - name: source_updated_at
+        description: 'Source-side update timestamp captured in raw storage.'
+        data_type: 'timestamp with time zone'
+      - name: collected_at
+        description: 'Timestamp when the worker collected the source payload.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: payload_hash
+        description: 'Hash of the raw payload content.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: raw_created_at
+        description: 'Creation timestamp of the raw parent row.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: raw_updated_at
+        description: 'Last update timestamp of the raw parent row.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: activity_id
+        description: 'Structured `activityId` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'text'
+      - name: item_position
+        description: 'Structural staging column derived while exploding raw paths `userRoles[]`. Derived array ordinality.'
+        data_type: 'bigint'
+        tests:
+          - not_null
+      - name: role
+        description: 'Structured `userRoles[]` leaf copied from the raw Garmin `activity` payload.'
+        data_type: 'text'
+  - name: stg_garmin_sleep_summary
+    description: 'Garmin sleep summary staging table. Grain is one row per raw Garmin `sleep` record from `raw.health_snapshot_record`. The model keeps raw lineage columns and exposes the currently observed scalar sleep leaves plus scalar score sub-fields, without inventing absent payload sections.'
+    tests:
+      - unique_combination:
+          arguments:
+            column_names:
+              - raw_record_id
     columns:
-      - name: heart_rate_external_id
+      - name: raw_record_id
+        description: 'Primary key of the raw parent record that produced this staging row.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: account_id
+        description: 'Application account that owns the staged record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: connector_config_id
+        description: 'Connector configuration instance that produced the raw record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: sync_task_id
+        description: 'Sync task that loaded the raw record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: connector_id
+        description: 'Connector identifier from the raw layer.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: source_stream
+        description: 'Source stream name from the raw layer.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: source_external_id
+        description: 'Source-side stable identifier from the raw layer.'
+        data_type: 'text'
         tests:
           - not_null
       - name: source_record_date
+        description: 'Business date assigned to the raw record.'
+        data_type: 'date'
         tests:
           - not_null
+      - name: source_record_at
+        description: 'Business timestamp assigned to the raw record.'
+        data_type: 'timestamp with time zone'
+      - name: source_updated_at
+        description: 'Source-side update timestamp captured in raw storage.'
+        data_type: 'timestamp with time zone'
+      - name: collected_at
+        description: 'Timestamp when the worker collected the source payload.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: payload_hash
+        description: 'Hash of the raw payload content.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: raw_created_at
+        description: 'Creation timestamp of the raw parent row.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: raw_updated_at
+        description: 'Last update timestamp of the raw parent row.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: sleep_id
+        description: 'Structured `dailySleepDTO.id` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'text'
+      - name: user_profile_pk
+        description: 'Structured `dailySleepDTO.userProfilePK` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'text'
+      - name: calendar_date
+        description: 'Structured `dailySleepDTO.calendarDate` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'text'
+      - name: sleep_time_seconds
+        description: 'Structured `dailySleepDTO.sleepTimeSeconds` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'bigint'
+      - name: nap_time_seconds
+        description: 'Structured `dailySleepDTO.napTimeSeconds` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'bigint'
+      - name: sleep_window_confirmed
+        description: 'Structured `dailySleepDTO.sleepWindowConfirmed` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'boolean'
+      - name: sleep_window_confirmation_type
+        description: 'Structured `dailySleepDTO.sleepWindowConfirmationType` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'text'
+      - name: sleep_start_timestamp_gmt
+        description: 'Structured `dailySleepDTO.sleepStartTimestampGMT` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'text'
+      - name: sleep_end_timestamp_gmt
+        description: 'Structured `dailySleepDTO.sleepEndTimestampGMT` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'text'
+      - name: sleep_start_timestamp_local
+        description: 'Structured `dailySleepDTO.sleepStartTimestampLocal` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'text'
+      - name: sleep_end_timestamp_local
+        description: 'Structured `dailySleepDTO.sleepEndTimestampLocal` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'text'
+      - name: auto_sleep_start_timestamp_gmt
+        description: 'Structured `dailySleepDTO.autoSleepStartTimestampGMT` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'text'
+      - name: auto_sleep_end_timestamp_gmt
+        description: 'Structured `dailySleepDTO.autoSleepEndTimestampGMT` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'text'
+      - name: sleep_quality_type_pk
+        description: 'Structured `dailySleepDTO.sleepQualityTypePK` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'text'
+      - name: sleep_result_type_pk
+        description: 'Structured `dailySleepDTO.sleepResultTypePK` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'text'
+      - name: unmeasurable_sleep_seconds
+        description: 'Structured `dailySleepDTO.unmeasurableSleepSeconds` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'bigint'
+      - name: deep_sleep_seconds
+        description: 'Structured `dailySleepDTO.deepSleepSeconds` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'bigint'
+      - name: light_sleep_seconds
+        description: 'Structured `dailySleepDTO.lightSleepSeconds` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'bigint'
+      - name: rem_sleep_seconds
+        description: 'Structured `dailySleepDTO.remSleepSeconds` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'bigint'
+      - name: awake_sleep_seconds
+        description: 'Structured `dailySleepDTO.awakeSleepSeconds` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'bigint'
+      - name: device_rem_capable
+        description: 'Structured `dailySleepDTO.deviceRemCapable` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'boolean'
+      - name: retro
+        description: 'Structured `dailySleepDTO.retro` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'boolean'
+      - name: sleep_from_device
+        description: 'Structured `dailySleepDTO.sleepFromDevice` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'boolean'
+      - name: average_respiration_value
+        description: 'Structured `dailySleepDTO.averageRespirationValue` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'numeric'
+      - name: lowest_respiration_value
+        description: 'Structured `dailySleepDTO.lowestRespirationValue` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'numeric'
+      - name: highest_respiration_value
+        description: 'Structured `dailySleepDTO.highestRespirationValue` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'numeric'
+      - name: awake_count
+        description: 'Structured `dailySleepDTO.awakeCount` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'integer'
+      - name: avg_sleep_stress
+        description: 'Structured `dailySleepDTO.avgSleepStress` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'numeric'
+      - name: age_group
+        description: 'Structured `dailySleepDTO.ageGroup` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'text'
+      - name: sleep_score_feedback
+        description: 'Structured `dailySleepDTO.sleepScoreFeedback` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'text'
+      - name: sleep_score_insight
+        description: 'Structured `dailySleepDTO.sleepScoreInsight` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'text'
+      - name: sleep_score_personalized_insight
+        description: 'Structured `dailySleepDTO.sleepScorePersonalizedInsight` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'text'
+      - name: sleep_version
+        description: 'Structured `dailySleepDTO.sleepVersion` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'text'
+      - name: total_duration_score_qualifier_key
+        description: 'Structured `dailySleepDTO.sleepScores.totalDuration.qualifierKey` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'text'
+      - name: total_duration_score_optimal_start
+        description: 'Structured `dailySleepDTO.sleepScores.totalDuration.optimalStart` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'numeric'
+      - name: total_duration_score_optimal_end
+        description: 'Structured `dailySleepDTO.sleepScores.totalDuration.optimalEnd` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'numeric'
+      - name: stress_score_qualifier_key
+        description: 'Structured `dailySleepDTO.sleepScores.stress.qualifierKey` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'text'
+      - name: stress_score_optimal_start
+        description: 'Structured `dailySleepDTO.sleepScores.stress.optimalStart` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'numeric'
+      - name: stress_score_optimal_end
+        description: 'Structured `dailySleepDTO.sleepScores.stress.optimalEnd` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'numeric'
+      - name: awake_count_score_qualifier_key
+        description: 'Structured `dailySleepDTO.sleepScores.awakeCount.qualifierKey` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'text'
+      - name: awake_count_score_optimal_start
+        description: 'Structured `dailySleepDTO.sleepScores.awakeCount.optimalStart` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'numeric'
+      - name: awake_count_score_optimal_end
+        description: 'Structured `dailySleepDTO.sleepScores.awakeCount.optimalEnd` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'numeric'
+      - name: overall_score_value
+        description: 'Structured `dailySleepDTO.sleepScores.overall.value` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'numeric'
+      - name: overall_score_qualifier_key
+        description: 'Structured `dailySleepDTO.sleepScores.overall.qualifierKey` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'text'
+      - name: rem_percentage_score_value
+        description: 'Structured `dailySleepDTO.sleepScores.remPercentage.value` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'numeric'
+      - name: rem_percentage_score_qualifier_key
+        description: 'Structured `dailySleepDTO.sleepScores.remPercentage.qualifierKey` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'text'
+      - name: rem_percentage_score_ideal_start_in_seconds
+        description: 'Structured `dailySleepDTO.sleepScores.remPercentage.idealStartInSeconds` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'numeric'
+      - name: rem_percentage_score_ideal_end_in_seconds
+        description: 'Structured `dailySleepDTO.sleepScores.remPercentage.idealEndInSeconds` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'numeric'
+      - name: rem_percentage_score_optimal_start
+        description: 'Structured `dailySleepDTO.sleepScores.remPercentage.optimalStart` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'numeric'
+      - name: rem_percentage_score_optimal_end
+        description: 'Structured `dailySleepDTO.sleepScores.remPercentage.optimalEnd` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'numeric'
+      - name: light_percentage_score_value
+        description: 'Structured `dailySleepDTO.sleepScores.lightPercentage.value` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'numeric'
+      - name: light_percentage_score_qualifier_key
+        description: 'Structured `dailySleepDTO.sleepScores.lightPercentage.qualifierKey` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'text'
+      - name: light_percentage_score_ideal_start_in_seconds
+        description: 'Structured `dailySleepDTO.sleepScores.lightPercentage.idealStartInSeconds` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'numeric'
+      - name: light_percentage_score_ideal_end_in_seconds
+        description: 'Structured `dailySleepDTO.sleepScores.lightPercentage.idealEndInSeconds` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'numeric'
+      - name: light_percentage_score_optimal_start
+        description: 'Structured `dailySleepDTO.sleepScores.lightPercentage.optimalStart` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'numeric'
+      - name: light_percentage_score_optimal_end
+        description: 'Structured `dailySleepDTO.sleepScores.lightPercentage.optimalEnd` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'numeric'
+      - name: deep_percentage_score_value
+        description: 'Structured `dailySleepDTO.sleepScores.deepPercentage.value` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'numeric'
+      - name: deep_percentage_score_qualifier_key
+        description: 'Structured `dailySleepDTO.sleepScores.deepPercentage.qualifierKey` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'text'
+      - name: deep_percentage_score_ideal_start_in_seconds
+        description: 'Structured `dailySleepDTO.sleepScores.deepPercentage.idealStartInSeconds` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'numeric'
+      - name: deep_percentage_score_ideal_end_in_seconds
+        description: 'Structured `dailySleepDTO.sleepScores.deepPercentage.idealEndInSeconds` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'numeric'
+      - name: deep_percentage_score_optimal_start
+        description: 'Structured `dailySleepDTO.sleepScores.deepPercentage.optimalStart` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'numeric'
+      - name: deep_percentage_score_optimal_end
+        description: 'Structured `dailySleepDTO.sleepScores.deepPercentage.optimalEnd` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'numeric'
+      - name: restlessness_score_qualifier_key
+        description: 'Structured `dailySleepDTO.sleepScores.restlessness.qualifierKey` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'text'
+      - name: restlessness_score_optimal_start
+        description: 'Structured `dailySleepDTO.sleepScores.restlessness.optimalStart` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'numeric'
+      - name: restlessness_score_optimal_end
+        description: 'Structured `dailySleepDTO.sleepScores.restlessness.optimalEnd` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'numeric'
+      - name: rem_sleep_data
+        description: 'Structured `remSleepData` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'boolean'
+      - name: restless_moments_count
+        description: 'Structured `restlessMomentsCount` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'integer'
+      - name: skin_temp_data_exists
+        description: 'Structured `skinTempDataExists` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'boolean'
+      - name: avg_overnight_hrv
+        description: 'Structured `avgOvernightHrv` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'numeric'
+      - name: hrv_status
+        description: 'Structured `hrvStatus` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'text'
+      - name: body_battery_change
+        description: 'Structured `bodyBatteryChange` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'numeric'
+      - name: resting_heart_rate
+        description: 'Structured `restingHeartRate` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'integer'
+      - name: respiration_version
+        description: 'Structured `respirationVersion` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'integer'
+  - name: stg_garmin_sleep_stage_detail
+    description: 'Garmin sleep stage detail staging table. Grain is one row per exploded element from `sleepLevels[]` or `sleepMovement[]` in a raw Garmin `sleep` payload. The model preserves the source array name and ordinality so downstream models can keep the original stage sequence.'
+    tests:
+      - unique_combination:
+          arguments:
+            column_names:
+              - raw_record_id
+              - stage_name
+              - stage_position
+    columns:
+      - name: raw_record_id
+        description: 'Primary key of the raw parent record that produced this staging row.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: account_id
+        description: 'Application account that owns the staged record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: connector_config_id
+        description: 'Connector configuration instance that produced the raw record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: sync_task_id
+        description: 'Sync task that loaded the raw record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: connector_id
+        description: 'Connector identifier from the raw layer.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: source_stream
+        description: 'Source stream name from the raw layer.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: source_external_id
+        description: 'Source-side stable identifier from the raw layer.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: source_record_date
+        description: 'Business date assigned to the raw record.'
+        data_type: 'date'
+        tests:
+          - not_null
+      - name: source_record_at
+        description: 'Business timestamp assigned to the raw record.'
+        data_type: 'timestamp with time zone'
+      - name: source_updated_at
+        description: 'Source-side update timestamp captured in raw storage.'
+        data_type: 'timestamp with time zone'
+      - name: collected_at
+        description: 'Timestamp when the worker collected the source payload.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: payload_hash
+        description: 'Hash of the raw payload content.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: raw_created_at
+        description: 'Creation timestamp of the raw parent row.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: raw_updated_at
+        description: 'Last update timestamp of the raw parent row.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: sleep_id
+        description: 'Structured `dailySleepDTO.id` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'text'
+      - name: stage_name
+        description: 'Structural staging column derived while exploding raw paths `sleepLevels[]`, `sleepMovement[]`. Derived from the exploded raw array name.'
+        data_type: 'text'
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - 'sleepLevels'
+                  - 'sleepMovement'
+      - name: stage_position
+        description: 'Structural staging column derived while exploding raw paths `sleepLevels[]`, `sleepMovement[]`. Derived array ordinality.'
+        data_type: 'bigint'
+        tests:
+          - not_null
+      - name: stage_start_at
+        description: 'Structured `sleepLevels[].startGMT` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'text'
+      - name: stage_end_at
+        description: 'Structured `sleepLevels[].endGMT` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'text'
+      - name: activity_level
+        description: 'Structured `sleepLevels[].activityLevel` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'numeric'
+  - name: stg_garmin_sleep_metric_detail
+    description: 'Garmin sleep metric detail staging table. Grain is one row per exploded metric sample from raw Garmin `sleep` arrays such as `sleepHeartRate`, `sleepStress`, `sleepBodyBattery`, `sleepRestlessMoments`, `hrvData`, and respiration arrays. The model preserves the source metric name and sample ordinality.'
+    tests:
+      - unique_combination:
+          arguments:
+            column_names:
+              - raw_record_id
+              - metric_name
+              - sample_position
+    columns:
+      - name: raw_record_id
+        description: 'Primary key of the raw parent record that produced this staging row.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: account_id
+        description: 'Application account that owns the staged record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: connector_config_id
+        description: 'Connector configuration instance that produced the raw record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: sync_task_id
+        description: 'Sync task that loaded the raw record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: connector_id
+        description: 'Connector identifier from the raw layer.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: source_stream
+        description: 'Source stream name from the raw layer.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: source_external_id
+        description: 'Source-side stable identifier from the raw layer.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: source_record_date
+        description: 'Business date assigned to the raw record.'
+        data_type: 'date'
+        tests:
+          - not_null
+      - name: source_record_at
+        description: 'Business timestamp assigned to the raw record.'
+        data_type: 'timestamp with time zone'
+      - name: source_updated_at
+        description: 'Source-side update timestamp captured in raw storage.'
+        data_type: 'timestamp with time zone'
+      - name: collected_at
+        description: 'Timestamp when the worker collected the source payload.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: payload_hash
+        description: 'Hash of the raw payload content.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: raw_created_at
+        description: 'Creation timestamp of the raw parent row.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: raw_updated_at
+        description: 'Last update timestamp of the raw parent row.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: sleep_id
+        description: 'Structured `dailySleepDTO.id` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'text'
+      - name: metric_name
+        description: 'Structural staging column derived while exploding raw paths `hrvData[]`, `sleepBodyBattery[]`, `sleepHeartRate[]`, `sleepRestlessMoments[]`, `sleepStress[]`, `wellnessEpochRespirationAveragesList[]`, `wellnessEpochRespirationDataDTOList[]`. Derived from the exploded raw array name.'
+        data_type: 'text'
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - 'sleepRestlessMoments'
+                  - 'sleepHeartRate'
+                  - 'sleepStress'
+                  - 'sleepBodyBattery'
+                  - 'hrvData'
+                  - 'wellnessEpochRespirationDataDTOList'
+                  - 'wellnessEpochRespirationAverage'
+                  - 'wellnessEpochRespirationHigh'
+                  - 'wellnessEpochRespirationLow'
+      - name: sample_position
+        description: 'Structural staging column derived while exploding raw paths `hrvData[]`, `sleepBodyBattery[]`, `sleepHeartRate[]`, `sleepRestlessMoments[]`, `sleepStress[]`, `wellnessEpochRespirationAveragesList[]`, `wellnessEpochRespirationDataDTOList[]`. Derived array ordinality.'
+        data_type: 'bigint'
+        tests:
+          - not_null
+      - name: sample_at
+        description: 'Structured `hrvData[].startGMT` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'text'
+      - name: value
+        description: 'Structured `hrvData[].value` leaf copied from the raw Garmin `sleep` payload.'
+        data_type: 'numeric'
+  - name: stg_garmin_heart_rate_summary
+    description: 'Garmin heart-rate summary staging table. Grain is one row per raw Garmin `heart_rate` record from `raw.health_timeseries_record`. The model retains only the raw scalar summary leaves that are currently present in the payload.'
+    tests:
+      - unique_combination:
+          arguments:
+            column_names:
+              - raw_record_id
+    columns:
+      - name: raw_record_id
+        description: 'Primary key of the raw parent record that produced this staging row.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: account_id
+        description: 'Application account that owns the staged record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: connector_config_id
+        description: 'Connector configuration instance that produced the raw record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: sync_task_id
+        description: 'Sync task that loaded the raw record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: connector_id
+        description: 'Connector identifier from the raw layer.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: source_stream
+        description: 'Source stream name from the raw layer.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: source_external_id
+        description: 'Source-side stable identifier from the raw layer.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: source_record_date
+        description: 'Business date assigned to the raw record.'
+        data_type: 'date'
+        tests:
+          - not_null
+      - name: source_record_at
+        description: 'Business timestamp assigned to the raw record.'
+        data_type: 'timestamp with time zone'
+      - name: source_updated_at
+        description: 'Source-side update timestamp captured in raw storage.'
+        data_type: 'timestamp with time zone'
+      - name: collected_at
+        description: 'Timestamp when the worker collected the source payload.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: payload_hash
+        description: 'Hash of the raw payload content.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: raw_created_at
+        description: 'Creation timestamp of the raw parent row.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: raw_updated_at
+        description: 'Last update timestamp of the raw parent row.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: user_profile_pk
+        description: 'Structured `userProfilePK` leaf copied from the raw Garmin `heart_rate` payload.'
+        data_type: 'text'
+      - name: calendar_date
+        description: 'Structured `calendarDate` leaf copied from the raw Garmin `heart_rate` payload.'
+        data_type: 'text'
+      - name: start_timestamp_gmt
+        description: 'Structured `startTimestampGMT` leaf copied from the raw Garmin `heart_rate` payload.'
+        data_type: 'text'
+      - name: end_timestamp_gmt
+        description: 'Structured `endTimestampGMT` leaf copied from the raw Garmin `heart_rate` payload.'
+        data_type: 'text'
+      - name: start_timestamp_local
+        description: 'Structured `startTimestampLocal` leaf copied from the raw Garmin `heart_rate` payload.'
+        data_type: 'text'
+      - name: end_timestamp_local
+        description: 'Structured `endTimestampLocal` leaf copied from the raw Garmin `heart_rate` payload.'
+        data_type: 'text'
+      - name: resting_heart_rate
+        description: 'Structured `restingHeartRate` leaf copied from the raw Garmin `heart_rate` payload.'
+        data_type: 'integer'
+      - name: min_heart_rate
+        description: 'Structured `minHeartRate` leaf copied from the raw Garmin `heart_rate` payload.'
+        data_type: 'integer'
+      - name: max_heart_rate
+        description: 'Structured `maxHeartRate` leaf copied from the raw Garmin `heart_rate` payload.'
+        data_type: 'integer'
+      - name: last_seven_days_avg_resting_heart_rate
+        description: 'Structured `lastSevenDaysAvgRestingHeartRate` leaf copied from the raw Garmin `heart_rate` payload.'
+        data_type: 'integer'
+  - name: stg_garmin_heart_rate_sample_detail
+    description: 'Garmin heart-rate sample detail staging table. Grain is one row per decoded sample from the raw Garmin `heart_rate` matrix payload. The model preserves lineage columns and decodes `heartRateValueDescriptors` plus `heartRateValues` into ordered sample rows.'
+    tests:
+      - unique_combination:
+          arguments:
+            column_names:
+              - raw_record_id
+              - sample_position
+    columns:
+      - name: raw_record_id
+        description: 'Primary key of the raw parent record that produced this staging row.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: account_id
+        description: 'Application account that owns the staged record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: connector_config_id
+        description: 'Connector configuration instance that produced the raw record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: sync_task_id
+        description: 'Sync task that loaded the raw record.'
+        data_type: 'uuid'
+        tests:
+          - not_null
+      - name: connector_id
+        description: 'Connector identifier from the raw layer.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: source_stream
+        description: 'Source stream name from the raw layer.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: source_external_id
+        description: 'Source-side stable identifier from the raw layer.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: source_record_date
+        description: 'Business date assigned to the raw record.'
+        data_type: 'date'
+        tests:
+          - not_null
+      - name: source_record_at
+        description: 'Business timestamp assigned to the raw record.'
+        data_type: 'timestamp with time zone'
+      - name: source_updated_at
+        description: 'Source-side update timestamp captured in raw storage.'
+        data_type: 'timestamp with time zone'
+      - name: collected_at
+        description: 'Timestamp when the worker collected the source payload.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: payload_hash
+        description: 'Hash of the raw payload content.'
+        data_type: 'text'
+        tests:
+          - not_null
+      - name: raw_created_at
+        description: 'Creation timestamp of the raw parent row.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: raw_updated_at
+        description: 'Last update timestamp of the raw parent row.'
+        data_type: 'timestamp with time zone'
+        tests:
+          - not_null
+      - name: calendar_date
+        description: 'Structured `calendarDate` leaf copied from the raw Garmin `heart_rate` payload.'
+        data_type: 'text'
+      - name: sample_position
+        description: 'Structural staging column derived while exploding raw paths `heartRateValues[][]`. Derived sample ordinality within the decoded value matrix.'
+        data_type: 'bigint'
+        tests:
+          - not_null
+      - name: sample_timestamp
+        description: 'Decoded staging column derived from raw paths `heartRateValueDescriptors[].index`, `heartRateValueDescriptors[].key`, `heartRateValues[][]`. Decoded from descriptor indexes and heart-rate value rows.'
+        data_type: 'text'
+      - name: heart_rate_value
+        description: 'Decoded staging column derived from raw paths `heartRateValueDescriptors[].index`, `heartRateValueDescriptors[].key`, `heartRateValues[][]`. Decoded from descriptor indexes and heart-rate value rows.'
+        data_type: 'integer'

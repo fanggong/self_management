@@ -170,6 +170,8 @@ const MOCK_SYNC_JOB_ITEMS: SyncJobListItem[] = [
 const MOCK_MEDICAL_REPORT_SECTIONS: MedicalReportParsedSection[] = [
   {
     sectionKey: 'general',
+    examiner: 'Dr. Chen',
+    examDate: '2026-03-08',
     items: [
       { itemKey: 'height', result: '172', referenceValue: '165-185', unit: 'cm', abnormalFlag: '' },
       { itemKey: 'weight', result: '68.5', referenceValue: '50-80', unit: 'kg', abnormalFlag: '' },
@@ -181,6 +183,8 @@ const MOCK_MEDICAL_REPORT_SECTIONS: MedicalReportParsedSection[] = [
   },
   {
     sectionKey: 'internal_medicine',
+    examiner: 'Dr. Li',
+    examDate: '2026-03-08',
     items: [
       { itemKey: 'past_medical_history', result: 'No significant history', referenceValue: '', unit: '', abnormalFlag: '' },
       { itemKey: 'heart_rate', result: '72', referenceValue: '60-100', unit: 'bpm', abnormalFlag: '' }
@@ -188,6 +192,8 @@ const MOCK_MEDICAL_REPORT_SECTIONS: MedicalReportParsedSection[] = [
   },
   {
     sectionKey: 'cbc',
+    examiner: 'Lab Wang',
+    examDate: '2026-03-09',
     items: [
       { itemKey: 'wbc', result: '6.10', referenceValue: '3.5-9.5', unit: '10^9/L', abnormalFlag: '' },
       { itemKey: 'neut_abs', result: '3.60', referenceValue: '1.8-6.3', unit: '10^9/L', abnormalFlag: '' },
@@ -199,6 +205,8 @@ const MOCK_MEDICAL_REPORT_SECTIONS: MedicalReportParsedSection[] = [
   },
   {
     sectionKey: 'liver_function',
+    examiner: 'Lab Wang',
+    examDate: '2026-03-09',
     items: [
       { itemKey: 'tbil', result: '12.6', referenceValue: '5.0-21.0', unit: 'umol/L', abnormalFlag: '' },
       { itemKey: 'alt', result: '22', referenceValue: '9-50', unit: 'U/L', abnormalFlag: '' },
@@ -207,12 +215,16 @@ const MOCK_MEDICAL_REPORT_SECTIONS: MedicalReportParsedSection[] = [
   },
   {
     sectionKey: 'ecg',
+    examiner: 'Dr. Zhou',
+    examDate: '2026-03-10',
     items: [
       { itemKey: 'routine_ecg', result: 'Sinus rhythm', referenceValue: 'Sinus rhythm', unit: '', abnormalFlag: '' }
     ]
   },
   {
     sectionKey: 'imaging',
+    examiner: 'Dr. Xu',
+    examDate: '2026-03-10',
     items: [
       { itemKey: 'chest_dr_pa', result: 'No active pulmonary lesion', referenceValue: '', unit: '', abnormalFlag: '' }
     ]
@@ -222,6 +234,8 @@ const MOCK_MEDICAL_REPORT_SECTIONS: MedicalReportParsedSection[] = [
 const cloneMockMedicalReportSections = (): MedicalReportParsedSection[] => {
   return MOCK_MEDICAL_REPORT_SECTIONS.map((section) => ({
     sectionKey: section.sectionKey,
+    examiner: section.examiner,
+    examDate: section.examDate,
     items: section.items.map((item) => ({ ...item }))
   }));
 };
@@ -540,6 +554,8 @@ export const connectorApi = {
       });
     }
 
+    const sections = cloneMockMedicalReportSections();
+
     return Promise.resolve({
       success: true,
       data: {
@@ -548,11 +564,7 @@ export const connectorApi = {
         provider: 'deepseek',
         modelId: 'mock-model',
         parsedAt: `${payload.reportDate} 00:00:00`,
-        form: {
-          examiner: '',
-          examDate: payload.reportDate
-        },
-        sections: cloneMockMedicalReportSections()
+        sections
       },
       message: 'Medical report parsed successfully.'
     });
