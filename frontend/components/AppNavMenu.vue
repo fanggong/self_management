@@ -40,12 +40,12 @@ const menuGroups: Array<{
     ]
   },
   {
-    title: 'Data',
+    title: 'Data Model',
     items: [
       { key: 'staging', label: 'Staging', icon: 'pi pi-database' },
       { key: 'intermediate', label: 'Intermediate', icon: 'pi pi-server' },
       { key: 'marts', label: 'Marts', icon: 'pi pi-table' },
-      { key: 'logs', label: 'Logs', icon: 'pi pi-file' }
+      { key: 'logs', label: 'Logs', icon: 'pi pi-history' }
     ]
   },
   {

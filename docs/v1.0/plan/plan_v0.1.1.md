@@ -56,7 +56,7 @@
 2. 执行定时同步、手动同步、补跑、重试。
 3. 原始数据写入 raw 层。
 4. 回写任务执行状态。
-5. 触发 dbt 转换执行。
+5. 不自动触发 dbt 转换执行。
 6. 处理失败重试与限流退避。
 
 ### 3.3.1 PostgreSQL 物理 schema 约定
@@ -78,9 +78,9 @@
 3. Admin API 投递 Celery 消息（`task_id`、`account_id`、`connector_config_id`）。
 4. Worker 消费消息并更新状态为 `running`。
 5. Worker 执行抓取并写 raw。
-6. Worker 触发 dbt-runner。
-7. Worker 回写 `success/failed` 与统计字段。
-8. Admin API 对外提供任务查询。
+6. Worker 回写 `success/failed` 与统计字段。
+7. Admin API 对外提供任务查询。
+8. dbt 转换通过独立入口手动触发。
 
 ### 3.4 任务消息与状态契约
 

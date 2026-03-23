@@ -1,11 +1,15 @@
-@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&display=swap');
+@import "@fontsource/archivo/400.css";
+@import "@fontsource/archivo/500.css";
+@import "@fontsource/archivo/600.css";
+@import "@fontsource/archivo/700.css";
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  font-family: 'Archivo', Helvetica, Arial, sans-serif;
+  font-family: "Archivo", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    "Noto Sans CJK SC", "Source Han Sans SC", "Segoe UI", Helvetica, Arial, sans-serif;
   --shadow-stroke: 0px 1px 2px 0px #a4acb93d, 0px 0px 0px 1px #12376914;
   --background: var(--p-surface-0);
   --foreground: var(--p-surface-950);
@@ -53,7 +57,8 @@ html {
 }
 
 body {
-  font-family: 'Archivo', Helvetica, Arial, sans-serif;
+  font-family: "Archivo", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    "Noto Sans CJK SC", "Source Han Sans SC", "Segoe UI", Helvetica, Arial, sans-serif;
   font-weight: 400;
   color: var(--text-color);
   background-color: var(--surface-ground);

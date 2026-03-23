@@ -3,8 +3,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Callable
 
-import requests
-
 from ..config import settings
 from ..cron import next_run
 from ..connectors.garmin import GarminConnectorAdapter
@@ -87,13 +85,6 @@ def execute_sync_task(task_id: str) -> None:
                 "dedupedCount": deduped_count,
             },
         )
-
-        response = requests.post(
-            f"{settings.dbt_runner_url.rstrip('/')}/run",
-            json={"select": ["tag:garmin", "tag:health"]},
-            timeout=300,
-        )
-        response.raise_for_status()
 
         finished_at = datetime.now(timezone.utc)
         next_run_at = next_run(task["schedule"], settings.app_timezone, finished_at)

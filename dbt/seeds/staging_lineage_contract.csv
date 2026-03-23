@@ -316,10 +316,13 @@ garmin-connect,profile,stg_garmin_profile_snapshot,other_motivation,raw_leaf,oth
 garmin-connect,profile,stg_garmin_profile_snapshot,other_primary_activity,raw_leaf,otherPrimaryActivity,Direct raw leaf mapping.
 garmin-connect,profile,stg_garmin_profile_snapshot,payload_hash,raw_column,raw.payload_hash,Raw table payload hash.
 garmin-connect,profile,stg_garmin_profile_snapshot,payload_id,raw_leaf,id,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,connection_request_id,raw_leaf,connectionRequestId,Direct raw leaf mapping.
 garmin-connect,profile,stg_garmin_profile_snapshot,personal_website,raw_leaf,personalWebsite,Direct raw leaf mapping.
 garmin-connect,profile,stg_garmin_profile_snapshot,primary_activity,raw_leaf,primaryActivity,Direct raw leaf mapping.
 garmin-connect,profile,stg_garmin_profile_snapshot,profile_id,raw_leaf,profileId,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,profile_external_id,raw_leaf,externalId,Direct raw leaf mapping.
 garmin-connect,profile,stg_garmin_profile_snapshot,profile_image_type,raw_leaf,profileImageType,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,profile_image_uuid,raw_leaf,profileImageUuid,Direct raw leaf mapping.
 garmin-connect,profile,stg_garmin_profile_snapshot,profile_image_url_large,raw_leaf,profileImageUrlLarge,Direct raw leaf mapping.
 garmin-connect,profile,stg_garmin_profile_snapshot,profile_image_url_medium,raw_leaf,profileImageUrlMedium,Direct raw leaf mapping.
 garmin-connect,profile,stg_garmin_profile_snapshot,profile_image_url_small,raw_leaf,profileImageUrlSmall,Direct raw leaf mapping.

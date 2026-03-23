@@ -29,10 +29,10 @@ const breadcrumbCategoryMap: Record<string, string> = {
   finance: 'Dashboards',
   'connector-settings': 'Apps',
   'connector-tasks': 'Apps',
-  staging: 'Data',
-  intermediate: 'Data',
-  marts: 'Data',
-  logs: 'Data',
+  staging: 'Data Model',
+  intermediate: 'Data Model',
+  marts: 'Data Model',
+  logs: 'Data Model',
   settings: 'System'
 };
 const breadcrumbChildMap: Record<string, string> = {

@@ -2097,6 +2097,13 @@ watch(
       </div>
     </div>
 
+    <DataModelExplorer
+      v-else-if="activeTab === 'staging' || activeTab === 'intermediate' || activeTab === 'marts'"
+      :layer="activeTab"
+    />
+
+    <DataModelLogsExplorer v-else-if="activeTab === 'logs'" />
+
     <div v-else-if="activeTab === 'settings'" class="space-y-6">
       <div class="app-panel p-6 sm:p-8">
         <div class="settings-header">

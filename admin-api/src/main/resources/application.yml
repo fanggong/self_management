@@ -43,3 +43,5 @@ app:
   connector:
     secret-key: ${CONNECTOR_SECRET_KEY:0jLUxjwhATZYPdYIgyqCzherzo2VFFa6qOdO1vMpZPI=}
     internal-base-url: ${SYNC_WORKER_INTERNAL_BASE_URL:http://sync-worker:8081}
+  dbt:
+    runner-base-url: ${DBT_RUNNER_INTERNAL_BASE_URL:http://dbt-runner:8090}

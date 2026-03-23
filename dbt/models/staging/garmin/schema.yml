@@ -80,8 +80,14 @@ models:
       - name: profile_id
         description: 'Structured `profileId` leaf copied from the raw Garmin `profile` payload.'
         data_type: 'text'
+      - name: connection_request_id
+        description: 'Structured `connectionRequestId` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
       - name: garmin_guid
         description: 'Structured `garminGUID` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
+      - name: profile_external_id
+        description: 'Structured `externalId` leaf copied from the raw Garmin `profile` payload.'
         data_type: 'text'
       - name: display_name
         description: 'Structured `displayName` leaf copied from the raw Garmin `profile` payload.'
@@ -97,6 +103,9 @@ models:
         data_type: 'text'
       - name: profile_image_type
         description: 'Structured `profileImageType` leaf copied from the raw Garmin `profile` payload.'
+        data_type: 'text'
+      - name: profile_image_uuid
+        description: 'Structured `profileImageUuid` leaf copied from the raw Garmin `profile` payload.'
         data_type: 'text'
       - name: profile_image_url_large
         description: 'Structured `profileImageUrlLarge` leaf copied from the raw Garmin `profile` payload.'
