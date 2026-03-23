@@ -1,21 +1,34 @@
 package com.otw.adminapi.dbt;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.otw.adminapi.common.api.ApiException;
 import com.otw.adminapi.common.util.DateTimeFormats;
+import com.otw.adminapi.connector.ConnectorService;
 import com.otw.adminapi.security.AuthenticatedUser;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 @Service
 @Transactional(readOnly = true)
@@ -30,19 +43,26 @@ public class DbtModelService {
   private final DbtRunHistoryWriter dbtRunHistoryWriter;
   private final DbtRunHistoryRepository dbtRunHistoryRepository;
   private final DbtRunModelHistoryRepository dbtRunModelHistoryRepository;
+  private final ConnectorService connectorService;
+  private final JdbcTemplate jdbcTemplate;
   private final ZoneId zoneId;
+  private final ObjectMapper objectMapper = new ObjectMapper();
 
   public DbtModelService(
     DbtModelRunnerClient dbtModelRunnerClient,
     DbtRunHistoryWriter dbtRunHistoryWriter,
     DbtRunHistoryRepository dbtRunHistoryRepository,
     DbtRunModelHistoryRepository dbtRunModelHistoryRepository,
+    ConnectorService connectorService,
+    JdbcTemplate jdbcTemplate,
     @Value("${app.timezone}") String timezone
   ) {
     this.dbtModelRunnerClient = dbtModelRunnerClient;
     this.dbtRunHistoryWriter = dbtRunHistoryWriter;
     this.dbtRunHistoryRepository = dbtRunHistoryRepository;
     this.dbtRunModelHistoryRepository = dbtRunModelHistoryRepository;
+    this.connectorService = connectorService;
+    this.jdbcTemplate = jdbcTemplate;
     this.zoneId = ZoneId.of(timezone);
   }
 
@@ -57,8 +77,32 @@ public class DbtModelService {
         .map(item -> new DbtModelListItemView(
           item.name(),
           item.layer(),
+          item.description(),
+          toConnectorDisplay(item.layer(), item.connectorId()),
+          toDomainDisplay(item.layer(), item.domainKey()),
+          normalizeNullable(item.connectorId()),
+          normalizeNullable(item.domainKey()),
           DateTimeFormats.formatNullableOrNull(latestRuns.get(item.name()), zoneId)
         ))
+        .toList()
+    );
+  }
+
+  public DbtModelDetailView getModelDetail(AuthenticatedUser authenticatedUser, String layer, String modelName) {
+    String normalizedLayer = normalizeLayer(layer);
+    String normalizedModelName = normalizeRequired(modelName, "Model name is required.");
+    DbtModelRunnerClient.RunnerModelDetail detail = dbtModelRunnerClient.getModelDetail(normalizedLayer, normalizedModelName);
+
+    return new DbtModelDetailView(
+      detail.name(),
+      detail.layer(),
+      detail.description(),
+      toConnectorDisplay(normalizedLayer, detail.connectorId()),
+      toDomainDisplayForDetail(detail.domainKey()),
+      loadLatestSuccessfulRunAt(authenticatedUser, normalizedLayer, normalizedModelName),
+      loadEstimatedRowCount(detail.schemaName(), detail.relationName()),
+      detail.columns().stream()
+        .map(column -> new DbtModelColumnView(column.name(), column.type(), column.description()))
         .toList()
     );
   }
@@ -84,72 +128,236 @@ public class DbtModelService {
   }
 
   public DbtRunHistoryDetailView getRunHistoryDetail(AuthenticatedUser authenticatedUser, UUID runId) {
-    DbtRunHistoryEntity entity = dbtRunHistoryRepository.findByIdAndAccountId(runId, authenticatedUser.accountId())
-      .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "DBT_RUN_HISTORY_NOT_FOUND", "dbt run history was not found."));
+    DbtRunHistoryEntity entity = requireRunHistory(authenticatedUser, runId);
 
     return toRunHistoryDetailView(entity);
+  }
+
+  public DbtRunModelHistoryResponse listRunModels(AuthenticatedUser authenticatedUser, UUID runId) {
+    requireRunHistory(authenticatedUser, runId);
+
+    return new DbtRunModelHistoryResponse(
+      dbtRunModelHistoryRepository.findByRunIdAndAccountIdOrderByExecution(runId, authenticatedUser.accountId())
+        .stream()
+        .map(this::toRunModelHistoryItemView)
+        .toList()
+    );
   }
 
   @Transactional
   public DbtModelRunExecution runModel(AuthenticatedUser authenticatedUser, RunDbtModelRequest request) {
     String normalizedLayer = normalizeLayer(request.layer());
     String modelName = normalizeRequired(request.modelName(), "Model name is required.");
-
-    DbtModelRunnerClient.RunnerRunResponse response;
-    try {
-      response = dbtModelRunnerClient.runModel(normalizedLayer, modelName);
-    } catch (ApiException exception) {
-      if (!"DBT_MODEL_RUN_REQUEST_ERROR".equals(exception.getCode())) {
-        persistRunResponseSafely(
-          authenticatedUser,
-          normalizedLayer,
-          modelName,
-          new DbtModelRunnerClient.RunnerRunResponse(
-            exception.getStatus().value(),
-            false,
-            null,
-            "",
-            "",
-            null,
-            null,
-            exception.getCode(),
-            exception.getMessage(),
-            java.util.List.of()
-          )
-        );
-      }
-      throw exception;
-    }
-
-    persistRunResponseSafely(authenticatedUser, normalizedLayer, modelName, response);
+    SingleModelRunOutcome outcome = executeSingleModel(authenticatedUser, normalizedLayer, modelName);
     DbtModelRunResultView data = new DbtModelRunResultView(
-      response.success(),
-      response.returncode() == null ? 0 : response.returncode(),
-      response.stdout(),
-      response.stderr(),
-      formatInstantOrNull(response.startedAt()),
-      formatInstantOrNull(response.finishedAt())
+      outcome.success(),
+      outcome.returncode() == null ? 0 : outcome.returncode(),
+      outcome.stdout(),
+      outcome.stderr(),
+      outcome.startedAt(),
+      outcome.finishedAt()
     );
 
-    if (response.statusCode() == 200) {
-      return new DbtModelRunExecution(200, true, data, "dbt model run completed.", null);
+    if (outcome.statusCode() == 200) {
+      return new DbtModelRunExecution(200, true, data, outcome.message(), outcome.code());
     }
 
-    if (response.statusCode() == 500) {
+    if (outcome.statusCode() == 500) {
       return new DbtModelRunExecution(
         500,
         false,
         data,
-        response.message() != null ? response.message() : "dbt model run failed.",
-        response.code() != null ? response.code() : "DBT_MODEL_RUN_FAILED"
+        outcome.message(),
+        outcome.code()
       );
     }
 
     throw new ApiException(
-      HttpStatus.valueOf(response.statusCode()),
-      response.code() != null ? response.code() : "DBT_MODEL_RUN_FAILED",
-      response.message() != null ? response.message() : "dbt model run failed."
+      HttpStatus.resolve(outcome.statusCode()) == null ? HttpStatus.BAD_GATEWAY : HttpStatus.valueOf(outcome.statusCode()),
+      outcome.code(),
+      outcome.message()
     );
+  }
+
+  @Transactional
+  public StreamingResponseBody streamModelRun(AuthenticatedUser authenticatedUser, RunDbtModelRequest request) {
+    String normalizedLayer = normalizeLayer(request.layer());
+    String modelName = normalizeRequired(request.modelName(), "Model name is required.");
+    DbtModelRunnerClient.RunnerModelRunStream runStream = openModelRunStreamWithPersistence(
+      authenticatedUser,
+      normalizedLayer,
+      modelName
+    );
+
+    return outputStream -> {
+      AtomicBoolean outputWritable = new AtomicBoolean(true);
+      writeStreamEventIfPossible(outputStream, outputWritable, createRunStartedEvent(normalizedLayer, modelName));
+
+      DbtModelRunnerClient.RunnerRunResponse response;
+      try (runStream) {
+        response = runStream.consume(logEvent -> writeStreamEventIfPossible(
+          outputStream,
+          outputWritable,
+          createLogEvent(logEvent, null)
+        ));
+      } catch (Exception exception) {
+        DbtModelRunnerClient.RunnerRunResponse failureResponse = createUnexpectedStreamFailureResponse(exception);
+        persistRunResponseSafely(authenticatedUser, normalizedLayer, modelName, failureResponse);
+        SingleModelRunOutcome failureOutcome = toSingleModelRunOutcome(failureResponse);
+        writeStreamEventIfPossible(
+          outputStream,
+          outputWritable,
+          createRunFinishedEvent(normalizedLayer, modelName, failureOutcome)
+        );
+        return;
+      }
+
+      persistRunResponseSafely(authenticatedUser, normalizedLayer, modelName, response);
+      SingleModelRunOutcome outcome = toSingleModelRunOutcome(response);
+      writeStreamEventIfPossible(outputStream, outputWritable, createRunFinishedEvent(normalizedLayer, modelName, outcome));
+    };
+  }
+
+  @Transactional
+  public DbtBatchModelRunResultView runModelsByScope(AuthenticatedUser authenticatedUser, RunDbtModelsByScopeRequest request) {
+    String normalizedLayer = normalizeLayer(request.layer());
+    String normalizedScopeType = normalizeScopeType(normalizedLayer, request.scopeType());
+    List<String> normalizedScopeValues = normalizeScopeValues(request.scopeValues());
+    if (normalizedScopeValues.isEmpty()) {
+      throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "At least one scope value is required.");
+    }
+
+    List<DbtModelRunnerClient.RunnerModelItem> targetModels = resolveTargetModels(normalizedLayer, normalizedScopeType, normalizedScopeValues);
+
+    List<DbtBatchModelRunItemView> items = new ArrayList<>();
+    for (DbtModelRunnerClient.RunnerModelItem item : targetModels) {
+      SingleModelRunOutcome outcome = executeSingleModel(authenticatedUser, normalizedLayer, item.name());
+      items.add(new DbtBatchModelRunItemView(
+        item.name(),
+        item.layer(),
+        resolveScopeKey(normalizedScopeType, item),
+        resolveScopeLabel(normalizedLayer, normalizedScopeType, item),
+        outcome.success(),
+        outcome.returncode(),
+        outcome.stdout(),
+        outcome.stderr(),
+        outcome.startedAt(),
+        outcome.finishedAt(),
+        outcome.code(),
+        outcome.message()
+      ));
+    }
+
+    int succeededCount = (int) items.stream().filter(DbtBatchModelRunItemView::success).count();
+    return new DbtBatchModelRunResultView(
+      normalizedLayer,
+      normalizedScopeType,
+      normalizedScopeValues,
+      items.size(),
+      succeededCount,
+      items.size() - succeededCount,
+      items
+    );
+  }
+
+  @Transactional
+  public StreamingResponseBody streamModelsByScope(AuthenticatedUser authenticatedUser, RunDbtModelsByScopeRequest request) {
+    String normalizedLayer = normalizeLayer(request.layer());
+    String normalizedScopeType = normalizeScopeType(normalizedLayer, request.scopeType());
+    List<String> normalizedScopeValues = normalizeScopeValues(request.scopeValues());
+    if (normalizedScopeValues.isEmpty()) {
+      throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "At least one scope value is required.");
+    }
+
+    List<DbtModelRunnerClient.RunnerModelItem> targetModels = resolveTargetModels(normalizedLayer, normalizedScopeType, normalizedScopeValues);
+    DbtModelRunnerClient.RunnerModelRunStream firstStream = targetModels.isEmpty()
+      ? null
+      : openModelRunStreamWithPersistence(authenticatedUser, normalizedLayer, targetModels.getFirst().name());
+
+    return outputStream -> {
+      AtomicBoolean outputWritable = new AtomicBoolean(true);
+      List<DbtBatchModelRunItemView> finishedItems = new ArrayList<>();
+
+      writeStreamEventIfPossible(
+        outputStream,
+        outputWritable,
+        createBatchStartedEvent(normalizedLayer, normalizedScopeType, normalizedScopeValues, targetModels)
+      );
+
+      int succeededCount = 0;
+      int failedCount = 0;
+      for (int index = 0; index < targetModels.size(); index++) {
+        DbtModelRunnerClient.RunnerModelItem targetModel = targetModels.get(index);
+        String scopeKey = resolveScopeKey(normalizedScopeType, targetModel);
+        String scopeLabel = resolveScopeLabel(normalizedLayer, normalizedScopeType, targetModel);
+
+        writeStreamEventIfPossible(
+          outputStream,
+          outputWritable,
+          createTargetStartedEvent(normalizedLayer, targetModel.name(), scopeKey, scopeLabel)
+        );
+
+        DbtModelRunnerClient.RunnerRunResponse response;
+        boolean responsePersisted = false;
+        try (DbtModelRunnerClient.RunnerModelRunStream runStream = index == 0
+          ? firstStream
+          : openModelRunStreamWithPersistence(authenticatedUser, normalizedLayer, targetModel.name())) {
+          response = runStream.consume(logEvent -> writeStreamEventIfPossible(
+            outputStream,
+            outputWritable,
+            createLogEvent(logEvent, targetModel.name())
+          ));
+        } catch (ApiException exception) {
+          response = createFailedRunnerResponse(exception);
+          responsePersisted = true;
+        } catch (Exception exception) {
+          response = createUnexpectedStreamFailureResponse(exception);
+          persistRunResponseSafely(authenticatedUser, normalizedLayer, targetModel.name(), response);
+          responsePersisted = true;
+        }
+
+        if (!responsePersisted) {
+          persistRunResponseSafely(authenticatedUser, normalizedLayer, targetModel.name(), response);
+        }
+
+        SingleModelRunOutcome outcome = toSingleModelRunOutcome(response);
+        DbtBatchModelRunItemView itemView = new DbtBatchModelRunItemView(
+          targetModel.name(),
+          targetModel.layer(),
+          scopeKey,
+          scopeLabel,
+          outcome.success(),
+          outcome.returncode(),
+          outcome.stdout(),
+          outcome.stderr(),
+          outcome.startedAt(),
+          outcome.finishedAt(),
+          outcome.code(),
+          outcome.message()
+        );
+        finishedItems.add(itemView);
+        if (itemView.success()) {
+          succeededCount += 1;
+        } else {
+          failedCount += 1;
+        }
+
+        writeStreamEventIfPossible(outputStream, outputWritable, createTargetFinishedEvent(itemView));
+      }
+
+      writeStreamEventIfPossible(
+        outputStream,
+        outputWritable,
+        createBatchFinishedEvent(
+          normalizedLayer,
+          normalizedScopeType,
+          normalizedScopeValues,
+          finishedItems,
+          succeededCount,
+          failedCount
+        )
+      );
+    };
   }
 
   private Map<String, Instant> loadLatestSuccessfulRuns(
@@ -176,6 +384,38 @@ public class DbtModelService {
       ));
   }
 
+  private String loadLatestSuccessfulRunAt(AuthenticatedUser authenticatedUser, String normalizedLayer, String modelName) {
+    Map<String, Instant> latestRuns = loadLatestSuccessfulRuns(
+      authenticatedUser,
+      normalizedLayer,
+      List.of(new DbtModelRunnerClient.RunnerModelItem(modelName, normalizedLayer, null, null, null, null))
+    );
+
+    return DateTimeFormats.formatNullableOrNull(latestRuns.get(modelName), zoneId);
+  }
+
+  private Long loadEstimatedRowCount(String schemaName, String relationName) {
+    String normalizedSchemaName = normalizeNullable(schemaName);
+    String normalizedRelationName = normalizeNullable(relationName);
+    if (normalizedSchemaName == null || normalizedRelationName == null) {
+      return null;
+    }
+
+    return jdbcTemplate.query(
+      """
+        select n_live_tup
+        from pg_stat_user_tables
+        where schemaname = ?
+          and relname = ?
+        """,
+      ps -> {
+        ps.setString(1, normalizedSchemaName);
+        ps.setString(2, normalizedRelationName);
+      },
+      rs -> rs.next() ? rs.getLong(1) : null
+    );
+  }
+
   private DbtRunHistoryListItemView toRunHistoryListItemView(DbtRunHistoryEntity entity) {
     return new DbtRunHistoryListItemView(
       entity.getId(),
@@ -183,9 +423,38 @@ public class DbtModelService {
       entity.getRequestedLayer(),
       entity.getStatus(),
       entity.getReturncode(),
+      calculateExecutionTimeSeconds(entity.getStartedAt(), entity.getFinishedAt()),
       DateTimeFormats.formatNullableOrNull(entity.getStartedAt(), zoneId),
       DateTimeFormats.formatNullableOrNull(entity.getFinishedAt(), zoneId)
     );
+  }
+
+  private String toConnectorDisplay(String normalizedLayer, String connectorId) {
+    if (!"staging".equals(normalizedLayer)) {
+      return null;
+    }
+    String normalizedConnectorId = normalizeNullable(connectorId);
+    return normalizedConnectorId == null ? null : connectorService.getConnectorName(normalizedConnectorId);
+  }
+
+  private String toDomainDisplay(String normalizedLayer, String domainKey) {
+    if ("staging".equals(normalizedLayer)) {
+      return null;
+    }
+    return toDomainDisplayForDetail(domainKey);
+  }
+
+  private String toDomainDisplayForDetail(String domainKey) {
+    String normalizedDomainKey = normalizeNullable(domainKey);
+    if (normalizedDomainKey == null) {
+      return null;
+    }
+
+    return switch (normalizedDomainKey) {
+      case "health" -> "Health";
+      case "finance" -> "Finance";
+      default -> Character.toUpperCase(normalizedDomainKey.charAt(0)) + normalizedDomainKey.substring(1);
+    };
   }
 
   private DbtRunHistoryDetailView toRunHistoryDetailView(DbtRunHistoryEntity entity) {
@@ -202,6 +471,21 @@ public class DbtModelService {
       entity.getStdout(),
       entity.getStderr()
     );
+  }
+
+  private DbtRunModelHistoryItemView toRunModelHistoryItemView(DbtRunModelHistoryEntity entity) {
+    return new DbtRunModelHistoryItemView(
+      entity.getModelName(),
+      entity.getLayer(),
+      entity.getStatus(),
+      DateTimeFormats.formatNullableOrNull(entity.getCompletedAt(), zoneId),
+      entity.getExecutionTimeSeconds()
+    );
+  }
+
+  private DbtRunHistoryEntity requireRunHistory(AuthenticatedUser authenticatedUser, UUID runId) {
+    return dbtRunHistoryRepository.findByIdAndAccountId(runId, authenticatedUser.accountId())
+      .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "DBT_RUN_HISTORY_NOT_FOUND", "dbt run history was not found."));
   }
 
   private void persistRunResponseSafely(
@@ -221,6 +505,294 @@ public class DbtModelService {
         exception
       );
     }
+  }
+
+  private DbtModelRunnerClient.RunnerModelRunStream openModelRunStreamWithPersistence(
+    AuthenticatedUser authenticatedUser,
+    String normalizedLayer,
+    String modelName
+  ) {
+    try {
+      return dbtModelRunnerClient.openModelRunStream(normalizedLayer, modelName);
+    } catch (ApiException exception) {
+      if (!"DBT_MODEL_RUN_REQUEST_ERROR".equals(exception.getCode())) {
+        persistRunResponseSafely(authenticatedUser, normalizedLayer, modelName, createFailedRunnerResponse(exception));
+      }
+      throw exception;
+    }
+  }
+
+  private SingleModelRunOutcome executeSingleModel(
+    AuthenticatedUser authenticatedUser,
+    String normalizedLayer,
+    String modelName
+  ) {
+    DbtModelRunnerClient.RunnerRunResponse response;
+    try {
+      response = dbtModelRunnerClient.runModel(normalizedLayer, modelName);
+    } catch (ApiException exception) {
+      if (!"DBT_MODEL_RUN_REQUEST_ERROR".equals(exception.getCode())) {
+        persistRunResponseSafely(
+          authenticatedUser,
+          normalizedLayer,
+          modelName,
+          createFailedRunnerResponse(exception)
+        );
+      }
+      return new SingleModelRunOutcome(
+        exception.getStatus().value(),
+        false,
+        null,
+        "",
+        "",
+        null,
+        null,
+        exception.getCode(),
+        exception.getMessage()
+      );
+    }
+
+    persistRunResponseSafely(authenticatedUser, normalizedLayer, modelName, response);
+    return toSingleModelRunOutcome(response);
+  }
+
+  private SingleModelRunOutcome toSingleModelRunOutcome(DbtModelRunnerClient.RunnerRunResponse response) {
+    return new SingleModelRunOutcome(
+      response.statusCode(),
+      response.statusCode() == 200 && response.success(),
+      response.returncode(),
+      response.stdout(),
+      response.stderr(),
+      formatInstantOrNull(response.startedAt()),
+      formatInstantOrNull(response.finishedAt()),
+      response.code() != null ? response.code() : (response.statusCode() == 500 ? "DBT_MODEL_RUN_FAILED" : null),
+      response.message() != null
+        ? response.message()
+        : (response.statusCode() == 200 ? "dbt model run completed." : "dbt model run failed.")
+    );
+  }
+
+  private DbtModelRunnerClient.RunnerRunResponse createFailedRunnerResponse(ApiException exception) {
+    return new DbtModelRunnerClient.RunnerRunResponse(
+      exception.getStatus().value(),
+      false,
+      null,
+      "",
+      "",
+      null,
+      null,
+      exception.getCode(),
+      exception.getMessage(),
+      List.of()
+    );
+  }
+
+  private DbtModelRunnerClient.RunnerRunResponse createUnexpectedStreamFailureResponse(Exception exception) {
+    return new DbtModelRunnerClient.RunnerRunResponse(
+      500,
+      false,
+      null,
+      "",
+      "",
+      null,
+      null,
+      "DBT_STREAM_EXECUTION_FAILED",
+      "Unable to stream dbt model run output: " + exception.getMessage(),
+      List.of()
+    );
+  }
+
+  private List<DbtModelRunnerClient.RunnerModelItem> resolveTargetModels(
+    String normalizedLayer,
+    String normalizedScopeType,
+    List<String> normalizedScopeValues
+  ) {
+    Set<String> requestedScopes = new LinkedHashSet<>(normalizedScopeValues);
+    return dbtModelRunnerClient.listModels(normalizedLayer, null)
+      .stream()
+      .filter(item -> requestedScopes.contains(resolveScopeKey(normalizedScopeType, item)))
+      .sorted(Comparator.comparing(DbtModelRunnerClient.RunnerModelItem::name))
+      .toList();
+  }
+
+  private Map<String, Object> createRunStartedEvent(String normalizedLayer, String modelName) {
+    return Map.of(
+      "type", "run_started",
+      "layer", normalizedLayer,
+      "modelName", modelName
+    );
+  }
+
+  private Map<String, Object> createRunFinishedEvent(
+    String normalizedLayer,
+    String modelName,
+    SingleModelRunOutcome outcome
+  ) {
+    Map<String, Object> event = new LinkedHashMap<>();
+    event.put("type", "run_finished");
+    event.put("layer", normalizedLayer);
+    event.put("modelName", modelName);
+    event.put("success", outcome.success());
+    event.put("returncode", outcome.returncode());
+    event.put("stdout", outcome.stdout());
+    event.put("stderr", outcome.stderr());
+    event.put("startedAt", outcome.startedAt());
+    event.put("finishedAt", outcome.finishedAt());
+    event.put("code", outcome.code());
+    event.put("message", outcome.message());
+    return event;
+  }
+
+  private Map<String, Object> createLogEvent(DbtModelRunnerClient.RunnerLogEvent logEvent, String targetModelName) {
+    Map<String, Object> event = new LinkedHashMap<>();
+    event.put("type", "log");
+    event.put("stream", logEvent.stream());
+    event.put("text", logEvent.text());
+    event.put("timestamp", logEvent.timestamp());
+    if (targetModelName != null) {
+      event.put("targetModelName", targetModelName);
+    }
+    return event;
+  }
+
+  private Map<String, Object> createBatchStartedEvent(
+    String normalizedLayer,
+    String normalizedScopeType,
+    List<String> normalizedScopeValues,
+    List<DbtModelRunnerClient.RunnerModelItem> targetModels
+  ) {
+    Map<String, Object> event = new LinkedHashMap<>();
+    event.put("type", "batch_started");
+    event.put("layer", normalizedLayer);
+    event.put("scopeType", normalizedScopeType);
+    event.put("scopeValues", normalizedScopeValues);
+    event.put("totalModels", targetModels.size());
+    event.put(
+      "items",
+      targetModels.stream()
+        .map(item -> {
+          Map<String, Object> itemView = new LinkedHashMap<>();
+          itemView.put("modelName", item.name());
+          itemView.put("layer", item.layer());
+          itemView.put("scopeKey", resolveScopeKey(normalizedScopeType, item));
+          itemView.put("scopeLabel", resolveScopeLabel(normalizedLayer, normalizedScopeType, item));
+          return itemView;
+        })
+        .toList()
+    );
+    return event;
+  }
+
+  private Map<String, Object> createTargetStartedEvent(
+    String normalizedLayer,
+    String modelName,
+    String scopeKey,
+    String scopeLabel
+  ) {
+    Map<String, Object> event = new LinkedHashMap<>();
+    event.put("type", "target_started");
+    event.put("layer", normalizedLayer);
+    event.put("modelName", modelName);
+    event.put("scopeKey", scopeKey);
+    event.put("scopeLabel", scopeLabel);
+    return event;
+  }
+
+  private Map<String, Object> createTargetFinishedEvent(DbtBatchModelRunItemView itemView) {
+    return Map.of(
+      "type", "target_finished",
+      "item", itemView
+    );
+  }
+
+  private Map<String, Object> createBatchFinishedEvent(
+    String normalizedLayer,
+    String normalizedScopeType,
+    List<String> normalizedScopeValues,
+    List<DbtBatchModelRunItemView> items,
+    int succeededCount,
+    int failedCount
+  ) {
+    Map<String, Object> event = new LinkedHashMap<>();
+    event.put("type", "batch_finished");
+    event.put("layer", normalizedLayer);
+    event.put("scopeType", normalizedScopeType);
+    event.put("scopeValues", normalizedScopeValues);
+    event.put("totalModels", items.size());
+    event.put("succeededCount", succeededCount);
+    event.put("failedCount", failedCount);
+    event.put("items", items);
+    return event;
+  }
+
+  private void writeStreamEventIfPossible(
+    OutputStream outputStream,
+    AtomicBoolean outputWritable,
+    Map<String, Object> event
+  ) {
+    if (!outputWritable.get()) {
+      return;
+    }
+
+    try {
+      writeStreamEvent(outputStream, event);
+    } catch (IOException exception) {
+      outputWritable.set(false);
+      log.debug("Stopping dbt stream writes after client output failure.", exception);
+    }
+  }
+
+  private void writeStreamEvent(OutputStream outputStream, Map<String, Object> event) throws IOException {
+    outputStream.write(objectMapper.writeValueAsBytes(event));
+    outputStream.write('\n');
+    outputStream.flush();
+  }
+
+  private String normalizeScopeType(String normalizedLayer, String value) {
+    String normalized = normalizeRequired(value, "Scope type is required.").toLowerCase(Locale.ROOT);
+    if ("staging".equals(normalizedLayer) && "connector".equals(normalized)) {
+      return normalized;
+    }
+    if (!"staging".equals(normalizedLayer) && "domain".equals(normalized)) {
+      return normalized;
+    }
+
+    String expected = "staging".equals(normalizedLayer) ? "connector" : "domain";
+    throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Scope type must be " + expected + " for the requested layer.");
+  }
+
+  private List<String> normalizeScopeValues(List<String> values) {
+    if (values == null) {
+      return List.of();
+    }
+
+    return values.stream()
+      .map(this::normalizeNullable)
+      .filter(value -> value != null)
+      .map(value -> value.toLowerCase(Locale.ROOT))
+      .distinct()
+      .toList();
+  }
+
+  private String resolveScopeKey(String normalizedScopeType, DbtModelRunnerClient.RunnerModelItem item) {
+    return "connector".equals(normalizedScopeType)
+      ? normalizeNullable(item.connectorId())
+      : normalizeNullable(item.domainKey());
+  }
+
+  private String resolveScopeLabel(String normalizedLayer, String normalizedScopeType, DbtModelRunnerClient.RunnerModelItem item) {
+    String scopeKey = resolveScopeKey(normalizedScopeType, item);
+    if (scopeKey == null) {
+      return null;
+    }
+
+    return ("connector".equals(normalizedScopeType)
+      ? toConnectorDisplay(normalizedLayer, scopeKey)
+      : toDomainDisplayForDetail(scopeKey)) != null
+      ? ("connector".equals(normalizedScopeType)
+        ? toConnectorDisplay(normalizedLayer, scopeKey)
+        : toDomainDisplayForDetail(scopeKey))
+      : scopeKey;
   }
 
   private String normalizeLayer(String value) {
@@ -254,6 +826,14 @@ public class DbtModelService {
     return DateTimeFormats.formatNullableOrNull(Instant.parse(value), zoneId);
   }
 
+  private Double calculateExecutionTimeSeconds(Instant startedAt, Instant finishedAt) {
+    if (startedAt == null || finishedAt == null || finishedAt.isBefore(startedAt)) {
+      return null;
+    }
+
+    return Duration.between(startedAt, finishedAt).toMillis() / 1000.0;
+  }
+
   private RunHistoryQueryOptions parseRunHistoryQueryOptions(DbtRunHistoryListRequest request) {
     int page = request.page() == null ? DEFAULT_RUN_HISTORY_PAGE : request.page();
     int pageSize = request.pageSize() == null ? DEFAULT_RUN_HISTORY_PAGE_SIZE : request.pageSize();
@@ -268,6 +848,19 @@ public class DbtModelService {
     int page,
     int pageSize,
     String search
+  ) {
+  }
+
+  private record SingleModelRunOutcome(
+    int statusCode,
+    boolean success,
+    Integer returncode,
+    String stdout,
+    String stderr,
+    String startedAt,
+    String finishedAt,
+    String code,
+    String message
   ) {
   }
 }

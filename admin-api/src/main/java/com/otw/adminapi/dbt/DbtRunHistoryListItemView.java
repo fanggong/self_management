@@ -8,6 +8,7 @@ public record DbtRunHistoryListItemView(
   String layer,
   String status,
   Integer returncode,
+  Double executionTimeSeconds,
   String startedAt,
   String finishedAt
 ) {

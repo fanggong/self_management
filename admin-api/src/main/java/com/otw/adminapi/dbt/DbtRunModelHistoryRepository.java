@@ -22,4 +22,19 @@ public interface DbtRunModelHistoryRepository extends JpaRepository<DbtRunModelH
     @Param("layer") String layer,
     @Param("modelNames") Collection<String> modelNames
   );
+
+  @Query("""
+    select h
+    from DbtRunModelHistoryEntity h
+    where h.dbtRunHistoryId = :runId
+      and h.accountId = :accountId
+    order by
+      case when h.completedAt is null then 1 else 0 end,
+      h.completedAt asc,
+      h.createdAt asc
+    """)
+  List<DbtRunModelHistoryEntity> findByRunIdAndAccountIdOrderByExecution(
+    @Param("runId") UUID runId,
+    @Param("accountId") UUID accountId
+  );
 }

@@ -2,6 +2,9 @@ server:
   port: ${PORT:8080}
 
 spring:
+  mvc:
+    async:
+      request-timeout: 10m
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/self_management}
     username: ${DB_USER:postgres}

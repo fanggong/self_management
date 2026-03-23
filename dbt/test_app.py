@@ -1,12 +1,35 @@
 from __future__ import annotations
 
+import io
 import json
 import tempfile
 import unittest
+from collections.abc import Callable
 from pathlib import Path
 from unittest.mock import Mock, patch
 
 import app as runner_app
+
+
+class FakePopen:
+    def __init__(
+        self,
+        *,
+        stdout: str = "",
+        stderr: str = "",
+        returncode: int = 0,
+        on_wait: Callable[[], None] | None = None,
+    ) -> None:
+        self.stdout = io.StringIO(stdout)
+        self.stderr = io.StringIO(stderr)
+        self.returncode = returncode
+        self._on_wait = on_wait
+
+    def wait(self) -> int:
+        if self._on_wait is not None:
+            self._on_wait()
+            self._on_wait = None
+        return self.returncode
 
 
 class DbtRunnerAppTest(unittest.TestCase):
@@ -16,8 +39,10 @@ class DbtRunnerAppTest(unittest.TestCase):
         self.models_dir = self.project_dir / "models"
         self.profiles_dir = self.project_dir / "profiles"
         self.target_dir = self.project_dir / "target"
+        self.seeds_dir = self.project_dir / "seeds"
         self.profiles_dir.mkdir(parents=True)
         self.target_dir.mkdir(parents=True)
+        self.seeds_dir.mkdir(parents=True)
 
         self.original_project_dir = runner_app.PROJECT_DIR
         self.original_models_dir = runner_app.MODELS_DIR
@@ -25,7 +50,9 @@ class DbtRunnerAppTest(unittest.TestCase):
         self.original_target_dir = runner_app.TARGET_DIR
         self.original_run_results_path = runner_app.RUN_RESULTS_PATH
         self.original_manifest_path = runner_app.MANIFEST_PATH
+        self.original_catalog_path = runner_app.CATALOG_PATH
         self.original_model_run_history_path = runner_app.MODEL_RUN_HISTORY_PATH
+        self.original_staging_lineage_contract_path = runner_app.STAGING_LINEAGE_CONTRACT_PATH
 
         runner_app.PROJECT_DIR = self.project_dir
         runner_app.MODELS_DIR = self.models_dir
@@ -33,7 +60,9 @@ class DbtRunnerAppTest(unittest.TestCase):
         runner_app.TARGET_DIR = self.target_dir
         runner_app.RUN_RESULTS_PATH = self.target_dir / "run_results.json"
         runner_app.MANIFEST_PATH = self.target_dir / "manifest.json"
+        runner_app.CATALOG_PATH = self.target_dir / "catalog.json"
         runner_app.MODEL_RUN_HISTORY_PATH = self.target_dir / "model_run_history.json"
+        runner_app.STAGING_LINEAGE_CONTRACT_PATH = self.seeds_dir / "staging_lineage_contract.csv"
 
         self.client = runner_app.app.test_client()
 
@@ -44,7 +73,9 @@ class DbtRunnerAppTest(unittest.TestCase):
         runner_app.TARGET_DIR = self.original_target_dir
         runner_app.RUN_RESULTS_PATH = self.original_run_results_path
         runner_app.MANIFEST_PATH = self.original_manifest_path
+        runner_app.CATALOG_PATH = self.original_catalog_path
         runner_app.MODEL_RUN_HISTORY_PATH = self.original_model_run_history_path
+        runner_app.STAGING_LINEAGE_CONTRACT_PATH = self.original_staging_lineage_contract_path
         self.temp_dir.cleanup()
 
     def test_normalize_selectors_handles_tags_and_layer_paths(self) -> None:
@@ -113,8 +144,109 @@ class DbtRunnerAppTest(unittest.TestCase):
                 {
                     "name": "stg_garmin_profile",
                     "layer": "staging",
+                    "description": None,
+                    "connectorId": None,
+                    "domainKey": None,
                     "lastRunCompletedAt": "2026-03-20T12:00:00Z",
                 }
+            ],
+        )
+
+    def test_list_models_returns_description_and_connector_metadata(self) -> None:
+        (self.models_dir / "staging" / "garmin").mkdir(parents=True)
+        (self.models_dir / "staging" / "garmin" / "stg_garmin_profile_snapshot.sql").write_text("select 1")
+        runner_app.MANIFEST_PATH.write_text(
+            json.dumps(
+                {
+                    "nodes": {
+                        "model.otw.stg_garmin_profile_snapshot": {
+                            "name": "stg_garmin_profile_snapshot",
+                            "description": "Garmin profile staging model.",
+                            "path": "staging/garmin/stg_garmin_profile_snapshot.sql",
+                            "original_file_path": "models/staging/garmin/stg_garmin_profile_snapshot.sql",
+                            "tags": ["staging", "health", "garmin"],
+                            "schema": "staging",
+                            "alias": "stg_garmin_profile_snapshot",
+                            "columns": {},
+                        }
+                    }
+                }
+            )
+        )
+        runner_app.STAGING_LINEAGE_CONTRACT_PATH.write_text(
+            "connector_id,source_stream,staging_model,staging_column,mapping_type,raw_path,notes\n"
+            "garmin-connect,profile,stg_garmin_profile_snapshot,connector_id,raw_column,raw.connector_id,test\n"
+        )
+
+        response = self.client.get("/models?layer=staging")
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+
+        self.assertEqual(
+            payload["items"],
+            [
+                {
+                    "name": "stg_garmin_profile_snapshot",
+                    "layer": "staging",
+                    "description": "Garmin profile staging model.",
+                    "connectorId": "garmin-connect",
+                    "domainKey": None,
+                    "lastRunCompletedAt": None,
+                }
+            ],
+        )
+
+    def test_get_model_returns_detail_from_manifest_and_catalog(self) -> None:
+        (self.models_dir / "intermediate" / "health" / "garmin").mkdir(parents=True)
+        (self.models_dir / "intermediate" / "health" / "garmin" / "int_health_profile_snapshot.sql").write_text("select 1")
+        runner_app.MANIFEST_PATH.write_text(
+            json.dumps(
+                {
+                    "nodes": {
+                        "model.otw.int_health_profile_snapshot": {
+                            "name": "int_health_profile_snapshot",
+                            "description": "Semantic profile model.",
+                            "path": "intermediate/health/garmin/int_health_profile_snapshot.sql",
+                            "original_file_path": "models/intermediate/health/garmin/int_health_profile_snapshot.sql",
+                            "tags": ["intermediate", "health", "garmin"],
+                            "schema": "intermediate",
+                            "alias": "int_health_profile_snapshot",
+                            "columns": {
+                                "account_id": {"description": "Account identifier."},
+                                "profile_id": {"description": "Profile identifier."},
+                            },
+                        }
+                    }
+                }
+            )
+        )
+        runner_app.CATALOG_PATH.write_text(
+            json.dumps(
+                {
+                    "nodes": {
+                        "model.otw.int_health_profile_snapshot": {
+                            "columns": {
+                                "account_id": {"type": "uuid", "comment": "Account identifier."},
+                                "profile_id": {"type": "character varying(255)", "comment": "Profile identifier."},
+                            }
+                        }
+                    }
+                }
+            )
+        )
+
+        response = self.client.get("/models/intermediate/int_health_profile_snapshot")
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        self.assertTrue(payload["success"])
+        self.assertEqual(payload["item"]["name"], "int_health_profile_snapshot")
+        self.assertEqual(payload["item"]["domainKey"], "health")
+        self.assertEqual(payload["item"]["schemaName"], "intermediate")
+        self.assertEqual(
+            payload["item"]["columns"],
+            [
+                {"name": "account_id", "type": "uuid", "description": "Account identifier."},
+                {"name": "profile_id", "type": "character varying(255)", "description": "Profile identifier."},
             ],
         )
 
@@ -169,10 +301,8 @@ class DbtRunnerAppTest(unittest.TestCase):
         (self.models_dir / "intermediate" / "health").mkdir(parents=True)
         (self.models_dir / "intermediate" / "health" / "int_health_daily_summary.sql").write_text("select 1")
 
-        with patch("app.subprocess.run") as subprocess_run:
-            subprocess_run.return_value.returncode = 0
-            subprocess_run.return_value.stdout = "dbt run output"
-            subprocess_run.return_value.stderr = ""
+        with patch("app.subprocess.Popen") as subprocess_popen:
+            subprocess_popen.return_value = FakePopen(stdout="dbt run output", stderr="", returncode=0)
 
             response = self.client.post(
                 "/models/run",
@@ -184,7 +314,7 @@ class DbtRunnerAppTest(unittest.TestCase):
         self.assertTrue(payload["success"])
         self.assertEqual(payload["stdout"], "dbt run output")
         self.assertEqual(payload["executedModels"], [])
-        subprocess_run.assert_called_once_with(
+        subprocess_popen.assert_called_once_with(
             [
                 "dbt",
                 "run",
@@ -195,9 +325,10 @@ class DbtRunnerAppTest(unittest.TestCase):
                 "--select",
                 "+int_health_daily_summary",
             ],
-            capture_output=True,
+            stdout=runner_app.subprocess.PIPE,
+            stderr=runner_app.subprocess.PIPE,
             text=True,
-            check=False,
+            bufsize=1,
         )
 
     def test_run_model_keeps_previous_last_updated_after_another_model_runs(self) -> None:
@@ -227,15 +358,15 @@ class DbtRunnerAppTest(unittest.TestCase):
 
         def subprocess_side_effect(*args, **kwargs):
             model_name, completed_at = invocations.pop(0)
-            write_run_results_for_model(model_name, completed_at)
-            completed_process = Mock()
-            completed_process.returncode = 0
-            completed_process.stdout = "dbt run output"
-            completed_process.stderr = ""
-            return completed_process
+            return FakePopen(
+                stdout="dbt run output",
+                stderr="",
+                returncode=0,
+                on_wait=lambda: write_run_results_for_model(model_name, completed_at),
+            )
 
-        with patch("app.subprocess.run") as subprocess_run:
-            subprocess_run.side_effect = subprocess_side_effect
+        with patch("app.subprocess.Popen") as subprocess_popen:
+            subprocess_popen.side_effect = subprocess_side_effect
 
             first_response = self.client.post("/models/run", json={"layer": "staging", "modelName": "stg_alpha"})
             second_response = self.client.post("/models/run", json={"layer": "staging", "modelName": "stg_beta"})
@@ -257,52 +388,54 @@ class DbtRunnerAppTest(unittest.TestCase):
         (self.models_dir / "intermediate" / "health" / "garmin" / "int_health_profile_snapshot.sql").write_text("select 1")
 
         def subprocess_side_effect(*args, **kwargs):
-            runner_app.MANIFEST_PATH.write_text(
-                json.dumps(
-                    {
-                        "nodes": {
-                            "model.otw.stg_garmin_profile_snapshot": {
-                                "original_file_path": "models/staging/garmin/stg_garmin_profile_snapshot.sql"
-                            },
-                            "model.otw.int_health_profile_snapshot": {
-                                "original_file_path": "models/intermediate/health/garmin/int_health_profile_snapshot.sql"
-                            },
-                        }
-                    }
-                )
-            )
-            runner_app.RUN_RESULTS_PATH.write_text(
-                json.dumps(
-                    {
-                        "results": [
+            return FakePopen(
+                stdout="dbt run output",
+                stderr="dbt run failed",
+                returncode=1,
+                on_wait=lambda: (
+                    runner_app.MANIFEST_PATH.write_text(
+                        json.dumps(
                             {
-                                "unique_id": "model.otw.stg_garmin_profile_snapshot",
-                                "status": "success",
-                                "message": None,
-                                "relation_name": "staging.stg_garmin_profile_snapshot",
-                                "execution_time": 0.06,
-                                "timing": [{"completed_at": "2026-03-20T08:00:41Z"}],
-                            },
+                                "nodes": {
+                                    "model.otw.stg_garmin_profile_snapshot": {
+                                        "original_file_path": "models/staging/garmin/stg_garmin_profile_snapshot.sql"
+                                    },
+                                    "model.otw.int_health_profile_snapshot": {
+                                        "original_file_path": "models/intermediate/health/garmin/int_health_profile_snapshot.sql"
+                                    },
+                                }
+                            }
+                        )
+                    ),
+                    runner_app.RUN_RESULTS_PATH.write_text(
+                        json.dumps(
                             {
-                                "unique_id": "model.otw.int_health_profile_snapshot",
-                                "status": "error",
-                                "message": "column missing",
-                                "relation_name": None,
-                                "execution_time": 0.01,
-                                "timing": [{"completed_at": "2026-03-20T08:00:42Z"}],
-                            },
-                        ]
-                    }
-                )
+                                "results": [
+                                    {
+                                        "unique_id": "model.otw.stg_garmin_profile_snapshot",
+                                        "status": "success",
+                                        "message": None,
+                                        "relation_name": "staging.stg_garmin_profile_snapshot",
+                                        "execution_time": 0.06,
+                                        "timing": [{"completed_at": "2026-03-20T08:00:41Z"}],
+                                    },
+                                    {
+                                        "unique_id": "model.otw.int_health_profile_snapshot",
+                                        "status": "error",
+                                        "message": "column missing",
+                                        "relation_name": None,
+                                        "execution_time": 0.01,
+                                        "timing": [{"completed_at": "2026-03-20T08:00:42Z"}],
+                                    },
+                                ]
+                            }
+                        )
+                    ),
+                ),
             )
-            completed_process = Mock()
-            completed_process.returncode = 1
-            completed_process.stdout = "dbt run output"
-            completed_process.stderr = "dbt run failed"
-            return completed_process
 
-        with patch("app.subprocess.run") as subprocess_run:
-            subprocess_run.side_effect = subprocess_side_effect
+        with patch("app.subprocess.Popen") as subprocess_popen:
+            subprocess_popen.side_effect = subprocess_side_effect
 
             response = self.client.post(
                 "/models/run",
@@ -336,6 +469,33 @@ class DbtRunnerAppTest(unittest.TestCase):
                 },
             ],
         )
+
+    def test_run_model_stream_returns_ndjson_events(self) -> None:
+        (self.models_dir / "staging").mkdir(parents=True)
+        (self.models_dir / "staging" / "stg_test.sql").write_text("select 1")
+
+        with patch("app.subprocess.Popen") as subprocess_popen:
+            subprocess_popen.return_value = FakePopen(
+                stdout="\u001b[0m08:00:40 Running with dbt=1.11.7\n1 of 1 OK model stg_test\n",
+                stderr="",
+                returncode=0,
+            )
+
+            response = self.client.post(
+                "/models/run/stream",
+                json={"layer": "staging", "modelName": "stg_test"},
+                buffered=True,
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.mimetype, "application/x-ndjson")
+        events = [json.loads(line) for line in response.get_data(as_text=True).splitlines() if line.strip()]
+        self.assertEqual(events[0]["type"], "run_started")
+        self.assertEqual(events[1]["type"], "log")
+        self.assertEqual(events[1]["stream"], "stdout")
+        self.assertNotIn("\u001b", events[1]["text"])
+        self.assertEqual(events[-1]["type"], "run_finished")
+        self.assertTrue(events[-1]["success"])
 
 
 if __name__ == "__main__":
