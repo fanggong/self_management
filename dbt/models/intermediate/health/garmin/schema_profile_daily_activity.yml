@@ -236,6 +236,10 @@ models:
     description: Semantic carry-forward of staging `show_height`. The value is kept
       unchanged because the staging type is already suitable or the field is intentionally
       preserved as-is in this intermediate phase.
+  - name: height_cm
+    data_type: numeric
+    description: Semantic carry-forward of staging `height_cm`, keeping Garmin profile
+      height normalized in centimeters for downstream health modeling.
   - name: show_weight_class
     data_type: boolean
     description: Semantic carry-forward of staging `show_weight_class`. The value

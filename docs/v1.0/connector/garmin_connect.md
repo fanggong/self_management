@@ -16,23 +16,25 @@
 
 ## 2. 当前数据集与 raw 表映射
 
-当前 Garmin Connect 连接器会抓取并落库以下 5 类数据：
+当前 Garmin Connect 连接器会抓取并落库以下 6 类数据：
 
 | 数据集 | raw 表 | `source_stream` | 数据粒度 | 说明 |
 |---|---|---|---|---|
 | 用户资料 | `raw.health_snapshot_record` | `profile` | 用户级当前快照 | 当前用户资料与平台标识，不支持按历史日期查询 |
 | 每日汇总 | `raw.health_snapshot_record` | `daily_summary` | 用户-日期 | 每日步数、距离、热量、活跃分钟等汇总 |
+| 身体成分 | `raw.health_snapshot_record` | `body_composition` | 用户-日期 / 测量快照 | 体重、BMI、体脂等身体成分数据 |
 | 睡眠 | `raw.health_snapshot_record` | `sleep` | 用户-日期 / 睡眠会话 | 每日睡眠汇总与阶段明细 |
 | 活动 | `raw.health_event_record` | `activity` | 活动会话 | 跑步、骑行等活动记录 |
 | 心率 | `raw.health_timeseries_record` | `heart_rate` | 用户-日期 | 日级心率汇总与采样序列 |
 
 ## 3. `raw.health_snapshot_record`
 
-`raw.health_snapshot_record` 当前承载 3 类 Garmin 数据：
+`raw.health_snapshot_record` 当前承载 4 类 Garmin 数据：
 
 1. `profile`
 2. `daily_summary`
-3. `sleep`
+3. `body_composition`
+4. `sleep`
 
 ### 3.1 表字段说明
 
@@ -116,6 +118,7 @@
 | `showAge` | `boolean` | 是否展示年龄 |
 | `showWeight` | `boolean` | 是否展示体重 |
 | `showHeight` | `boolean` | 是否展示身高 |
+| `heightCm` | `number` | 标准化后的身高，单位厘米；由 worker 在组合公开 profile 与设置接口后写入 |
 | `showWeightClass` | `boolean` | 是否展示体重等级 |
 | `showAgeRange` | `boolean` | 是否展示年龄区间 |
 | `showGender` | `boolean` | 是否展示性别 |
@@ -141,6 +144,8 @@
 | `levelPointThreshold` | `number` | 当前等级阈值积分 |
 | `userPointOffset` | `number` | 用户积分偏移，含义待确认 |
 | `userPro` | `boolean` | 是否为高级/Pro 用户，含义待确认 |
+| `userSettings` | `object` | Garmin `user-settings` 原始响应，用于补充基础资料，例如身高 |
+| `profileSettings` | `object` | Garmin `settings` 原始响应，作为基础资料补充兜底 |
 | `provider` | `string` | 平台标识；若存在，通常表示来源平台 |
 | `region` | `string` | 区域标识；若存在，通常表示地区 |
 

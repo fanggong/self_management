@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import timezone
 
+import requests
 from celery.utils.log import get_task_logger
 
 from .. import db
@@ -12,6 +13,8 @@ from ..services.sync_executor import execute_sync_task
 
 logger = get_task_logger(__name__)
 AUTO_SYNC_LOOKBACK_RUNS = 3
+DEFAULT_MARTS_SCHEDULE_PATH = "/internal/dbt/default-schedules/marts/run"
+DEFAULT_MARTS_SCHEDULE_TIMEOUT_SECONDS = 3600
 
 
 def enqueue_due_scheduled_sync_tasks(limit: int = 20) -> int:
@@ -46,6 +49,33 @@ def enqueue_due_scheduled_sync_tasks(limit: int = 20) -> int:
     return queued
 
 
+def trigger_default_marts_schedule() -> dict[str, int]:
+    response = requests.post(
+        settings.admin_api_internal_base_url.rstrip("/") + DEFAULT_MARTS_SCHEDULE_PATH,
+        timeout=(5, DEFAULT_MARTS_SCHEDULE_TIMEOUT_SECONDS),
+    )
+    response.raise_for_status()
+    payload = response.json()
+    if not payload.get("success"):
+        raise RuntimeError(payload.get("message") or "Default marts schedule failed.")
+
+    data = payload.get("data") or {}
+    result = {
+        "processedAccounts": int(data.get("processedAccounts", 0) or 0),
+        "skippedAccounts": int(data.get("skippedAccounts", 0) or 0),
+        "succeededModels": int(data.get("succeededModels", 0) or 0),
+        "failedModels": int(data.get("failedModels", 0) or 0),
+    }
+    logger.info(
+        "completed default marts schedule: processed_accounts=%s skipped_accounts=%s succeeded_models=%s failed_models=%s",
+        result["processedAccounts"],
+        result["skippedAccounts"],
+        result["succeededModels"],
+        result["failedModels"],
+    )
+    return result
+
+
 @app.task(name="sync.dispatch_queued_sync_tasks")
 def dispatch_queued_sync_tasks() -> int:
     queued = enqueue_due_scheduled_sync_tasks(limit=20)
@@ -56,6 +86,12 @@ def dispatch_queued_sync_tasks() -> int:
             dispatched += 1
     logger.info("queued %s scheduled sync tasks and dispatched %s queued sync tasks", queued, dispatched)
     return dispatched
+
+
+@app.task(name="sync.run_default_marts_schedule")
+def run_default_marts_schedule_task() -> dict[str, int]:
+    logger.info("triggering default marts schedule")
+    return trigger_default_marts_schedule()
 
 
 @app.task(name="sync.execute_sync_task", autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 3})

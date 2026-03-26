@@ -84,12 +84,16 @@ services:
     build:
       context: ./sync-worker
     command: ["sh", "-lc", "python -m sync_worker.internal_api & exec celery -A sync_worker.celery_app:app worker -l info"]
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     environment:
       DB_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-self_management}
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
       CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
       DBT_RUNNER_URL: ${DBT_RUNNER_URL:-http://dbt-runner:8090}
+      ADMIN_API_INTERNAL_BASE_URL: ${ADMIN_API_INTERNAL_BASE_URL:-http://admin-api:8080}
       CONNECTOR_SECRET_KEY: ${CONNECTOR_SECRET_KEY:-0jLUxjwhATZYPdYIgyqCzherzo2VFFa6qOdO1vMpZPI=}
       APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Shanghai}
       GARMIN_MOCK_MODE: ${GARMIN_MOCK_MODE:-false}
@@ -102,6 +106,8 @@ services:
       redis:
         condition: service_healthy
       dbt-runner:
+        condition: service_healthy
+      admin-api:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-m", "sync_worker.healthcheck"]
@@ -119,6 +125,7 @@ services:
       CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
       CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
       DBT_RUNNER_URL: ${DBT_RUNNER_URL:-http://dbt-runner:8090}
+      ADMIN_API_INTERNAL_BASE_URL: ${ADMIN_API_INTERNAL_BASE_URL:-http://admin-api:8080}
       CONNECTOR_SECRET_KEY: ${CONNECTOR_SECRET_KEY:-0jLUxjwhATZYPdYIgyqCzherzo2VFFa6qOdO1vMpZPI=}
       APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Shanghai}
       GARMIN_MOCK_MODE: ${GARMIN_MOCK_MODE:-false}
@@ -131,6 +138,8 @@ services:
       redis:
         condition: service_healthy
       dbt-runner:
+        condition: service_healthy
+      admin-api:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-m", "sync_worker.healthcheck"]

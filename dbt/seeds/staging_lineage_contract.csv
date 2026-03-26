@@ -1,4 +1,6 @@
 connector_id,source_stream,staging_model,staging_column,mapping_type,raw_path,notes
+garmin-connect,body_composition,stg_garmin_body_composition,weight_kg,raw_leaf,totalAverage.weight,Garmin body composition average weight in kilograms.
+garmin-connect,body_composition,stg_garmin_body_composition,bmi,raw_leaf,totalAverage.bmi,Garmin body composition average BMI.
 garmin-connect,activity,stg_garmin_activity_detail,account_id,raw_column,raw.account_id,Raw table account identifier.
 garmin-connect,activity,stg_garmin_activity_detail,activity_id,raw_leaf,activityId,Direct raw leaf mapping.
 garmin-connect,activity,stg_garmin_activity_detail,activity_name,raw_leaf,activityName,Direct raw leaf mapping.
@@ -337,6 +339,7 @@ garmin-connect,profile,stg_garmin_profile_snapshot,show_age_range,raw_leaf,showA
 garmin-connect,profile,stg_garmin_profile_snapshot,show_badges,raw_leaf,showBadges,Direct raw leaf mapping.
 garmin-connect,profile,stg_garmin_profile_snapshot,show_gender,raw_leaf,showGender,Direct raw leaf mapping.
 garmin-connect,profile,stg_garmin_profile_snapshot,show_height,raw_leaf,showHeight,Direct raw leaf mapping.
+garmin-connect,profile,stg_garmin_profile_snapshot,height_cm,raw_leaf,heightCm,Normalized Garmin profile height in centimeters derived during raw profile enrichment.
 garmin-connect,profile,stg_garmin_profile_snapshot,show_last_12_months,raw_leaf,showLast12Months,Direct raw leaf mapping.
 garmin-connect,profile,stg_garmin_profile_snapshot,show_lifetime_totals,raw_leaf,showLifetimeTotals,Direct raw leaf mapping.
 garmin-connect,profile,stg_garmin_profile_snapshot,show_personal_records,raw_leaf,showPersonalRecords,Direct raw leaf mapping.

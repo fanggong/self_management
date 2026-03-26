@@ -191,6 +191,9 @@ models:
       - name: show_height
         description: 'Structured `showHeight` leaf copied from the raw Garmin `profile` payload.'
         data_type: 'boolean'
+      - name: height_cm
+        description: 'Normalized Garmin profile height in centimeters extracted from the enriched raw `profile` payload.'
+        data_type: 'numeric'
       - name: show_weight_class
         description: 'Structured `showWeightClass` leaf copied from the raw Garmin `profile` payload.'
         data_type: 'boolean'

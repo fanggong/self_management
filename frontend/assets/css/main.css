@@ -1717,6 +1717,43 @@ a {
   gap: 0.35rem;
 }
 
+.activity-history-table,
+.data-model-card-table {
+  height: 100%;
+}
+
+.activity-history-table .p-datatable-thead > tr > th,
+.data-model-card-table .p-datatable-thead > tr > th {
+  padding: 0.75rem 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.activity-history-table .p-datatable-tbody > tr > td,
+.data-model-card-table .p-datatable-tbody > tr > td {
+  padding: 0.625rem 0.75rem;
+  vertical-align: middle;
+}
+
+.activity-history-table .p-paginator,
+.data-model-card-table .p-paginator {
+  padding: 0.625rem 0.75rem;
+}
+
+.activity-history-table .p-paginator .p-paginator-pages .p-paginator-page,
+.activity-history-table .p-paginator .p-paginator-first,
+.activity-history-table .p-paginator .p-paginator-prev,
+.activity-history-table .p-paginator .p-paginator-next,
+.activity-history-table .p-paginator .p-paginator-last,
+.data-model-card-table .p-paginator .p-paginator-pages .p-paginator-page,
+.data-model-card-table .p-paginator .p-paginator-first,
+.data-model-card-table .p-paginator .p-paginator-prev,
+.data-model-card-table .p-paginator .p-paginator-next,
+.data-model-card-table .p-paginator .p-paginator-last {
+  min-width: 2rem;
+  height: 2rem;
+}
+
 .medical-report-cell-input {
   min-height: 2.1rem;
   font-size: 0.8125rem;

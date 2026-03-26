@@ -30,6 +30,10 @@ models:
       +materialized: table
       +schema: intermediate
       +tags: ["intermediate", "health"]
+    marts:
+      +materialized: table
+      +schema: marts
+      +tags: ["marts", "health"]
 
 seeds:
   otw:

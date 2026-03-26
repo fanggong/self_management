@@ -11,6 +11,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.otw.adminapi.common.api.ApiException;
 import com.otw.adminapi.connector.ConnectorService;
 import com.otw.adminapi.security.AuthenticatedUser;
+import com.otw.adminapi.user.AccountEntity;
+import com.otw.adminapi.user.AccountRepository;
+import com.otw.adminapi.user.UserEntity;
+import com.otw.adminapi.user.UserRepository;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Constructor;
@@ -46,6 +50,12 @@ class DbtModelServiceTest {
   private ConnectorService connectorService;
 
   @Mock
+  private AccountRepository accountRepository;
+
+  @Mock
+  private UserRepository userRepository;
+
+  @Mock
   private JdbcTemplate jdbcTemplate;
 
   private DbtModelService service;
@@ -59,6 +69,8 @@ class DbtModelServiceTest {
       dbtRunHistoryRepository,
       dbtRunModelHistoryRepository,
       connectorService,
+      accountRepository,
+      userRepository,
       jdbcTemplate,
       "Asia/Shanghai"
     );
@@ -366,6 +378,80 @@ class DbtModelServiceTest {
         List.of()
       )
     );
+  }
+
+  @Test
+  void runDefaultMartsScheduleProcessesAllAccountsFallsBackToEarliestUserAndSkipsAccountsWithoutUsers() {
+    UUID accountWithAdminId = UUID.randomUUID();
+    UUID accountWithoutAdminId = UUID.randomUUID();
+    UUID skippedAccountId = UUID.randomUUID();
+
+    when(accountRepository.findAll()).thenReturn(
+      List.of(account(accountWithAdminId), account(accountWithoutAdminId), account(skippedAccountId))
+    );
+    when(userRepository.findFirstByAccountIdAndRoleOrderByCreatedAtAscIdAsc(accountWithAdminId, "ADMIN"))
+      .thenReturn(java.util.Optional.of(user(accountWithAdminId, "admin-user", "ADMIN")));
+    when(userRepository.findFirstByAccountIdAndRoleOrderByCreatedAtAscIdAsc(accountWithoutAdminId, "ADMIN"))
+      .thenReturn(java.util.Optional.empty());
+    when(userRepository.findFirstByAccountIdOrderByCreatedAtAscIdAsc(accountWithoutAdminId))
+      .thenReturn(java.util.Optional.of(user(accountWithoutAdminId, "member-user", "USER")));
+    when(userRepository.findFirstByAccountIdAndRoleOrderByCreatedAtAscIdAsc(skippedAccountId, "ADMIN"))
+      .thenReturn(java.util.Optional.empty());
+    when(userRepository.findFirstByAccountIdOrderByCreatedAtAscIdAsc(skippedAccountId))
+      .thenReturn(java.util.Optional.empty());
+    when(dbtModelRunnerClient.listModels("marts", null)).thenReturn(
+      List.of(
+        new DbtModelRunnerClient.RunnerModelItem("mart_health_dashboard_daily", "marts", "Daily summary", null, "health", null),
+        new DbtModelRunnerClient.RunnerModelItem("mart_health_activity_history", "marts", "Activity history", null, "health", null)
+      )
+    );
+    when(dbtModelRunnerClient.runModel("marts", "mart_health_activity_history")).thenReturn(
+      new DbtModelRunnerClient.RunnerRunResponse(200, true, 0, "", "", null, null, null, null, List.of())
+    );
+    when(dbtModelRunnerClient.runModel("marts", "mart_health_dashboard_daily")).thenReturn(
+      new DbtModelRunnerClient.RunnerRunResponse(409, false, null, "", "", null, null, "DBT_RUNNER_BUSY", "busy", List.of())
+    );
+
+    DefaultScheduledMartsRunResultView result = service.runDefaultMartsSchedule();
+
+    assertEquals(2, result.processedAccounts());
+    assertEquals(1, result.skippedAccounts());
+    assertEquals(2, result.succeededModels());
+    assertEquals(2, result.failedModels());
+    verify(dbtRunHistoryWriter).recordRunResponse(
+      org.mockito.ArgumentMatchers.argThat(user -> user.equals(
+        new AuthenticatedUser(user(accountWithAdminId, "admin-user", "ADMIN").getId(), accountWithAdminId, "admin-user", "ADMIN")
+      )),
+      org.mockito.ArgumentMatchers.eq("marts"),
+      org.mockito.ArgumentMatchers.eq("mart_health_activity_history"),
+      org.mockito.ArgumentMatchers.any()
+    );
+    verify(dbtRunHistoryWriter).recordRunResponse(
+      org.mockito.ArgumentMatchers.argThat(user -> user.equals(
+        new AuthenticatedUser(user(accountWithoutAdminId, "member-user", "USER").getId(), accountWithoutAdminId, "member-user", "USER")
+      )),
+      org.mockito.ArgumentMatchers.eq("marts"),
+      org.mockito.ArgumentMatchers.eq("mart_health_activity_history"),
+      org.mockito.ArgumentMatchers.any()
+    );
+  }
+
+  private AccountEntity account(UUID id) {
+    AccountEntity entity = new AccountEntity();
+    ReflectionTestUtils.setField(entity, "id", id);
+    ReflectionTestUtils.setField(entity, "name", "account-" + id);
+    return entity;
+  }
+
+  private UserEntity user(UUID accountId, String principal, String role) {
+    UserEntity entity = new UserEntity();
+    ReflectionTestUtils.setField(entity, "id", UUID.nameUUIDFromBytes((accountId + ":" + principal).getBytes(StandardCharsets.UTF_8)));
+    entity.setAccountId(accountId);
+    entity.setPrincipal(principal);
+    entity.setDisplayName(principal);
+    entity.setRole(role);
+    entity.setPasswordHash("secret");
+    return entity;
   }
 
   @Test

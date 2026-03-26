@@ -1,0 +1,45 @@
+version: 2
+models:
+  - name: stg_garmin_body_composition
+    description: Garmin body composition staging table. Grain is one row per raw Garmin `body_composition` snapshot from `raw.health_snapshot_record`. The model keeps raw lineage columns and exposes weight and BMI related metrics as structured columns.
+    tests:
+      - unique_combination:
+          arguments:
+            column_names:
+              - raw_record_id
+    columns:
+      - name: raw_record_id
+        description: Primary key of the raw parent record that produced this staging row.
+        data_type: uuid
+        tests:
+          - not_null
+      - name: account_id
+        description: Application account that owns the staged record.
+        data_type: uuid
+        tests:
+          - not_null
+      - name: source_stream
+        description: Source stream name from the raw layer.
+        data_type: text
+        tests:
+          - not_null
+      - name: source_record_date
+        description: Business date assigned to the raw snapshot.
+        data_type: date
+        tests:
+          - not_null
+      - name: measurement_date
+        description: Garmin business date associated with the body composition measurement.
+        data_type: text
+      - name: measurement_time_gmt
+        description: Raw Garmin GMT measurement timestamp when present.
+        data_type: text
+      - name: measurement_time_local
+        description: Raw Garmin local measurement timestamp when present.
+        data_type: text
+      - name: weight_kg
+        description: Weight in kilograms extracted from the Garmin body composition payload.
+        data_type: numeric
+      - name: bmi
+        description: BMI extracted from the Garmin body composition payload.
+        data_type: numeric

@@ -1,0 +1,55 @@
+version: 2
+models:
+  - name: mart_health_dashboard_daily
+    description: Health dashboard daily mart. Grain is one row per account and metric date, combining Garmin daily summary metrics with the latest available body composition metrics on or before that date, and calculating BMI from profile height when the raw BMI is missing.
+    tests:
+      - unique_combination:
+          arguments:
+            column_names:
+              - account_id
+              - metric_date
+    columns:
+      - name: account_id
+        data_type: uuid
+        description: Application account that owns the dashboard row.
+        tests:
+          - not_null
+      - name: metric_date
+        data_type: date
+        description: Business date for the health dashboard metrics.
+        tests:
+          - not_null
+      - name: average_heart_rate
+        data_type: integer
+        description: Average heart rate for the metric date, calculated from Garmin heart-rate samples captured on that date.
+      - name: weight_kg
+        data_type: numeric
+        description: Latest available Garmin weight in kilograms on or before the dashboard metric date.
+      - name: bmi
+        data_type: numeric
+        description: Latest available Garmin BMI on or before the dashboard metric date, falling back to a calculated value from weight and the closest known profile height for the account when the raw BMI is missing.
+
+  - name: mart_health_activity_history
+    description: Health activity history mart. Grain is one row per activity, curated for dashboard list and activity detail use cases.
+    tests:
+      - unique_combination:
+          arguments:
+            column_names:
+              - activity_record_id
+    columns:
+      - name: activity_record_id
+        data_type: uuid
+        description: Stable activity record identifier derived from the intermediate staging lineage key.
+        tests:
+          - not_null
+      - name: account_id
+        data_type: uuid
+        description: Application account that owns the activity.
+        tests:
+          - not_null
+      - name: activity_name
+        data_type: text
+        description: Human-readable activity name copied from Garmin activity history.
+      - name: start_time_gmt
+        data_type: timestamp with time zone
+        description: Activity start timestamp in GMT.

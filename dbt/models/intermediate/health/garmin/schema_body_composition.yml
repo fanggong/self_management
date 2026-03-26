@@ -1,0 +1,37 @@
+version: 2
+models:
+  - name: int_health_body_composition_daily
+    description: Semantic intermediate daily body composition model sourced from Garmin body composition snapshots. Grain is one row per staged Garmin body composition record after raw lineage columns are removed and measurement date and timestamp are typed.
+    tests:
+      - unique_combination:
+          arguments:
+            column_names:
+              - staging_record_id
+    columns:
+      - name: staging_record_id
+        data_type: uuid
+        description: Technical lineage key carried from the staging `raw_record_id` column.
+        tests:
+          - not_null
+      - name: account_id
+        data_type: uuid
+        description: Application account that owns the intermediate health record.
+        tests:
+          - not_null
+      - name: source_record_date
+        data_type: date
+        description: Source-side business date carried forward from staging after raw lineage columns are removed.
+        tests:
+          - not_null
+      - name: measurement_date
+        data_type: date
+        description: Parsed Garmin business date associated with the body composition measurement.
+      - name: measurement_time_gmt
+        data_type: timestamp with time zone
+        description: Parsed Garmin GMT measurement timestamp when present.
+      - name: weight_kg
+        data_type: numeric
+        description: Weight in kilograms carried forward from staging.
+      - name: bmi
+        data_type: numeric
+        description: BMI carried forward from staging.

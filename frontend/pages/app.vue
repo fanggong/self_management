@@ -1798,7 +1798,9 @@ watch(
 
 <template>
   <section :class="activeTab === 'connector-tasks' ? 'tasks-page-section' : 'space-y-6'">
-    <div v-if="activeTab === 'connector-settings'" class="app-panel connector-panel p-4 sm:p-5">
+    <HealthDashboard v-if="activeTab === 'health'" />
+
+    <div v-else-if="activeTab === 'connector-settings'" class="app-panel connector-panel p-4 sm:p-5">
       <TabMenu
         :model="connectorTabItems"
         :active-index="connectorActiveIndex"

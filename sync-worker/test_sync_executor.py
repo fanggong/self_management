@@ -76,6 +76,7 @@ class ExecuteSyncTaskTest(unittest.TestCase):
             adapter = adapter_class.return_value
             adapter.fetch_profile.return_value = self._profile_record()
             adapter.fetch_daily_summaries.return_value = []
+            adapter.fetch_body_compositions.return_value = []
             adapter.fetch_activities.return_value = []
             adapter.fetch_sleep_sessions.return_value = []
             adapter.fetch_heart_rates.return_value = []

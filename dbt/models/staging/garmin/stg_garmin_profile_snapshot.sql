@@ -75,6 +75,7 @@ select
   {{ health_json_try_boolean("payload_jsonb -> 'showAge'") }} as show_age,
   {{ health_json_try_boolean("payload_jsonb -> 'showWeight'") }} as show_weight,
   {{ health_json_try_boolean("payload_jsonb -> 'showHeight'") }} as show_height,
+  {{ health_json_try_numeric("payload_jsonb -> 'heightCm'") }} as height_cm,
   {{ health_json_try_boolean("payload_jsonb -> 'showWeightClass'") }} as show_weight_class,
   {{ health_json_try_boolean("payload_jsonb -> 'showAgeRange'") }} as show_age_range,
   {{ health_json_try_boolean("payload_jsonb -> 'showGender'") }} as show_gender,

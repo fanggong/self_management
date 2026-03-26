@@ -269,47 +269,53 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="app-panel space-y-5 p-5 sm:p-6">
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-      <div class="min-w-0">
-        <h2 class="text-2xl font-semibold text-slate-900 dark:text-slate-100">Run Logs</h2>
-      </div>
+  <div class="space-y-4">
+    <article class="h-[45rem] overflow-hidden rounded-2xl border border-slate-200/80 bg-white/90 shadow-sm transition-all duration-200 ease-out hover:border-slate-300/90 hover:shadow-md dark:border-slate-700 dark:bg-slate-900/70 dark:hover:border-slate-600">
+      <div class="flex h-full flex-col overflow-hidden">
+        <div class="border-b border-slate-200/80 px-5 py-2 dark:border-slate-800">
+          <div class="flex flex-col gap-1 sm:min-h-[2.5rem] sm:flex-row sm:items-center sm:justify-between">
+            <p class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Run Logs</p>
 
-      <IconField class="w-full lg:w-[22rem]">
-        <InputIcon class="pi pi-search" />
-        <InputText
-          v-model.trim="searchQuery"
-          type="search"
-          class="w-full"
-          placeholder="Search model, layer, or status"
-          aria-label="Search model, layer, or status"
-        />
-      </IconField>
-    </div>
+            <IconField class="w-full sm:w-72">
+              <InputIcon class="pi pi-search" />
+              <InputText
+                v-model.trim="searchQuery"
+                type="search"
+                class="h-9 w-full text-sm"
+                placeholder="Search model, layer, or status"
+                aria-label="Search model, layer, or status"
+              />
+            </IconField>
+          </div>
+        </div>
 
-    <Message v-if="loadError" severity="error" :closable="false">
-      {{ loadError }}
-    </Message>
+        <div class="flex min-h-0 flex-1 flex-col gap-4 px-4 pb-4 pt-4 sm:px-5">
+          <Message v-if="loadError" severity="error" :closable="false">
+            {{ loadError }}
+          </Message>
 
-    <DataTable
-      v-model:expandedRows="expandedRows"
-      :value="runHistoryItems"
-      :loading="loading"
-      :rows="pageState.pageSize"
-      :first="(pageState.page - 1) * pageState.pageSize"
-      :total-records="pageState.total"
-      dataKey="runId"
-      paginator
-      lazy
-      class="data-model-table"
-      paginator-template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport"
-      current-page-report-template="{first} - {last} of {totalRecords}"
-      table-style="min-width: 100%"
-      striped-rows
-      @rowExpand="onRowExpand"
-      @rowCollapse="onRowCollapse"
-      @page="onPage"
-    >
+          <div class="min-h-0 flex-1 overflow-hidden">
+            <DataTable
+              v-model:expandedRows="expandedRows"
+              :value="runHistoryItems"
+              :loading="loading"
+              :rows="pageState.pageSize"
+              :first="(pageState.page - 1) * pageState.pageSize"
+              :total-records="pageState.total"
+              dataKey="runId"
+              paginator
+              lazy
+              scrollable
+              scroll-height="flex"
+              class="data-model-card-table h-full"
+              paginator-template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport"
+              current-page-report-template="{first} - {last} of {totalRecords}"
+              table-style="min-width: 100%"
+              striped-rows
+              @rowExpand="onRowExpand"
+              @rowCollapse="onRowCollapse"
+              @page="onPage"
+            >
       <Column expander style="width: 3rem" />
 
       <Column header="Model Name">
@@ -456,11 +462,15 @@ onBeforeUnmount(() => {
       </template>
 
       <template #empty>
-        <div class="py-10 text-center text-sm text-slate-500 dark:text-slate-400">
+        <div class="flex min-h-[18rem] items-center justify-center text-center text-sm text-slate-500 dark:text-slate-400">
           No dbt run logs found.
         </div>
       </template>
-    </DataTable>
+            </DataTable>
+          </div>
+        </div>
+      </div>
+    </article>
 
     <Dialog
       v-model:visible="detailDialogVisible"

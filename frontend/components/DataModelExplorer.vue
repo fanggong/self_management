@@ -628,89 +628,97 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="app-panel space-y-5 p-5 sm:p-6">
-    <div class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-      <div class="min-w-0">
-        <h2 class="text-2xl font-semibold text-slate-900 dark:text-slate-100">{{ layerMeta.title }}</h2>
-      </div>
+  <div class="space-y-4">
+    <article class="h-[45rem] overflow-hidden rounded-2xl border border-slate-200/80 bg-white/90 shadow-sm transition-all duration-200 ease-out hover:border-slate-300/90 hover:shadow-md dark:border-slate-700 dark:bg-slate-900/70 dark:hover:border-slate-600">
+      <div class="flex h-full flex-col overflow-hidden">
+        <div class="border-b border-slate-200/80 px-5 py-2 dark:border-slate-800">
+          <div class="flex flex-col gap-3 xl:min-h-[2.5rem] xl:flex-row xl:items-center xl:justify-between">
+            <p class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+              {{ layerMeta.title }}
+            </p>
 
-      <div class="flex w-full flex-col gap-3 sm:flex-row xl:w-auto xl:items-end">
-        <IconField class="w-full sm:flex-1 xl:w-[18rem] xl:flex-none">
-          <InputIcon class="pi pi-search" />
-          <InputText
-            v-model.trim="searchQuery"
-            type="search"
-            class="w-full"
-            placeholder="Search model name"
-            aria-label="Search model name"
-          />
-        </IconField>
+            <div class="flex w-full flex-col gap-3 sm:flex-row xl:w-auto xl:items-center">
+              <IconField class="w-full sm:flex-1 xl:w-[18rem] xl:flex-none">
+                <InputIcon class="pi pi-search" />
+                <InputText
+                  v-model.trim="searchQuery"
+                  type="search"
+                  class="h-9 w-full text-sm"
+                  placeholder="Search model name"
+                  aria-label="Search model name"
+                />
+              </IconField>
 
-        <MultiSelect
-          v-model="selectedScopeValues"
-          :options="scopeOptions"
-          option-label="label"
-          option-value="value"
-          display="chip"
-          filter
-          :placeholder="scopePlaceholder"
-          :max-selected-labels="2"
-          selected-items-label="{0} selected"
-          class="w-full sm:flex-1 xl:w-[18rem] xl:flex-none"
-          :disabled="runBusy || batchRunBusy"
-        >
-          <template #option="{ option }">
-            <div v-if="option.scopeType === 'connector' && getConnectorIdentity(option.label)" class="connector-identity">
-              <img
-                v-if="getConnectorIdentity(option.label)?.logo"
-                :src="getConnectorIdentity(option.label)?.logo"
-                :alt="option.label"
-                class="connector-brand-logo"
+              <MultiSelect
+                v-model="selectedScopeValues"
+                :options="scopeOptions"
+                option-label="label"
+                option-value="value"
+                display="chip"
+                filter
+                :placeholder="scopePlaceholder"
+                :max-selected-labels="2"
+                selected-items-label="{0} selected"
+                class="w-full sm:flex-1 xl:w-[18rem] xl:flex-none"
+                :disabled="runBusy || batchRunBusy"
+              >
+                <template #option="{ option }">
+                  <div v-if="option.scopeType === 'connector' && getConnectorIdentity(option.label)" class="connector-identity">
+                    <img
+                      v-if="getConnectorIdentity(option.label)?.logo"
+                      :src="getConnectorIdentity(option.label)?.logo"
+                      :alt="option.label"
+                      class="connector-brand-logo"
+                    />
+                    <i
+                      v-else
+                      :class="[getConnectorIdentity(option.label)?.fallbackIcon, 'connector-brand-icon']"
+                    />
+                    <span class="connector-name">{{ option.label }}</span>
+                  </div>
+                  <span
+                    v-else-if="option.scopeType === 'domain'"
+                    class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200"
+                  >
+                    {{ option.label }}
+                  </span>
+                  <span v-else>{{ option.label }}</span>
+                </template>
+              </MultiSelect>
+
+              <Button
+                label="Run"
+                class="shrink-0"
+                :disabled="batchRunDisabled"
+                :loading="batchRunBusy"
+                @click="openBatchRunDialog"
               />
-              <i
-                v-else
-                :class="[getConnectorIdentity(option.label)?.fallbackIcon, 'connector-brand-icon']"
-              />
-              <span class="connector-name">{{ option.label }}</span>
             </div>
-            <span
-              v-else-if="option.scopeType === 'domain'"
-              class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200"
+          </div>
+        </div>
+
+        <div class="flex min-h-0 flex-1 flex-col gap-4 px-4 pb-4 pt-4 sm:px-5">
+          <Message v-if="loadError" severity="error" :closable="false">
+            {{ loadError }}
+          </Message>
+
+          <div class="min-h-0 flex-1 overflow-hidden">
+            <DataTable
+              :value="models"
+              :loading="loading"
+              :rows="pageState.pageSize"
+              :first="(pageState.page - 1) * pageState.pageSize"
+              :total-records="models.length"
+              paginator
+              scrollable
+              scroll-height="flex"
+              class="data-model-card-table h-full"
+              paginator-template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport"
+              current-page-report-template="{first} - {last} of {totalRecords}"
+              table-style="min-width: 100%"
+              striped-rows
+              @page="onPage"
             >
-              {{ option.label }}
-            </span>
-            <span v-else>{{ option.label }}</span>
-          </template>
-        </MultiSelect>
-
-        <Button
-          label="Run"
-          class="shrink-0"
-          :disabled="batchRunDisabled"
-          :loading="batchRunBusy"
-          @click="openBatchRunDialog"
-        />
-      </div>
-    </div>
-
-    <Message v-if="loadError" severity="error" :closable="false">
-      {{ loadError }}
-    </Message>
-
-    <DataTable
-      :value="models"
-      :loading="loading"
-      :rows="pageState.pageSize"
-      :first="(pageState.page - 1) * pageState.pageSize"
-      :total-records="models.length"
-      paginator
-      class="data-model-table"
-      paginator-template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport"
-      current-page-report-template="{first} - {last} of {totalRecords}"
-      table-style="min-width: 100%"
-      striped-rows
-      @page="onPage"
-    >
       <Column header="Model Name">
         <template #body="{ data }">
           <button
@@ -785,11 +793,15 @@ onBeforeUnmount(() => {
       </Column>
 
       <template #empty>
-        <div class="py-10 text-center text-sm text-slate-500 dark:text-slate-400">
+        <div class="flex min-h-[18rem] items-center justify-center text-center text-sm text-slate-500 dark:text-slate-400">
           {{ layerMeta.emptyText }}
         </div>
       </template>
-    </DataTable>
+            </DataTable>
+          </div>
+        </div>
+      </div>
+    </article>
 
     <Dialog
       v-model:visible="detailDialogVisible"

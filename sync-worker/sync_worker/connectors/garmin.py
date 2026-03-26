@@ -32,6 +32,14 @@ class GarminConnectorAdapter(BaseConnectorAdapter):
                 "displayName": self.username.split("@")[0] if "@" in self.username else self.username,
                 "provider": "garmin-connect",
                 "region": "cn",
+                "heightCm": 172.0,
+                "userSettings": {
+                    "userData": {
+                        "height": 172,
+                        "measurementSystem": "metric",
+                    }
+                },
+                "profileSettings": {},
             }
             return {
                 "externalId": self.username,
@@ -85,6 +93,63 @@ class GarminConnectorAdapter(BaseConnectorAdapter):
                     "sourceRecordAt": None,
                     "sourceUpdatedAt": None,
                     "payload": client.get_stats(cursor.isoformat()),
+                }
+            )
+        return rows
+
+    def fetch_body_compositions(self, start_at: datetime, end_at: datetime) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
+        if settings.garmin_mock_mode:
+            for index, cursor in enumerate(self._iter_days(start_at, end_at)):
+                measurement_local = datetime.combine(cursor, datetime.min.time(), tzinfo=self._local_timezone) + timedelta(hours=7, minutes=15)
+                weight = 68.2 + (index * 0.15)
+                bmi = 22.4 + (index * 0.05)
+                payload = {
+                    "dateWeightList": [
+                        {
+                            "date": cursor.isoformat(),
+                            "weight": round(weight, 2),
+                            "bmi": round(bmi, 2),
+                            "samplePk": int(measurement_local.timestamp() * 1000),
+                            "measurementTimeGMT": measurement_local.astimezone(timezone.utc).isoformat(),
+                            "measurementTimeLocal": measurement_local.isoformat(),
+                        }
+                    ],
+                    "totalAverage": {
+                        "weight": round(weight, 2),
+                        "bmi": round(bmi, 2),
+                    },
+                }
+                rows.append(
+                    {
+                        "externalId": f"body:{self.username}:{cursor.isoformat()}",
+                        "sourceRecordDate": cursor.isoformat(),
+                        "sourceRecordAt": measurement_local.astimezone(timezone.utc),
+                        "sourceUpdatedAt": measurement_local.astimezone(timezone.utc),
+                        "payload": payload,
+                    }
+                )
+            return rows
+
+        client = self._get_client()
+        for cursor in self._iter_days(start_at, end_at):
+            payload = client.get_body_composition(cursor.isoformat())
+            if not isinstance(payload, dict) or self._is_empty_body_composition(payload):
+                continue
+
+            measurement = self._extract_body_composition_entry(payload)
+            source_record_date = (
+                self._extract_body_composition_date(measurement)
+                or cursor.isoformat()
+            )
+            source_record_at = self._extract_body_composition_timestamp(measurement)
+            rows.append(
+                {
+                    "externalId": f"body:{self.username}:{source_record_date}",
+                    "sourceRecordDate": source_record_date,
+                    "sourceRecordAt": source_record_at,
+                    "sourceUpdatedAt": source_record_at,
+                    "payload": payload,
                 }
             )
         return rows
@@ -250,19 +315,69 @@ class GarminConnectorAdapter(BaseConnectorAdapter):
         return self._client
 
     def _fetch_current_profile_payload(self) -> dict[str, Any]:
+        public_profile = self._fetch_public_profile_payload()
+        user_settings = self._fetch_user_settings_payload()
+        profile_settings = self._fetch_profile_settings_payload()
+
+        merged_payload = dict(public_profile)
+        merged_payload["userSettings"] = user_settings
+        merged_payload["profileSettings"] = profile_settings
+        merged_payload["heightCm"] = self._extract_height_cm(user_settings, profile_settings)
+        return merged_payload
+
+    def _fetch_public_profile_payload(self) -> dict[str, Any]:
         client = self._get_client()
         garth_client = getattr(client, "garth", None)
         profile = getattr(garth_client, "profile", None) if garth_client is not None else None
         if isinstance(profile, dict) and profile:
             return profile
 
-        connectapi = getattr(garth_client, "connectapi", None) if garth_client is not None else None
-        if callable(connectapi):
-            payload = connectapi("/userprofile-service/userprofile/profile")
-            if isinstance(payload, dict) and payload:
-                return payload
+        payload = self._fetch_connectapi_payload("/userprofile-service/userprofile/profile")
+        if payload:
+            return payload
 
         raise ValueError("Garmin current profile payload is unavailable after login.")
+
+    def _fetch_user_settings_payload(self) -> dict[str, Any]:
+        client = self._get_client()
+        get_user_profile = getattr(client, "get_user_profile", None)
+        if callable(get_user_profile):
+            try:
+                payload = get_user_profile()
+                if isinstance(payload, dict) and payload:
+                    return payload
+            except Exception:
+                pass
+
+        payload = self._fetch_connectapi_payload("/userprofile-service/userprofile/user-settings")
+        return payload or {}
+
+    def _fetch_profile_settings_payload(self) -> dict[str, Any]:
+        client = self._get_client()
+        get_userprofile_settings = getattr(client, "get_userprofile_settings", None)
+        if callable(get_userprofile_settings):
+            try:
+                payload = get_userprofile_settings()
+                if isinstance(payload, dict) and payload:
+                    return payload
+            except Exception:
+                pass
+
+        payload = self._fetch_connectapi_payload("/userprofile-service/userprofile/settings")
+        return payload or {}
+
+    def _fetch_connectapi_payload(self, path: str) -> dict[str, Any] | None:
+        client = self._get_client()
+        garth_client = getattr(client, "garth", None)
+        connectapi = getattr(garth_client, "connectapi", None) if garth_client is not None else None
+        if callable(connectapi):
+            try:
+                payload = connectapi(path)
+            except Exception:
+                return None
+            if isinstance(payload, dict) and payload:
+                return payload
+        return None
 
     def _iter_days(self, start_at: datetime, end_at: datetime) -> Iterable[date]:
         cursor = start_at.astimezone(self._local_timezone).date()
@@ -350,6 +465,88 @@ class GarminConnectorAdapter(BaseConnectorAdapter):
             return [float(value)]
         return []
 
+    @classmethod
+    def _extract_height_cm(cls, user_settings: dict[str, Any], profile_settings: dict[str, Any]) -> float | None:
+        candidates = (
+            cls._extract_height_candidate(user_settings.get("userData") if isinstance(user_settings.get("userData"), dict) else None, user_settings),
+            cls._extract_height_candidate(user_settings, user_settings),
+            cls._extract_height_candidate(profile_settings.get("userData") if isinstance(profile_settings.get("userData"), dict) else None, profile_settings),
+            cls._extract_height_candidate(profile_settings, profile_settings),
+        )
+        for value, unit_hint in candidates:
+            normalized = cls._normalize_height_cm(value, unit_hint)
+            if normalized is not None:
+                return normalized
+        return None
+
+    @classmethod
+    def _extract_height_candidate(
+        cls,
+        payload: dict[str, Any] | None,
+        context: dict[str, Any] | None,
+    ) -> tuple[Any, str | None]:
+        if not isinstance(payload, dict):
+            return None, None
+
+        for key in ("heightCm", "heightCM", "heightInCm", "heightInCentimeters", "userHeightCm"):
+            if key in payload:
+                return payload.get(key), "cm"
+
+        if "height" in payload:
+            return payload.get("height"), cls._extract_height_unit_hint(payload, context)
+
+        for key in ("heightMeters", "heightInMeters"):
+            if key in payload:
+                return payload.get(key), "m"
+
+        for key in ("heightInInches", "heightInIn"):
+            if key in payload:
+                return payload.get(key), "in"
+
+        return None, cls._extract_height_unit_hint(payload, context)
+
+    @staticmethod
+    def _extract_height_unit_hint(payload: dict[str, Any] | None, context: dict[str, Any] | None) -> str | None:
+        search_order: list[dict[str, Any]] = []
+        if isinstance(payload, dict):
+            search_order.append(payload)
+        if isinstance(context, dict) and context is not payload:
+            search_order.append(context)
+
+        for source in search_order:
+            for key in (
+                "heightUnit",
+                "heightUnits",
+                "heightUom",
+                "heightMeasurementUnit",
+                "measurementSystem",
+                "measurementUnit",
+            ):
+                value = source.get(key)
+                if isinstance(value, str) and value.strip():
+                    return value.strip().lower()
+        return None
+
+    @classmethod
+    def _normalize_height_cm(cls, value: Any, unit_hint: str | None) -> float | None:
+        numeric_value = cls._coerce_float(value)
+        if numeric_value is None or numeric_value <= 0:
+            return None
+
+        normalized_hint = (unit_hint or "").strip().lower()
+        if normalized_hint in {"cm", "centimeter", "centimeters", "metric"} and numeric_value >= 100:
+            return round(numeric_value, 1)
+        if normalized_hint in {"m", "meter", "meters"}:
+            return round(numeric_value * 100.0, 1)
+        if normalized_hint in {"in", "inch", "inches", "imperial"} and 36 <= numeric_value <= 96:
+            return round(numeric_value * 2.54, 1)
+
+        if numeric_value >= 100:
+            return round(numeric_value, 1)
+        if numeric_value < 3:
+            return round(numeric_value * 100.0, 1)
+        return None
+
     @staticmethod
     def _is_empty_sleep(dto: dict[str, Any]) -> bool:
         metrics = (
@@ -370,6 +567,82 @@ class GarminConnectorAdapter(BaseConnectorAdapter):
             payload.get("maxHeartRate"),
         )
         return all(metric in (None, 0, "") for metric in metrics) and not self._extract_heart_rate_values(payload)
+
+    def _is_empty_body_composition(self, payload: dict[str, Any]) -> bool:
+        entry = self._extract_body_composition_entry(payload)
+        if entry:
+            return (
+                self._coerce_float(entry.get("weight")) is None
+                and self._coerce_float(entry.get("weightInKg")) is None
+                and self._coerce_float(entry.get("bmi")) is None
+            )
+
+        total_average = payload.get("totalAverage")
+        if isinstance(total_average, dict):
+            return (
+                self._coerce_float(total_average.get("weight")) is None
+                and self._coerce_float(total_average.get("weightInKg")) is None
+                and self._coerce_float(total_average.get("bmi")) is None
+            )
+
+        return True
+
+    @staticmethod
+    def _extract_body_composition_entry(payload: dict[str, Any]) -> dict[str, Any]:
+        date_weight_list = payload.get("dateWeightList")
+        if isinstance(date_weight_list, list):
+            for item in date_weight_list:
+                if isinstance(item, dict):
+                    return item
+
+        total_average = payload.get("totalAverage")
+        if isinstance(total_average, dict):
+            return total_average
+
+        daily_summaries = payload.get("dailyWeightSummaries")
+        if isinstance(daily_summaries, list):
+            for item in daily_summaries:
+                if isinstance(item, dict):
+                    return item
+
+        return {}
+
+    def _extract_body_composition_date(self, entry: dict[str, Any]) -> str | None:
+        for key in ("date", "calendarDate", "measurementDate"):
+            value = entry.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+
+        sample_pk = entry.get("samplePk")
+        if sample_pk is not None:
+            parsed = self._parse_timestamp(sample_pk, default_tz=timezone.utc)
+            if parsed is not None:
+                return parsed.astimezone(self._local_timezone).date().isoformat()
+
+        timestamp = self._extract_body_composition_timestamp(entry)
+        if timestamp is not None:
+            return timestamp.astimezone(self._local_timezone).date().isoformat()
+
+        return None
+
+    def _extract_body_composition_timestamp(self, entry: dict[str, Any]) -> datetime | None:
+        timestamp_keys = (
+            "measurementTimeGMT",
+            "measurementTimestampGMT",
+            "measurementTimeLocal",
+            "measurementTimestampLocal",
+            "timestampGMT",
+            "timestampLocal",
+            "samplePk",
+        )
+        for key in timestamp_keys:
+            parsed = self._parse_timestamp(
+                entry.get(key),
+                default_tz=self._local_timezone if "Local" in key else timezone.utc,
+            )
+            if parsed is not None:
+                return parsed
+        return None
 
     @classmethod
     def _extract_heart_rate_values(cls, payload: dict[str, Any]) -> list[float]:

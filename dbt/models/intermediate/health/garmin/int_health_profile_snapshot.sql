@@ -41,6 +41,7 @@ select
   stg.show_age,
   stg.show_weight,
   stg.show_height,
+  stg.height_cm,
   stg.show_weight_class,
   stg.show_age_range,
   stg.show_gender,

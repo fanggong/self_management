@@ -9,5 +9,9 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
 
   Optional<UserEntity> findByIdAndAccountId(UUID id, UUID accountId);
 
+  Optional<UserEntity> findFirstByAccountIdAndRoleOrderByCreatedAtAscIdAsc(UUID accountId, String role);
+
+  Optional<UserEntity> findFirstByAccountIdOrderByCreatedAtAscIdAsc(UUID accountId);
+
   boolean existsByPrincipalIgnoreCase(String principal);
 }

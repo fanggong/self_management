@@ -5,6 +5,9 @@ import com.otw.adminapi.common.api.ApiException;
 import com.otw.adminapi.common.util.DateTimeFormats;
 import com.otw.adminapi.connector.ConnectorService;
 import com.otw.adminapi.security.AuthenticatedUser;
+import com.otw.adminapi.user.AccountRepository;
+import com.otw.adminapi.user.UserEntity;
+import com.otw.adminapi.user.UserRepository;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.time.Duration;
@@ -44,6 +47,8 @@ public class DbtModelService {
   private final DbtRunHistoryRepository dbtRunHistoryRepository;
   private final DbtRunModelHistoryRepository dbtRunModelHistoryRepository;
   private final ConnectorService connectorService;
+  private final AccountRepository accountRepository;
+  private final UserRepository userRepository;
   private final JdbcTemplate jdbcTemplate;
   private final ZoneId zoneId;
   private final ObjectMapper objectMapper = new ObjectMapper();
@@ -54,6 +59,8 @@ public class DbtModelService {
     DbtRunHistoryRepository dbtRunHistoryRepository,
     DbtRunModelHistoryRepository dbtRunModelHistoryRepository,
     ConnectorService connectorService,
+    AccountRepository accountRepository,
+    UserRepository userRepository,
     JdbcTemplate jdbcTemplate,
     @Value("${app.timezone}") String timezone
   ) {
@@ -62,6 +69,8 @@ public class DbtModelService {
     this.dbtRunHistoryRepository = dbtRunHistoryRepository;
     this.dbtRunModelHistoryRepository = dbtRunModelHistoryRepository;
     this.connectorService = connectorService;
+    this.accountRepository = accountRepository;
+    this.userRepository = userRepository;
     this.jdbcTemplate = jdbcTemplate;
     this.zoneId = ZoneId.of(timezone);
   }
@@ -360,6 +369,39 @@ public class DbtModelService {
     };
   }
 
+  @Transactional
+  public DefaultScheduledMartsRunResultView runDefaultMartsSchedule() {
+    List<DbtModelRunnerClient.RunnerModelItem> targetModels = dbtModelRunnerClient.listModels("marts", null)
+      .stream()
+      .sorted(Comparator.comparing(DbtModelRunnerClient.RunnerModelItem::name))
+      .toList();
+
+    int processedAccounts = 0;
+    int skippedAccounts = 0;
+    int succeededModels = 0;
+    int failedModels = 0;
+
+    for (var account : accountRepository.findAll()) {
+      AuthenticatedUser runUser = resolveScheduledRunUser(account.getId());
+      if (runUser == null) {
+        skippedAccounts += 1;
+        continue;
+      }
+
+      processedAccounts += 1;
+      for (DbtModelRunnerClient.RunnerModelItem targetModel : targetModels) {
+        SingleModelRunOutcome outcome = executeSingleModel(runUser, "marts", targetModel.name());
+        if (outcome.success()) {
+          succeededModels += 1;
+        } else {
+          failedModels += 1;
+        }
+      }
+    }
+
+    return new DefaultScheduledMartsRunResultView(processedAccounts, skippedAccounts, succeededModels, failedModels);
+  }
+
   private Map<String, Instant> loadLatestSuccessfulRuns(
     AuthenticatedUser authenticatedUser,
     String normalizedLayer,
@@ -613,6 +655,18 @@ public class DbtModelService {
       .filter(item -> requestedScopes.contains(resolveScopeKey(normalizedScopeType, item)))
       .sorted(Comparator.comparing(DbtModelRunnerClient.RunnerModelItem::name))
       .toList();
+  }
+
+  private AuthenticatedUser resolveScheduledRunUser(UUID accountId) {
+    UserEntity user = userRepository.findFirstByAccountIdAndRoleOrderByCreatedAtAscIdAsc(accountId, "ADMIN")
+      .or(() -> userRepository.findFirstByAccountIdOrderByCreatedAtAscIdAsc(accountId))
+      .orElse(null);
+
+    if (user == null) {
+      return null;
+    }
+
+    return new AuthenticatedUser(user.getId(), accountId, user.getPrincipal(), user.getRole());
   }
 
   private Map<String, Object> createRunStartedEvent(String normalizedLayer, String modelName) {

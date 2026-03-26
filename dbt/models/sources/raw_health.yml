@@ -11,7 +11,7 @@ sources:
       - name: health_snapshot_record
         description: >
           Raw snapshot records for health connectors. Garmin `profile`, `daily_summary`, `sleep`
-          and `medical_report` currently land here as one raw row per source snapshot.
+          `body_composition` and `medical_report` currently land here as one raw row per source snapshot.
         columns:
           - name: id
             description: Raw record primary key.

@@ -68,6 +68,7 @@ def execute_sync_task(task_id: str) -> None:
         adapter.verify_connection()
         persist_records([adapter.fetch_profile()], db.upsert_health_snapshot_record, "profile")
         persist_records(adapter.fetch_daily_summaries(start_at, end_at), db.upsert_health_snapshot_record, "daily_summary")
+        persist_records(adapter.fetch_body_compositions(start_at, end_at), db.upsert_health_snapshot_record, "body_composition")
         persist_records(adapter.fetch_activities(start_at, end_at), db.upsert_health_event_record, "activity")
         persist_records(adapter.fetch_sleep_sessions(start_at, end_at), db.upsert_health_snapshot_record, "sleep")
         persist_records(adapter.fetch_heart_rates(start_at, end_at), db.upsert_health_timeseries_record, "heart_rate")
