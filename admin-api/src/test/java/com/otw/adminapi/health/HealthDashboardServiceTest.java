@@ -14,6 +14,7 @@ import com.otw.adminapi.common.api.ApiException;
 import com.otw.adminapi.security.AuthenticatedUser;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,6 +51,80 @@ class HealthDashboardServiceTest {
     HealthDashboardSummaryView summary = service.getSummary(authenticatedUser);
 
     assertNull(summary);
+  }
+
+  @Test
+  void getHeartRateCardReturnsNullDataWhenMartTableIsUnavailable() {
+    LocalDate date = LocalDate.of(2026, 3, 19);
+    when(jdbcTemplate.query(
+      anyString(),
+      org.mockito.ArgumentMatchers.<ResultSetExtractor<Boolean>>any(),
+      eq("mart_health_dashboard_daily")
+    )).thenReturn(false);
+
+    HealthCardResponseView<HealthHeartRateCardView> response = service.getHeartRateCard(authenticatedUser, date);
+
+    assertEquals("2026-03-19", response.date());
+    assertNull(response.data());
+  }
+
+  @Test
+  void getHeartRateCardReturnsExactDateData() {
+    LocalDate date = LocalDate.of(2026, 3, 19);
+    when(jdbcTemplate.query(
+      anyString(),
+      org.mockito.ArgumentMatchers.<ResultSetExtractor<Boolean>>any(),
+      eq("mart_health_dashboard_daily")
+    )).thenReturn(true);
+    when(jdbcTemplate.query(
+      anyString(),
+      org.mockito.ArgumentMatchers.<ResultSetExtractor<HealthHeartRateCardView>>any(),
+      eq(authenticatedUser.accountId()),
+      eq(date)
+    )).thenReturn(new HealthHeartRateCardView(114, 58, 96));
+
+    HealthCardResponseView<HealthHeartRateCardView> response = service.getHeartRateCard(authenticatedUser, date);
+
+    assertEquals("2026-03-19", response.date());
+    assertNotNull(response.data());
+    assertEquals(96, response.data().average());
+  }
+
+  @Test
+  void getHeartRateCardReturnsLatestAvailableDataWhenDateIsMissing() {
+    LocalDate latestAllowedDate = LocalDate.now(ZoneId.of("Asia/Shanghai")).minusDays(1);
+    when(jdbcTemplate.query(
+      anyString(),
+      org.mockito.ArgumentMatchers.<ResultSetExtractor<Boolean>>any(),
+      eq("mart_health_dashboard_daily")
+    )).thenReturn(true);
+    when(jdbcTemplate.query(
+      anyString(),
+      org.mockito.ArgumentMatchers.<ResultSetExtractor<HealthCardResponseView<HealthHeartRateCardView>>>any(),
+      eq(authenticatedUser.accountId()),
+      eq(latestAllowedDate)
+    )).thenReturn(new HealthCardResponseView<>(
+      "2026-03-18",
+      new HealthHeartRateCardView(134, 69, 87)
+    ));
+
+    HealthCardResponseView<HealthHeartRateCardView> response = service.getHeartRateCard(authenticatedUser, null);
+
+    assertEquals("2026-03-18", response.date());
+    assertNotNull(response.data());
+    assertEquals(87, response.data().average());
+  }
+
+  @Test
+  void getHeartRateCardRejectsFutureDate() {
+    LocalDate futureDate = LocalDate.now().plusDays(1);
+
+    ApiException exception = assertThrows(
+      ApiException.class,
+      () -> service.getHeartRateCard(authenticatedUser, futureDate)
+    );
+
+    assertEquals("VALIDATION_ERROR", exception.getCode());
   }
 
   @Test

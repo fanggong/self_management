@@ -4,8 +4,8 @@ import java.util.List;
 
 public record DbtBatchModelRunResultView(
   String layer,
-  String scopeType,
-  List<String> scopeValues,
+  String selectionType,
+  List<String> modelNames,
   int totalModels,
   int succeededCount,
   int failedCount,

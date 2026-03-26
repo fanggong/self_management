@@ -96,6 +96,357 @@ public class HealthDashboardService {
     );
   }
 
+  public HealthCardResponseView<HealthHeartRateCardView> getHeartRateCard(
+    AuthenticatedUser authenticatedUser,
+    LocalDate date
+  ) {
+    LocalDate requestedDate = date != null ? validateRequestedDate(date) : null;
+    String formattedDate = formatDate(requestedDate);
+
+    if (!isMartTableAvailable("mart_health_dashboard_daily")) {
+      return new HealthCardResponseView<>(formattedDate, null);
+    }
+
+    if (requestedDate == null) {
+      return jdbcTemplate.query(
+        """
+          SELECT
+            metric_date,
+            max_heart_rate,
+            resting_heart_rate,
+            average_heart_rate
+          FROM marts.mart_health_dashboard_daily
+          WHERE account_id = ?
+            AND metric_date <= ?
+            AND (
+              max_heart_rate IS NOT NULL
+              OR resting_heart_rate IS NOT NULL
+              OR average_heart_rate IS NOT NULL
+            )
+          ORDER BY metric_date DESC
+          LIMIT 1
+        """,
+        rs -> {
+          if (!rs.next()) {
+            return new HealthCardResponseView<HealthHeartRateCardView>(null, null);
+          }
+
+          return new HealthCardResponseView<>(
+            formatDate(rs.getObject("metric_date", LocalDate.class)),
+            new HealthHeartRateCardView(
+              getNullableInteger(rs, "max_heart_rate"),
+              getNullableInteger(rs, "resting_heart_rate"),
+              getNullableInteger(rs, "average_heart_rate")
+            )
+          );
+        },
+        authenticatedUser.accountId(),
+        latestAllowedDate()
+      );
+    }
+
+    HealthHeartRateCardView card = jdbcTemplate.query(
+      """
+        SELECT
+          max_heart_rate,
+          resting_heart_rate,
+          average_heart_rate
+        FROM marts.mart_health_dashboard_daily
+        WHERE account_id = ?
+          AND metric_date = ?
+        LIMIT 1
+      """,
+      rs -> {
+        if (!rs.next()) {
+          return null;
+        }
+
+        HealthHeartRateCardView view = new HealthHeartRateCardView(
+          getNullableInteger(rs, "max_heart_rate"),
+          getNullableInteger(rs, "resting_heart_rate"),
+          getNullableInteger(rs, "average_heart_rate")
+        );
+        return hasHeartRateData(view) ? view : null;
+      },
+      authenticatedUser.accountId(),
+      requestedDate
+    );
+
+    return new HealthCardResponseView<>(formattedDate, card);
+  }
+
+  public HealthCardResponseView<HealthWeightCardView> getWeightCard(
+    AuthenticatedUser authenticatedUser,
+    LocalDate date
+  ) {
+    LocalDate requestedDate = date != null ? validateRequestedDate(date) : null;
+    String formattedDate = formatDate(requestedDate);
+
+    if (!isMartTableAvailable("mart_health_dashboard_daily")) {
+      return new HealthCardResponseView<>(formattedDate, null);
+    }
+
+    if (requestedDate == null) {
+      return jdbcTemplate.query(
+        """
+          WITH selected_summary AS (
+            SELECT
+              metric_date,
+              weight_kg,
+              bmi
+            FROM marts.mart_health_dashboard_daily
+            WHERE account_id = ?
+              AND metric_date <= ?
+              AND (weight_kg IS NOT NULL OR bmi IS NOT NULL)
+            ORDER BY metric_date DESC
+            LIMIT 1
+          )
+          SELECT
+            selected_summary.metric_date,
+            selected_summary.weight_kg,
+            selected_summary.bmi,
+            previous_weight.previous_weight_kg
+          FROM selected_summary
+          LEFT JOIN LATERAL (
+            SELECT candidate.weight_kg AS previous_weight_kg
+            FROM marts.mart_health_dashboard_daily AS candidate
+            WHERE candidate.account_id = ?
+              AND candidate.metric_date < selected_summary.metric_date
+              AND candidate.weight_kg IS NOT NULL
+            ORDER BY candidate.metric_date DESC
+            LIMIT 1
+          ) AS previous_weight ON true
+        """,
+        rs -> {
+          if (!rs.next()) {
+            return new HealthCardResponseView<HealthWeightCardView>(null, null);
+          }
+
+          return new HealthCardResponseView<>(
+            formatDate(rs.getObject("metric_date", LocalDate.class)),
+            buildWeightCard(
+              rs.getBigDecimal("weight_kg"),
+              rs.getBigDecimal("bmi"),
+              rs.getBigDecimal("previous_weight_kg")
+            )
+          );
+        },
+        authenticatedUser.accountId(),
+        latestAllowedDate(),
+        authenticatedUser.accountId()
+      );
+    }
+
+    HealthWeightCardView card = jdbcTemplate.query(
+      """
+        WITH selected_summary AS (
+          SELECT
+            metric_date,
+            weight_kg,
+            bmi
+          FROM marts.mart_health_dashboard_daily
+          WHERE account_id = ?
+            AND metric_date = ?
+          LIMIT 1
+        )
+        SELECT
+          selected_summary.weight_kg,
+          selected_summary.bmi,
+          previous_weight.previous_weight_kg
+        FROM selected_summary
+        LEFT JOIN LATERAL (
+          SELECT candidate.weight_kg AS previous_weight_kg
+          FROM marts.mart_health_dashboard_daily AS candidate
+          WHERE candidate.account_id = ?
+            AND candidate.metric_date < selected_summary.metric_date
+            AND candidate.weight_kg IS NOT NULL
+          ORDER BY candidate.metric_date DESC
+          LIMIT 1
+        ) AS previous_weight ON true
+      """,
+      rs -> {
+        if (!rs.next()) {
+          return null;
+        }
+
+        HealthWeightCardView view = buildWeightCard(
+          rs.getBigDecimal("weight_kg"),
+          rs.getBigDecimal("bmi"),
+          rs.getBigDecimal("previous_weight_kg")
+        );
+        return hasWeightData(view) ? view : null;
+      },
+      authenticatedUser.accountId(),
+      requestedDate,
+      authenticatedUser.accountId()
+    );
+
+    return new HealthCardResponseView<>(formattedDate, card);
+  }
+
+  public HealthCardResponseView<HealthCaloriesCardView> getCaloriesCard(
+    AuthenticatedUser authenticatedUser,
+    LocalDate date
+  ) {
+    LocalDate requestedDate = date != null ? validateRequestedDate(date) : null;
+    String formattedDate = formatDate(requestedDate);
+
+    if (!isMartTableAvailable("mart_health_dashboard_daily")) {
+      return new HealthCardResponseView<>(formattedDate, null);
+    }
+
+    if (requestedDate == null) {
+      return jdbcTemplate.query(
+        """
+          SELECT
+            metric_date,
+            bmr_kilocalories,
+            active_kilocalories
+          FROM marts.mart_health_dashboard_daily
+          WHERE account_id = ?
+            AND metric_date <= ?
+            AND (
+              bmr_kilocalories IS NOT NULL
+              OR active_kilocalories IS NOT NULL
+            )
+          ORDER BY metric_date DESC
+          LIMIT 1
+        """,
+        rs -> {
+          if (!rs.next()) {
+            return new HealthCardResponseView<HealthCaloriesCardView>(null, null);
+          }
+
+          return new HealthCardResponseView<>(
+            formatDate(rs.getObject("metric_date", LocalDate.class)),
+            new HealthCaloriesCardView(
+              rs.getBigDecimal("bmr_kilocalories"),
+              rs.getBigDecimal("active_kilocalories")
+            )
+          );
+        },
+        authenticatedUser.accountId(),
+        latestAllowedDate()
+      );
+    }
+
+    HealthCaloriesCardView card = jdbcTemplate.query(
+      """
+        SELECT
+          bmr_kilocalories,
+          active_kilocalories
+        FROM marts.mart_health_dashboard_daily
+        WHERE account_id = ?
+          AND metric_date = ?
+        LIMIT 1
+      """,
+      rs -> {
+        if (!rs.next()) {
+          return null;
+        }
+
+        HealthCaloriesCardView view = new HealthCaloriesCardView(
+          rs.getBigDecimal("bmr_kilocalories"),
+          rs.getBigDecimal("active_kilocalories")
+        );
+        return hasCaloriesData(view) ? view : null;
+      },
+      authenticatedUser.accountId(),
+      requestedDate
+    );
+
+    return new HealthCardResponseView<>(formattedDate, card);
+  }
+
+  public HealthCardResponseView<HealthStressCardView> getStressCard(
+    AuthenticatedUser authenticatedUser,
+    LocalDate date
+  ) {
+    LocalDate requestedDate = date != null ? validateRequestedDate(date) : null;
+    String formattedDate = formatDate(requestedDate);
+
+    if (!isMartTableAvailable("mart_health_dashboard_daily")) {
+      return new HealthCardResponseView<>(formattedDate, null);
+    }
+
+    if (requestedDate == null) {
+      return jdbcTemplate.query(
+        """
+          SELECT
+            metric_date,
+            average_stress_level,
+            low_stress_duration,
+            medium_stress_duration,
+            high_stress_duration,
+            rest_stress_duration
+          FROM marts.mart_health_dashboard_daily
+          WHERE account_id = ?
+            AND metric_date <= ?
+            AND (
+              average_stress_level IS NOT NULL
+              OR low_stress_duration IS NOT NULL
+              OR medium_stress_duration IS NOT NULL
+              OR high_stress_duration IS NOT NULL
+              OR rest_stress_duration IS NOT NULL
+            )
+          ORDER BY metric_date DESC
+          LIMIT 1
+        """,
+        rs -> {
+          if (!rs.next()) {
+            return new HealthCardResponseView<HealthStressCardView>(null, null);
+          }
+
+          return new HealthCardResponseView<>(
+            formatDate(rs.getObject("metric_date", LocalDate.class)),
+            new HealthStressCardView(
+              rs.getBigDecimal("average_stress_level"),
+              getNullableLong(rs, "low_stress_duration"),
+              getNullableLong(rs, "medium_stress_duration"),
+              getNullableLong(rs, "high_stress_duration"),
+              getNullableLong(rs, "rest_stress_duration")
+            )
+          );
+        },
+        authenticatedUser.accountId(),
+        latestAllowedDate()
+      );
+    }
+
+    HealthStressCardView card = jdbcTemplate.query(
+      """
+        SELECT
+          average_stress_level,
+          low_stress_duration,
+          medium_stress_duration,
+          high_stress_duration,
+          rest_stress_duration
+        FROM marts.mart_health_dashboard_daily
+        WHERE account_id = ?
+          AND metric_date = ?
+        LIMIT 1
+      """,
+      rs -> {
+        if (!rs.next()) {
+          return null;
+        }
+
+        HealthStressCardView view = new HealthStressCardView(
+          rs.getBigDecimal("average_stress_level"),
+          getNullableLong(rs, "low_stress_duration"),
+          getNullableLong(rs, "medium_stress_duration"),
+          getNullableLong(rs, "high_stress_duration"),
+          getNullableLong(rs, "rest_stress_duration")
+        );
+        return hasStressData(view) ? view : null;
+      },
+      authenticatedUser.accountId(),
+      requestedDate
+    );
+
+    return new HealthCardResponseView<>(formattedDate, card);
+  }
+
   public HealthActivityListResponse listActivities(
     AuthenticatedUser authenticatedUser,
     Integer page,
@@ -311,18 +662,6 @@ public class HealthDashboardService {
 
   private HealthDashboardSummaryView mapSummaryRow(ResultSet rs) throws SQLException {
     LocalDate summaryDate = rs.getObject("metric_date", LocalDate.class);
-    BigDecimal currentWeightKg = rs.getBigDecimal("weight_kg");
-    BigDecimal previousWeightKg = rs.getBigDecimal("previous_weight_kg");
-    BigDecimal weightDeltaKg = null;
-    BigDecimal weightDeltaPercent = null;
-
-    if (currentWeightKg != null && previousWeightKg != null && previousWeightKg.compareTo(BigDecimal.ZERO) != 0) {
-      weightDeltaKg = currentWeightKg.subtract(previousWeightKg).setScale(2, RoundingMode.HALF_UP);
-      weightDeltaPercent = weightDeltaKg
-        .multiply(BigDecimal.valueOf(100))
-        .divide(previousWeightKg, 2, RoundingMode.HALF_UP);
-    }
-
     return new HealthDashboardSummaryView(
       summaryDate != null ? summaryDate.format(DATE_FORMATTER) : null,
       new HealthHeartRateCardView(
@@ -330,12 +669,10 @@ public class HealthDashboardService {
         getNullableInteger(rs, "resting_heart_rate"),
         getNullableInteger(rs, "average_heart_rate")
       ),
-      new HealthWeightCardView(
-        currentWeightKg,
+      buildWeightCard(
+        rs.getBigDecimal("weight_kg"),
         rs.getBigDecimal("bmi"),
-        previousWeightKg,
-        weightDeltaKg,
-        weightDeltaPercent
+        rs.getBigDecimal("previous_weight_kg")
       ),
       new HealthCaloriesCardView(
         rs.getBigDecimal("bmr_kilocalories"),
@@ -348,6 +685,69 @@ public class HealthDashboardService {
         getNullableLong(rs, "high_stress_duration"),
         getNullableLong(rs, "rest_stress_duration")
       )
+    );
+  }
+
+  private HealthWeightCardView buildWeightCard(
+    BigDecimal currentWeightKg,
+    BigDecimal bmi,
+    BigDecimal previousWeightKg
+  ) {
+    BigDecimal weightDeltaKg = null;
+    BigDecimal weightDeltaPercent = null;
+
+    if (currentWeightKg != null && previousWeightKg != null && previousWeightKg.compareTo(BigDecimal.ZERO) != 0) {
+      weightDeltaKg = currentWeightKg.subtract(previousWeightKg).setScale(2, RoundingMode.HALF_UP);
+      weightDeltaPercent = weightDeltaKg
+        .multiply(BigDecimal.valueOf(100))
+        .divide(previousWeightKg, 2, RoundingMode.HALF_UP);
+    }
+
+    return new HealthWeightCardView(
+      currentWeightKg,
+      bmi,
+      previousWeightKg,
+      weightDeltaKg,
+      weightDeltaPercent
+    );
+  }
+
+  private LocalDate validateRequestedDate(LocalDate date) {
+    if (date == null) {
+      throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Date is required.");
+    }
+
+    LocalDate yesterday = latestAllowedDate();
+    if (date.isAfter(yesterday)) {
+      throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Date must be on or before yesterday.");
+    }
+
+    return date;
+  }
+
+  private LocalDate latestAllowedDate() {
+    return LocalDate.now(appZoneId).minusDays(1);
+  }
+
+  private boolean hasHeartRateData(HealthHeartRateCardView view) {
+    return view != null && (view.highest() != null || view.resting() != null || view.average() != null);
+  }
+
+  private boolean hasWeightData(HealthWeightCardView view) {
+    return view != null && (view.weightKg() != null || view.bmi() != null);
+  }
+
+  private boolean hasCaloriesData(HealthCaloriesCardView view) {
+    return view != null && (view.restingBurn() != null || view.activeBurn() != null);
+  }
+
+  private boolean hasStressData(HealthStressCardView view) {
+    return view != null && (
+      view.overall() != null ||
+      view.lowDurationSeconds() != null ||
+      view.mediumDurationSeconds() != null ||
+      view.highDurationSeconds() != null ||
+      view.restDurationSeconds() != null
     );
   }
 

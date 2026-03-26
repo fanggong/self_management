@@ -2,7 +2,10 @@ package com.otw.adminapi.health;
 
 import com.otw.adminapi.common.api.ApiResult;
 import com.otw.adminapi.security.JwtService;
+import java.time.LocalDate;
 import java.util.UUID;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.format.annotation.DateTimeFormat.ISO;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,6 +28,38 @@ public class HealthDashboardController {
   @GetMapping("/summary")
   public ApiResult<HealthDashboardSummaryView> getSummary(@AuthenticationPrincipal Jwt jwt) {
     return ApiResult.success(healthDashboardService.getSummary(jwtService.toAuthenticatedUser(jwt)));
+  }
+
+  @GetMapping("/heart-rate")
+  public ApiResult<HealthCardResponseView<HealthHeartRateCardView>> getHeartRateCard(
+    @AuthenticationPrincipal Jwt jwt,
+    @RequestParam(required = false) @DateTimeFormat(iso = ISO.DATE) LocalDate date
+  ) {
+    return ApiResult.success(healthDashboardService.getHeartRateCard(jwtService.toAuthenticatedUser(jwt), date));
+  }
+
+  @GetMapping("/weight")
+  public ApiResult<HealthCardResponseView<HealthWeightCardView>> getWeightCard(
+    @AuthenticationPrincipal Jwt jwt,
+    @RequestParam(required = false) @DateTimeFormat(iso = ISO.DATE) LocalDate date
+  ) {
+    return ApiResult.success(healthDashboardService.getWeightCard(jwtService.toAuthenticatedUser(jwt), date));
+  }
+
+  @GetMapping("/calories")
+  public ApiResult<HealthCardResponseView<HealthCaloriesCardView>> getCaloriesCard(
+    @AuthenticationPrincipal Jwt jwt,
+    @RequestParam(required = false) @DateTimeFormat(iso = ISO.DATE) LocalDate date
+  ) {
+    return ApiResult.success(healthDashboardService.getCaloriesCard(jwtService.toAuthenticatedUser(jwt), date));
+  }
+
+  @GetMapping("/stress")
+  public ApiResult<HealthCardResponseView<HealthStressCardView>> getStressCard(
+    @AuthenticationPrincipal Jwt jwt,
+    @RequestParam(required = false) @DateTimeFormat(iso = ISO.DATE) LocalDate date
+  ) {
+    return ApiResult.success(healthDashboardService.getStressCard(jwtService.toAuthenticatedUser(jwt), date));
   }
 
   @GetMapping("/activities")

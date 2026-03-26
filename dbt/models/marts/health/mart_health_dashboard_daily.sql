@@ -71,7 +71,7 @@ left join lateral (
     from latest_body_composition as candidate
     where candidate.account_id = daily.account_id
       and candidate.row_number_in_measurement_date = 1
-      and candidate.measurement_date <= daily.calendar_date
+      and candidate.measurement_date = daily.calendar_date
     order by candidate.measurement_date desc, candidate.measurement_time_gmt desc nulls last, candidate.staging_record_id desc
     limit 1
 ) as body on true

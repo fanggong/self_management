@@ -228,15 +228,11 @@ public class DbtModelService {
   }
 
   @Transactional
-  public DbtBatchModelRunResultView runModelsByScope(AuthenticatedUser authenticatedUser, RunDbtModelsByScopeRequest request) {
+  public DbtBatchModelRunResultView runModels(AuthenticatedUser authenticatedUser, RunDbtModelsRequest request) {
     String normalizedLayer = normalizeLayer(request.layer());
-    String normalizedScopeType = normalizeScopeType(normalizedLayer, request.scopeType());
-    List<String> normalizedScopeValues = normalizeScopeValues(request.scopeValues());
-    if (normalizedScopeValues.isEmpty()) {
-      throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "At least one scope value is required.");
-    }
-
-    List<DbtModelRunnerClient.RunnerModelItem> targetModels = resolveTargetModels(normalizedLayer, normalizedScopeType, normalizedScopeValues);
+    String normalizedSelectionType = normalizeSelectionType(normalizedLayer, request.selectionType());
+    List<DbtModelRunnerClient.RunnerModelItem> targetModels = resolveSelectedModels(normalizedLayer, normalizedSelectionType, request.modelNames());
+    List<String> modelNames = targetModels.stream().map(DbtModelRunnerClient.RunnerModelItem::name).toList();
 
     List<DbtBatchModelRunItemView> items = new ArrayList<>();
     for (DbtModelRunnerClient.RunnerModelItem item : targetModels) {
@@ -244,8 +240,8 @@ public class DbtModelService {
       items.add(new DbtBatchModelRunItemView(
         item.name(),
         item.layer(),
-        resolveScopeKey(normalizedScopeType, item),
-        resolveScopeLabel(normalizedLayer, normalizedScopeType, item),
+        resolveScopeKey(normalizedSelectionType, item),
+        resolveScopeLabel(normalizedLayer, normalizedSelectionType, item),
         outcome.success(),
         outcome.returncode(),
         outcome.stdout(),
@@ -260,8 +256,8 @@ public class DbtModelService {
     int succeededCount = (int) items.stream().filter(DbtBatchModelRunItemView::success).count();
     return new DbtBatchModelRunResultView(
       normalizedLayer,
-      normalizedScopeType,
-      normalizedScopeValues,
+      normalizedSelectionType,
+      modelNames,
       items.size(),
       succeededCount,
       items.size() - succeededCount,
@@ -270,15 +266,11 @@ public class DbtModelService {
   }
 
   @Transactional
-  public StreamingResponseBody streamModelsByScope(AuthenticatedUser authenticatedUser, RunDbtModelsByScopeRequest request) {
+  public StreamingResponseBody streamModels(AuthenticatedUser authenticatedUser, RunDbtModelsRequest request) {
     String normalizedLayer = normalizeLayer(request.layer());
-    String normalizedScopeType = normalizeScopeType(normalizedLayer, request.scopeType());
-    List<String> normalizedScopeValues = normalizeScopeValues(request.scopeValues());
-    if (normalizedScopeValues.isEmpty()) {
-      throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "At least one scope value is required.");
-    }
-
-    List<DbtModelRunnerClient.RunnerModelItem> targetModels = resolveTargetModels(normalizedLayer, normalizedScopeType, normalizedScopeValues);
+    String normalizedSelectionType = normalizeSelectionType(normalizedLayer, request.selectionType());
+    List<DbtModelRunnerClient.RunnerModelItem> targetModels = resolveSelectedModels(normalizedLayer, normalizedSelectionType, request.modelNames());
+    List<String> modelNames = targetModels.stream().map(DbtModelRunnerClient.RunnerModelItem::name).toList();
     DbtModelRunnerClient.RunnerModelRunStream firstStream = targetModels.isEmpty()
       ? null
       : openModelRunStreamWithPersistence(authenticatedUser, normalizedLayer, targetModels.getFirst().name());
@@ -290,15 +282,15 @@ public class DbtModelService {
       writeStreamEventIfPossible(
         outputStream,
         outputWritable,
-        createBatchStartedEvent(normalizedLayer, normalizedScopeType, normalizedScopeValues, targetModels)
+        createBatchStartedEvent(normalizedLayer, normalizedSelectionType, modelNames, targetModels)
       );
 
       int succeededCount = 0;
       int failedCount = 0;
       for (int index = 0; index < targetModels.size(); index++) {
         DbtModelRunnerClient.RunnerModelItem targetModel = targetModels.get(index);
-        String scopeKey = resolveScopeKey(normalizedScopeType, targetModel);
-        String scopeLabel = resolveScopeLabel(normalizedLayer, normalizedScopeType, targetModel);
+        String scopeKey = resolveScopeKey(normalizedSelectionType, targetModel);
+        String scopeLabel = resolveScopeLabel(normalizedLayer, normalizedSelectionType, targetModel);
 
         writeStreamEventIfPossible(
           outputStream,
@@ -359,8 +351,8 @@ public class DbtModelService {
         outputWritable,
         createBatchFinishedEvent(
           normalizedLayer,
-          normalizedScopeType,
-          normalizedScopeValues,
+          normalizedSelectionType,
+          modelNames,
           finishedItems,
           succeededCount,
           failedCount
@@ -644,17 +636,51 @@ public class DbtModelService {
     );
   }
 
-  private List<DbtModelRunnerClient.RunnerModelItem> resolveTargetModels(
+  private List<DbtModelRunnerClient.RunnerModelItem> resolveSelectedModels(
     String normalizedLayer,
-    String normalizedScopeType,
-    List<String> normalizedScopeValues
+    String normalizedSelectionType,
+    List<String> modelNames
   ) {
-    Set<String> requestedScopes = new LinkedHashSet<>(normalizedScopeValues);
-    return dbtModelRunnerClient.listModels(normalizedLayer, null)
+    List<String> normalizedModelNames = normalizeModelNames(modelNames);
+    if (normalizedModelNames.isEmpty()) {
+      throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "At least one model name is required.");
+    }
+
+    Map<String, DbtModelRunnerClient.RunnerModelItem> modelsByName = dbtModelRunnerClient.listModels(normalizedLayer, null)
       .stream()
-      .filter(item -> requestedScopes.contains(resolveScopeKey(normalizedScopeType, item)))
+      .collect(
+        java.util.stream.Collectors.toMap(
+          DbtModelRunnerClient.RunnerModelItem::name,
+          item -> item,
+          (left, right) -> left,
+          LinkedHashMap::new
+        )
+      );
+
+    List<String> invalidModelNames = normalizedModelNames.stream()
+      .filter(modelName -> !modelsByName.containsKey(modelName))
+      .toList();
+
+    if (!invalidModelNames.isEmpty()) {
+      throw new ApiException(
+        HttpStatus.BAD_REQUEST,
+        "VALIDATION_ERROR",
+        "Invalid model names for layer " + normalizedLayer + ": " + String.join(", ", invalidModelNames)
+      );
+    }
+
+    List<DbtModelRunnerClient.RunnerModelItem> selectedModels = normalizedModelNames.stream()
+      .map(modelsByName::get)
+      .filter(item -> item != null)
+      .distinct()
       .sorted(Comparator.comparing(DbtModelRunnerClient.RunnerModelItem::name))
       .toList();
+
+    if (selectedModels.isEmpty()) {
+      throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "No valid models were selected.");
+    }
+
+    return selectedModels;
   }
 
   private AuthenticatedUser resolveScheduledRunUser(UUID accountId) {
@@ -711,15 +737,15 @@ public class DbtModelService {
 
   private Map<String, Object> createBatchStartedEvent(
     String normalizedLayer,
-    String normalizedScopeType,
-    List<String> normalizedScopeValues,
+    String normalizedSelectionType,
+    List<String> modelNames,
     List<DbtModelRunnerClient.RunnerModelItem> targetModels
   ) {
     Map<String, Object> event = new LinkedHashMap<>();
     event.put("type", "batch_started");
     event.put("layer", normalizedLayer);
-    event.put("scopeType", normalizedScopeType);
-    event.put("scopeValues", normalizedScopeValues);
+    event.put("selectionType", normalizedSelectionType);
+    event.put("modelNames", modelNames);
     event.put("totalModels", targetModels.size());
     event.put(
       "items",
@@ -728,8 +754,8 @@ public class DbtModelService {
           Map<String, Object> itemView = new LinkedHashMap<>();
           itemView.put("modelName", item.name());
           itemView.put("layer", item.layer());
-          itemView.put("scopeKey", resolveScopeKey(normalizedScopeType, item));
-          itemView.put("scopeLabel", resolveScopeLabel(normalizedLayer, normalizedScopeType, item));
+          itemView.put("scopeKey", resolveScopeKey(normalizedSelectionType, item));
+          itemView.put("scopeLabel", resolveScopeLabel(normalizedLayer, normalizedSelectionType, item));
           return itemView;
         })
         .toList()
@@ -761,8 +787,8 @@ public class DbtModelService {
 
   private Map<String, Object> createBatchFinishedEvent(
     String normalizedLayer,
-    String normalizedScopeType,
-    List<String> normalizedScopeValues,
+    String normalizedSelectionType,
+    List<String> modelNames,
     List<DbtBatchModelRunItemView> items,
     int succeededCount,
     int failedCount
@@ -770,8 +796,8 @@ public class DbtModelService {
     Map<String, Object> event = new LinkedHashMap<>();
     event.put("type", "batch_finished");
     event.put("layer", normalizedLayer);
-    event.put("scopeType", normalizedScopeType);
-    event.put("scopeValues", normalizedScopeValues);
+    event.put("selectionType", normalizedSelectionType);
+    event.put("modelNames", modelNames);
     event.put("totalModels", items.size());
     event.put("succeededCount", succeededCount);
     event.put("failedCount", failedCount);
@@ -802,8 +828,8 @@ public class DbtModelService {
     outputStream.flush();
   }
 
-  private String normalizeScopeType(String normalizedLayer, String value) {
-    String normalized = normalizeRequired(value, "Scope type is required.").toLowerCase(Locale.ROOT);
+  private String normalizeSelectionType(String normalizedLayer, String value) {
+    String normalized = normalizeRequired(value, "Selection type is required.").toLowerCase(Locale.ROOT);
     if ("staging".equals(normalizedLayer) && "connector".equals(normalized)) {
       return normalized;
     }
@@ -812,10 +838,10 @@ public class DbtModelService {
     }
 
     String expected = "staging".equals(normalizedLayer) ? "connector" : "domain";
-    throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Scope type must be " + expected + " for the requested layer.");
+    throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Selection type must be " + expected + " for the requested layer.");
   }
 
-  private List<String> normalizeScopeValues(List<String> values) {
+  private List<String> normalizeModelNames(List<String> values) {
     if (values == null) {
       return List.of();
     }
@@ -823,7 +849,6 @@ public class DbtModelService {
     return values.stream()
       .map(this::normalizeNullable)
       .filter(value -> value != null)
-      .map(value -> value.toLowerCase(Locale.ROOT))
       .distinct()
       .toList();
   }

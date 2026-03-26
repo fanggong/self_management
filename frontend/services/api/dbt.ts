@@ -7,8 +7,8 @@ import type {
   DbtModelListResponse,
   DbtSingleRunFinishedEvent,
   DbtSingleRunStreamEvent,
-  RunDbtModelsByScopePayload,
-  RunDbtModelsByScopeResult,
+  RunDbtModelsPayload,
+  RunDbtModelsResult,
   DbtRunHistoryDetail,
   DbtRunHistoryListResponse,
   DbtRunModelHistoryResponse,
@@ -195,9 +195,9 @@ const streamSingleRunHttp = async (
 
 const streamBatchRunHttp = async (
   token: string | null | undefined,
-  payload: RunDbtModelsByScopePayload,
+  payload: RunDbtModelsPayload,
   onEvent?: (event: DbtBatchRunStreamEvent) => void
-): Promise<ApiResult<RunDbtModelsByScopeResult>> => {
+): Promise<ApiResult<RunDbtModelsResult>> => {
   const response = await fetch(`${resolveStreamApiBase()}/users/me/dbt-models/run-batch-stream`, {
     method: 'POST',
     headers: {
@@ -227,8 +227,8 @@ const streamBatchRunHttp = async (
     success: true,
     data: {
       layer: finalEvent.layer,
-      scopeType: finalEvent.scopeType,
-      scopeValues: finalEvent.scopeValues,
+      selectionType: finalEvent.selectionType,
+      modelNames: finalEvent.modelNames,
       totalModels: finalEvent.totalModels,
       succeededCount: finalEvent.succeededCount,
       failedCount: finalEvent.failedCount,
@@ -282,9 +282,9 @@ export const dbtModelApi = {
     return mockDbtModelApi.streamRun(payload, onEvent);
   },
 
-  runBatch(token: string | null | undefined, payload: RunDbtModelsByScopePayload): Promise<ApiResult<RunDbtModelsByScopeResult>> {
+  runBatch(token: string | null | undefined, payload: RunDbtModelsPayload): Promise<ApiResult<RunDbtModelsResult>> {
     if (useHttpApiMode()) {
-      return requestApi<RunDbtModelsByScopeResult>('/users/me/dbt-models/run-batch', {
+      return requestApi<RunDbtModelsResult>('/users/me/dbt-models/run-batch', {
         method: 'POST',
         token,
         body: payload
@@ -296,9 +296,9 @@ export const dbtModelApi = {
 
   streamRunBatch(
     token: string | null | undefined,
-    payload: RunDbtModelsByScopePayload,
+    payload: RunDbtModelsPayload,
     onEvent?: (event: DbtBatchRunStreamEvent) => void
-  ): Promise<ApiResult<RunDbtModelsByScopeResult>> {
+  ): Promise<ApiResult<RunDbtModelsResult>> {
     if (useHttpApiMode()) {
       return streamBatchRunHttp(token, payload, onEvent);
     }

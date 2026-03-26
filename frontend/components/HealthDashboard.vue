@@ -4,7 +4,11 @@ import { useAuthStore } from '~/stores/auth';
 import type {
   HealthActivityDetail,
   HealthActivityListItem,
-  HealthDashboardSummary
+  HealthCaloriesCard,
+  HealthDashboardSummary,
+  HealthHeartRateCard,
+  HealthStressCard,
+  HealthWeightCard
 } from '~/types/health';
 
 type DataTablePageEvent = {
@@ -22,8 +26,17 @@ type ActivityDetailSection = {
   }>;
 };
 
+type SummaryCardState<T> = {
+  selectedDate: Date | null;
+  data: T | null;
+  loading: boolean;
+  error: string;
+};
+
 type SummaryCardKey = 'heart-rate' | 'weight' | 'stress';
 type HeartRateZoneKey = 'rest' | 'warmup' | 'fat-burn' | 'aerobic' | 'threshold' | 'anaerobic';
+type SummaryDateCardKey = 'heart-rate' | 'weight' | 'calories' | 'stress';
+type DatePickerValue = Date | Date[] | (Date | null)[] | null | undefined;
 
 type SummaryBreakdownItem = {
   key: string;
@@ -55,6 +68,7 @@ type StressRingSegment = SummaryBreakdownItem & {
 };
 
 const DEFAULT_PAGE_SIZE = 10;
+const APP_TIME_ZONE = 'Asia/Shanghai';
 
 const auth = useAuthStore();
 const { showToast } = useAppToast();
@@ -62,6 +76,30 @@ const { showToast } = useAppToast();
 const summary = ref<HealthDashboardSummary | null>(null);
 const summaryLoading = ref(false);
 const summaryError = ref('');
+const heartRateCard = reactive<SummaryCardState<HealthHeartRateCard>>({
+  selectedDate: null,
+  data: null,
+  loading: false,
+  error: ''
+});
+const weightCard = reactive<SummaryCardState<HealthWeightCard>>({
+  selectedDate: null,
+  data: null,
+  loading: false,
+  error: ''
+});
+const caloriesCard = reactive<SummaryCardState<HealthCaloriesCard>>({
+  selectedDate: null,
+  data: null,
+  loading: false,
+  error: ''
+});
+const stressCard = reactive<SummaryCardState<HealthStressCard>>({
+  selectedDate: null,
+  data: null,
+  loading: false,
+  error: ''
+});
 
 const activities = ref<HealthActivityListItem[]>([]);
 const activitiesLoading = ref(false);
@@ -91,6 +129,10 @@ const hoveredSummaryTargets = reactive<Record<SummaryCardKey, string | null>>({
 let summaryRequestId = 0;
 let activityRequestId = 0;
 let detailRequestId = 0;
+let heartRateCardRequestId = 0;
+let weightCardRequestId = 0;
+let caloriesCardRequestId = 0;
+let stressCardRequestId = 0;
 let activitySearchTimer: ReturnType<typeof setTimeout> | null = null;
 
 const HEART_RATE_MIN = 20;
@@ -117,7 +159,58 @@ const bmiBands = [
   { key: 'high', label: 'High', description: 'High BMI range', min: 30, max: Infinity, barClass: 'bg-rose-500/80 dark:bg-rose-500/70', leftPercent: 75, widthPercent: 25 }
 ] as const;
 
-const averageHeartRate = computed(() => summary.value?.heartRate.average ?? null);
+const getDateParts = (value: Date, timeZone = APP_TIME_ZONE) => {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(value);
+
+  return {
+    year: Number(parts.find((part) => part.type === 'year')?.value ?? 0),
+    month: Number(parts.find((part) => part.type === 'month')?.value ?? 0),
+    day: Number(parts.find((part) => part.type === 'day')?.value ?? 0)
+  };
+};
+
+const createLocalDate = (year: number, month: number, day: number) => {
+  return new Date(year, month - 1, day, 12, 0, 0, 0);
+};
+
+const parseIsoDate = (value: string | null | undefined) => {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return null;
+  }
+
+  const [year, month, day] = value.split('-').map((part) => Number(part));
+  return createLocalDate(year, month, day);
+};
+
+const formatIsoDate = (value: Date | null | undefined) => {
+  if (!(value instanceof Date) || Number.isNaN(value.getTime())) {
+    return null;
+  }
+
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getShanghaiYesterdayDate = () => {
+  const { year, month, day } = getDateParts(new Date());
+  const value = createLocalDate(year, month, day);
+  value.setDate(value.getDate() - 1);
+  return value;
+};
+
+const dashboardMaxDate = computed(() => getShanghaiYesterdayDate());
+const heartRateData = computed(() => heartRateCard.data);
+const weightData = computed(() => weightCard.data);
+const caloriesData = computed(() => caloriesCard.data);
+const stressData = computed(() => stressCard.data);
+const averageHeartRate = computed(() => heartRateData.value?.average ?? null);
 
 const clampHeartRate = (value: number) => {
   return Math.min(HEART_RATE_MAX, Math.max(HEART_RATE_MIN, value));
@@ -215,12 +308,16 @@ const averageHeartRateMarker = computed(() => {
   return polarToCartesian(heartRateValueToAngle(averageHeartRate.value), HEART_RATE_MARKER_RADIUS);
 });
 
+const heartRateHasData = computed(() => {
+  return heartRateData.value?.highest != null || heartRateData.value?.resting != null || heartRateData.value?.average != null;
+});
+
 const weightHasData = computed(() => {
-  return summary.value?.weight.weightKg != null || summary.value?.weight.bmi != null;
+  return weightData.value?.weightKg != null || weightData.value?.bmi != null;
 });
 
 const bmiMarkerPosition = computed(() => {
-  const bmi = summary.value?.weight.bmi;
+  const bmi = weightData.value?.bmi;
   if (bmi == null || Number.isNaN(bmi)) {
     return null;
   }
@@ -232,7 +329,7 @@ const bmiMarkerPosition = computed(() => {
 });
 
 const bmiMarkerPercent = computed(() => {
-  const bmi = summary.value?.weight.bmi;
+  const bmi = weightData.value?.bmi;
   if (bmi == null || Number.isNaN(bmi)) {
     return null;
   }
@@ -244,8 +341,8 @@ const bmiMarkerPercent = computed(() => {
 });
 
 const totalCaloriesBurned = computed(() => {
-  const resting = summary.value?.calories.restingBurn ?? null;
-  const active = summary.value?.calories.activeBurn ?? null;
+  const resting = caloriesData.value?.restingBurn ?? null;
+  const active = caloriesData.value?.activeBurn ?? null;
 
   if (resting == null && active == null) {
     return null;
@@ -255,8 +352,8 @@ const totalCaloriesBurned = computed(() => {
 });
 
 const calorieBreakdownItems = computed<SummaryBreakdownItem[]>(() => {
-  const resting = summary.value?.calories.restingBurn ?? null;
-  const active = summary.value?.calories.activeBurn ?? null;
+  const resting = caloriesData.value?.restingBurn ?? null;
+  const active = caloriesData.value?.activeBurn ?? null;
   const total = totalCaloriesBurned.value;
 
   return [
@@ -292,7 +389,7 @@ const calorieSegments = computed<SummaryBreakdownItem[]>(() => {
 });
 
 const stressSegments = computed<SummaryBreakdownItem[]>(() => {
-  if (!summary.value) {
+  if (!stressData.value) {
     return [];
   }
 
@@ -300,25 +397,25 @@ const stressSegments = computed<SummaryBreakdownItem[]>(() => {
     {
       key: 'low',
       label: 'Low',
-      value: summary.value.stress.lowDurationSeconds,
+      value: stressData.value.lowDurationSeconds,
       barClass: 'bg-emerald-400 dark:bg-emerald-300'
     },
     {
       key: 'medium',
       label: 'Medium',
-      value: summary.value.stress.mediumDurationSeconds,
+      value: stressData.value.mediumDurationSeconds,
       barClass: 'bg-amber-400 dark:bg-amber-300'
     },
     {
       key: 'high',
       label: 'High',
-      value: summary.value.stress.highDurationSeconds,
+      value: stressData.value.highDurationSeconds,
       barClass: 'bg-rose-500 dark:bg-rose-400'
     },
     {
       key: 'rest',
       label: 'Rest',
-      value: summary.value.stress.restDurationSeconds,
+      value: stressData.value.restDurationSeconds,
       barClass: 'bg-slate-400 dark:bg-slate-500'
     }
   ].filter((segment) => segment.value != null && (segment.value ?? 0) > 0);
@@ -365,7 +462,7 @@ const stressRingSegments = computed<StressRingSegment[]>(() => {
 });
 
 const stressHasData = computed(() => {
-  return summary.value?.stress.overall != null || stressSegments.value.length > 0;
+  return stressData.value?.overall != null || stressSegments.value.length > 0;
 });
 
 const totalTrackedStressDuration = computed(() => {
@@ -377,7 +474,7 @@ const totalTrackedStressDuration = computed(() => {
 });
 
 const bmiCategory = computed(() => {
-  const bmi = summary.value?.weight.bmi;
+  const bmi = weightData.value?.bmi;
   if (bmi == null || Number.isNaN(bmi)) {
     return null;
   }
@@ -386,11 +483,11 @@ const bmiCategory = computed(() => {
 });
 
 const hasWeightDelta = computed(() => {
-  return summary.value?.weight.weightDeltaKg != null && summary.value?.weight.weightDeltaPercent != null;
+  return weightData.value?.weightDeltaKg != null && weightData.value?.weightDeltaPercent != null;
 });
 
 const weightDeltaDirection = computed(() => {
-  const delta = summary.value?.weight.weightDeltaKg;
+  const delta = weightData.value?.weightDeltaKg;
   if (delta == null || Number.isNaN(delta) || delta === 0) {
     return 'flat';
   }
@@ -436,7 +533,7 @@ const hoveredWeightInfo = computed<SummaryHoverInfo | null>(() => {
   if (target === 'marker') {
     return {
       label: 'Current BMI',
-      value: formatValueOnly(summary.value?.weight.bmi, 1),
+      value: formatValueOnly(weightData.value?.bmi, 1),
       meta: bmiCategory.value
         ? `${bmiCategory.value.label} · ${formatBmiBandRange(bmiCategory.value.min, bmiCategory.value.max)}`
         : undefined
@@ -452,7 +549,7 @@ const hoveredWeightInfo = computed<SummaryHoverInfo | null>(() => {
     label: band.label,
     value: formatBmiBandRange(band.min, band.max),
     meta: bmiCategory.value?.key === band.key
-      ? `${band.description} · Current BMI ${formatValueOnly(summary.value?.weight.bmi, 1)}`
+      ? `${band.description} · Current BMI ${formatValueOnly(weightData.value?.bmi, 1)}`
       : band.description
   };
 });
@@ -633,6 +730,36 @@ onBeforeUnmount(() => {
   }
 });
 
+const cloneDate = (value: Date | null) => {
+  return value ? new Date(value.getTime()) : null;
+};
+
+const resetSummaryCards = () => {
+  heartRateCard.selectedDate = null;
+  heartRateCard.data = null;
+  heartRateCard.loading = false;
+  heartRateCard.error = '';
+
+  weightCard.selectedDate = null;
+  weightCard.data = null;
+  weightCard.loading = false;
+  weightCard.error = '';
+
+  caloriesCard.selectedDate = null;
+  caloriesCard.data = null;
+  caloriesCard.loading = false;
+  caloriesCard.error = '';
+
+  stressCard.selectedDate = null;
+  stressCard.data = null;
+  stressCard.loading = false;
+  stressCard.error = '';
+};
+
+const showCardLoadError = (message: string) => {
+  showToast('error', message);
+};
+
 const loadSummary = async () => {
   const requestId = ++summaryRequestId;
   summaryLoading.value = true;
@@ -643,15 +770,160 @@ const loadSummary = async () => {
     return;
   }
 
-  summaryLoading.value = false;
-
   if (!result.success) {
     summary.value = null;
     summaryError.value = result.message ?? 'Unable to load health summary.';
+    resetSummaryCards();
+    summaryLoading.value = false;
     return;
   }
 
   summary.value = result.data ?? null;
+
+  if (!summary.value) {
+    resetSummaryCards();
+    summaryLoading.value = false;
+    return;
+  }
+
+  await Promise.all([
+    loadHeartRateCard(),
+    loadWeightCard(),
+    loadCaloriesCard(),
+    loadStressCard()
+  ]);
+
+  if (requestId !== summaryRequestId) {
+    return;
+  }
+
+  summaryLoading.value = false;
+};
+
+const loadHeartRateCard = async (date?: string | null) => {
+  const requestId = ++heartRateCardRequestId;
+  heartRateCard.loading = true;
+  heartRateCard.error = '';
+
+  const result = await healthApi.getHeartRateCard(auth.token, date);
+  if (requestId !== heartRateCardRequestId) {
+    return;
+  }
+
+  heartRateCard.loading = false;
+
+  if (!result.success || !result.data) {
+    heartRateCard.data = null;
+    heartRateCard.error = result.message ?? 'Unable to load heart rate data.';
+    showCardLoadError(heartRateCard.error);
+    return;
+  }
+
+  heartRateCard.selectedDate = parseIsoDate(result.data.date) ?? heartRateCard.selectedDate;
+  heartRateCard.data = result.data.data ?? null;
+};
+
+const loadWeightCard = async (date?: string | null) => {
+  const requestId = ++weightCardRequestId;
+  weightCard.loading = true;
+  weightCard.error = '';
+
+  const result = await healthApi.getWeightCard(auth.token, date);
+  if (requestId !== weightCardRequestId) {
+    return;
+  }
+
+  weightCard.loading = false;
+
+  if (!result.success || !result.data) {
+    weightCard.data = null;
+    weightCard.error = result.message ?? 'Unable to load weight data.';
+    showCardLoadError(weightCard.error);
+    return;
+  }
+
+  weightCard.selectedDate = parseIsoDate(result.data.date) ?? weightCard.selectedDate;
+  weightCard.data = result.data.data ?? null;
+};
+
+const loadCaloriesCard = async (date?: string | null) => {
+  const requestId = ++caloriesCardRequestId;
+  caloriesCard.loading = true;
+  caloriesCard.error = '';
+
+  const result = await healthApi.getCaloriesCard(auth.token, date);
+  if (requestId !== caloriesCardRequestId) {
+    return;
+  }
+
+  caloriesCard.loading = false;
+
+  if (!result.success || !result.data) {
+    caloriesCard.data = null;
+    caloriesCard.error = result.message ?? 'Unable to load calories data.';
+    showCardLoadError(caloriesCard.error);
+    return;
+  }
+
+  caloriesCard.selectedDate = parseIsoDate(result.data.date) ?? caloriesCard.selectedDate;
+  caloriesCard.data = result.data.data ?? null;
+};
+
+const loadStressCard = async (date?: string | null) => {
+  const requestId = ++stressCardRequestId;
+  stressCard.loading = true;
+  stressCard.error = '';
+
+  const result = await healthApi.getStressCard(auth.token, date);
+  if (requestId !== stressCardRequestId) {
+    return;
+  }
+
+  stressCard.loading = false;
+
+  if (!result.success || !result.data) {
+    stressCard.data = null;
+    stressCard.error = result.message ?? 'Unable to load stress data.';
+    showCardLoadError(stressCard.error);
+    return;
+  }
+
+  stressCard.selectedDate = parseIsoDate(result.data.date) ?? stressCard.selectedDate;
+  stressCard.data = result.data.data ?? null;
+};
+
+const handleSummaryCardDateChange = (card: SummaryDateCardKey, value: DatePickerValue) => {
+  const candidate = Array.isArray(value) ? value.find((item): item is Date => item instanceof Date && !Number.isNaN(item.getTime())) ?? null : value;
+  const selectedDate = candidate instanceof Date && !Number.isNaN(candidate.getTime()) ? candidate : null;
+  if (!selectedDate) {
+    return;
+  }
+
+  const formattedDate = formatIsoDate(selectedDate);
+  if (!formattedDate) {
+    return;
+  }
+
+  switch (card) {
+    case 'heart-rate':
+      heartRateCard.selectedDate = cloneDate(selectedDate);
+      loadHeartRateCard(formattedDate);
+      break;
+    case 'weight':
+      weightCard.selectedDate = cloneDate(selectedDate);
+      loadWeightCard(formattedDate);
+      break;
+    case 'calories':
+      caloriesCard.selectedDate = cloneDate(selectedDate);
+      loadCaloriesCard(formattedDate);
+      break;
+    case 'stress':
+      stressCard.selectedDate = cloneDate(selectedDate);
+      loadStressCard(formattedDate);
+      break;
+    default:
+      break;
+  }
 };
 
 const loadActivities = async () => {
@@ -749,6 +1021,7 @@ watch(
   (token) => {
     if (!token) {
       summary.value = null;
+      resetSummaryCards();
       activities.value = [];
       activityPage.total = 0;
       activityPage.totalPages = 0;
@@ -796,12 +1069,37 @@ watch(
       <article class="h-[23rem] overflow-hidden rounded-2xl border border-slate-200/80 bg-white/90 shadow-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-slate-300/90 hover:shadow-md dark:border-slate-700 dark:bg-slate-900/70 dark:hover:border-slate-600">
         <div class="flex h-full flex-col overflow-hidden">
           <div class="border-b border-slate-200/80 px-5 py-2 dark:border-slate-800">
-            <div class="flex min-h-[2.5rem] items-center">
+            <div class="flex min-h-[2.5rem] items-center justify-between gap-3">
               <p class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">HEART RATE</p>
+              <DatePicker
+                :model-value="heartRateCard.selectedDate"
+                class="w-[10rem]"
+                input-class="w-full"
+                placeholder="YYYY-MM-DD"
+                date-format="yy-mm-dd"
+                show-icon
+                icon-display="input"
+                size="small"
+                :manual-input="false"
+                :max-date="dashboardMaxDate"
+                @update:model-value="handleSummaryCardDateChange('heart-rate', $event)"
+              />
             </div>
           </div>
 
-          <div class="flex min-h-0 flex-1 flex-col justify-between overflow-hidden px-4 pb-4 pt-4">
+          <div v-if="heartRateCard.loading" class="flex min-h-0 flex-1 items-center justify-center p-5">
+            <div class="flex h-full w-full items-center justify-center rounded-[1.65rem] border border-dashed border-slate-200 bg-slate-50/80 text-sm font-medium text-slate-500 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-400">
+              Loading...
+            </div>
+          </div>
+
+          <div v-else-if="heartRateCard.error" class="flex min-h-0 flex-1 items-center justify-center p-5">
+            <div class="flex h-full w-full items-center justify-center rounded-[1.65rem] border border-dashed border-rose-200 bg-rose-50/80 px-5 text-center text-sm font-medium text-rose-600 dark:border-rose-900/70 dark:bg-rose-950/30 dark:text-rose-300">
+              {{ heartRateCard.error }}
+            </div>
+          </div>
+
+          <div v-else-if="heartRateHasData" class="flex min-h-0 flex-1 flex-col justify-between overflow-hidden px-4 pb-4 pt-4">
             <div class="relative flex min-h-0 flex-1 items-center justify-center pb-1">
               <div
                 v-if="hoveredHeartRateInfo"
@@ -872,9 +1170,9 @@ watch(
                 <div class="flex w-24 flex-col items-center justify-center text-center">
                   <p
                     class="font-semibold tracking-[-0.05em] text-slate-950 dark:text-slate-50"
-                    :class="summary.heartRate.average != null ? 'text-[2.15rem]' : 'text-base'"
+                    :class="heartRateData?.average != null ? 'text-[2.15rem]' : 'text-base'"
                   >
-                    {{ summary.heartRate.average != null ? formatValueOnly(summary.heartRate.average, 0) : 'Unavailable' }}
+                    {{ heartRateData?.average != null ? formatValueOnly(heartRateData.average, 0) : 'Unavailable' }}
                   </p>
                   <p class="mt-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">AVG BPM</p>
                 </div>
@@ -884,12 +1182,18 @@ watch(
             <div class="grid shrink-0 grid-cols-2 gap-2.5">
               <div class="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/60">
                 <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500">Resting</p>
-                <p class="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">{{ formatNumber(summary.heartRate.resting, 'bpm', 0) }}</p>
+                <p class="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">{{ formatNumber(heartRateData?.resting ?? null, 'bpm', 0) }}</p>
               </div>
               <div class="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/60">
                 <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500">Highest</p>
-                <p class="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">{{ formatNumber(summary.heartRate.highest, 'bpm', 0) }}</p>
+                <p class="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">{{ formatNumber(heartRateData?.highest ?? null, 'bpm', 0) }}</p>
               </div>
+            </div>
+          </div>
+
+          <div v-else class="flex min-h-0 flex-1 items-center justify-center p-5">
+            <div class="flex h-full w-full items-center justify-center rounded-[1.65rem] border border-dashed border-slate-200 bg-slate-50/80 text-sm font-medium text-slate-500 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-400">
+              Unavailable
             </div>
           </div>
         </div>
@@ -898,17 +1202,42 @@ watch(
       <article class="h-[23rem] overflow-hidden rounded-2xl border border-slate-200/80 bg-white/90 shadow-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-slate-300/90 hover:shadow-md dark:border-slate-700 dark:bg-slate-900/70 dark:hover:border-slate-600">
         <div class="flex h-full flex-col overflow-hidden">
           <div class="border-b border-slate-200/80 px-5 py-2 dark:border-slate-800">
-            <div class="flex min-h-[2.5rem] items-center">
+            <div class="flex min-h-[2.5rem] items-center justify-between gap-3">
               <p class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">WEIGHT</p>
+              <DatePicker
+                :model-value="weightCard.selectedDate"
+                class="w-[10rem]"
+                input-class="w-full"
+                placeholder="YYYY-MM-DD"
+                date-format="yy-mm-dd"
+                show-icon
+                icon-display="input"
+                size="small"
+                :manual-input="false"
+                :max-date="dashboardMaxDate"
+                @update:model-value="handleSummaryCardDateChange('weight', $event)"
+              />
             </div>
           </div>
 
-          <div v-if="weightHasData" class="flex min-h-0 flex-1 flex-col justify-between overflow-hidden px-4 pb-4 pt-4">
+          <div v-if="weightCard.loading" class="flex min-h-0 flex-1 items-center justify-center p-5">
+            <div class="flex h-full w-full items-center justify-center rounded-[1.65rem] border border-dashed border-slate-200 bg-slate-50/80 text-sm font-medium text-slate-500 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-400">
+              Loading...
+            </div>
+          </div>
+
+          <div v-else-if="weightCard.error" class="flex min-h-0 flex-1 items-center justify-center p-5">
+            <div class="flex h-full w-full items-center justify-center rounded-[1.65rem] border border-dashed border-rose-200 bg-rose-50/80 px-5 text-center text-sm font-medium text-rose-600 dark:border-rose-900/70 dark:bg-rose-950/30 dark:text-rose-300">
+              {{ weightCard.error }}
+            </div>
+          </div>
+
+          <div v-else-if="weightHasData" class="flex min-h-0 flex-1 flex-col justify-between overflow-hidden px-4 pb-4 pt-4">
             <div class="flex items-start justify-between gap-4">
               <div>
                 <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">Current Weight</p>
                 <p class="mt-2 text-[2.55rem] font-semibold tracking-[-0.05em] text-slate-950 dark:text-slate-50">
-                  {{ formatValueOnly(summary.weight.weightKg, 1) }}
+                  {{ formatValueOnly(weightData?.weightKg ?? null, 1) }}
                 </p>
                 <p class="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">kg</p>
               </div>
@@ -916,12 +1245,12 @@ watch(
               <div class="max-w-[8.75rem] text-right">
                 <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">Vs Previous</p>
                 <p class="mt-2 text-lg font-semibold" :class="weightDeltaToneClass">
-                  {{ hasWeightDelta ? `${formatSignedValue(summary.weight.weightDeltaKg, 1)} kg` : 'No previous record' }}
+                  {{ hasWeightDelta ? `${formatSignedValue(weightData?.weightDeltaKg ?? null, 1)} kg` : 'No previous record' }}
                 </p>
                 <p class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
                   {{
                     hasWeightDelta
-                      ? `${formatSignedValue(summary.weight.weightDeltaPercent, 1)}% · Prev ${formatValueOnly(summary.weight.previousWeightKg, 1)} kg`
+                      ? `${formatSignedValue(weightData?.weightDeltaPercent ?? null, 1)}% · Prev ${formatValueOnly(weightData?.previousWeightKg ?? null, 1)} kg`
                       : 'Previous weigh-in unavailable'
                   }}
                 </p>
@@ -945,7 +1274,7 @@ watch(
                 <div>
                   <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">BMI</p>
                   <p class="mt-2 text-[2rem] font-semibold tracking-[-0.05em] text-slate-950 dark:text-slate-50">
-                    {{ formatValueOnly(summary.weight.bmi, 1) }}
+                    {{ formatValueOnly(weightData?.bmi ?? null, 1) }}
                   </p>
                 </div>
 
@@ -1014,12 +1343,37 @@ watch(
       <article class="h-[23rem] overflow-hidden rounded-2xl border border-slate-200/80 bg-white/90 shadow-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-slate-300/90 hover:shadow-md dark:border-slate-700 dark:bg-slate-900/70 dark:hover:border-slate-600">
         <div class="flex h-full flex-col overflow-hidden">
           <div class="border-b border-slate-200/80 px-5 py-2 dark:border-slate-800">
-            <div class="flex min-h-[2.5rem] items-center">
+            <div class="flex min-h-[2.5rem] items-center justify-between gap-3">
               <p class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">CALORIES BURNED</p>
+              <DatePicker
+                :model-value="caloriesCard.selectedDate"
+                class="w-[10rem]"
+                input-class="w-full"
+                placeholder="YYYY-MM-DD"
+                date-format="yy-mm-dd"
+                show-icon
+                icon-display="input"
+                size="small"
+                :manual-input="false"
+                :max-date="dashboardMaxDate"
+                @update:model-value="handleSummaryCardDateChange('calories', $event)"
+              />
             </div>
           </div>
 
-          <div v-if="totalCaloriesBurned != null" class="grid min-h-0 flex-1 grid-rows-[auto,1fr,auto] gap-4 overflow-hidden px-4 pb-4 pt-4">
+          <div v-if="caloriesCard.loading" class="flex min-h-0 flex-1 items-center justify-center p-5">
+            <div class="flex h-full w-full items-center justify-center rounded-[1.65rem] border border-dashed border-slate-200 bg-slate-50/80 text-sm font-medium text-slate-500 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-400">
+              Loading...
+            </div>
+          </div>
+
+          <div v-else-if="caloriesCard.error" class="flex min-h-0 flex-1 items-center justify-center p-5">
+            <div class="flex h-full w-full items-center justify-center rounded-[1.65rem] border border-dashed border-rose-200 bg-rose-50/80 px-5 text-center text-sm font-medium text-rose-600 dark:border-rose-900/70 dark:bg-rose-950/30 dark:text-rose-300">
+              {{ caloriesCard.error }}
+            </div>
+          </div>
+
+          <div v-else-if="totalCaloriesBurned != null" class="grid min-h-0 flex-1 grid-rows-[auto,1fr,auto] gap-4 overflow-hidden px-4 pb-4 pt-4">
             <div class="flex shrink-0 flex-col items-center justify-center text-center">
               <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">Total Burn</p>
               <p class="mt-2 text-[2.55rem] font-semibold tracking-[-0.05em] text-slate-950 dark:text-slate-50">
@@ -1086,12 +1440,37 @@ watch(
       <article class="h-[23rem] overflow-hidden rounded-2xl border border-slate-200/80 bg-white/90 shadow-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-slate-300/90 hover:shadow-md dark:border-slate-700 dark:bg-slate-900/70 dark:hover:border-slate-600">
         <div class="flex h-full flex-col overflow-hidden">
           <div class="border-b border-slate-200/80 px-5 py-2 dark:border-slate-800">
-            <div class="flex min-h-[2.5rem] items-center">
+            <div class="flex min-h-[2.5rem] items-center justify-between gap-3">
               <p class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">STRESS</p>
+              <DatePicker
+                :model-value="stressCard.selectedDate"
+                class="w-[10rem]"
+                input-class="w-full"
+                placeholder="YYYY-MM-DD"
+                date-format="yy-mm-dd"
+                show-icon
+                icon-display="input"
+                size="small"
+                :manual-input="false"
+                :max-date="dashboardMaxDate"
+                @update:model-value="handleSummaryCardDateChange('stress', $event)"
+              />
             </div>
           </div>
 
-          <div v-if="stressHasData" class="flex min-h-0 flex-1 flex-col overflow-hidden px-4 pb-4 pt-4">
+          <div v-if="stressCard.loading" class="flex min-h-0 flex-1 items-center justify-center p-5">
+            <div class="flex h-full w-full items-center justify-center rounded-[1.65rem] border border-dashed border-slate-200 bg-slate-50/80 text-sm font-medium text-slate-500 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-400">
+              Loading...
+            </div>
+          </div>
+
+          <div v-else-if="stressCard.error" class="flex min-h-0 flex-1 items-center justify-center p-5">
+            <div class="flex h-full w-full items-center justify-center rounded-[1.65rem] border border-dashed border-rose-200 bg-rose-50/80 px-5 text-center text-sm font-medium text-rose-600 dark:border-rose-900/70 dark:bg-rose-950/30 dark:text-rose-300">
+              {{ stressCard.error }}
+            </div>
+          </div>
+
+          <div v-else-if="stressHasData" class="flex min-h-0 flex-1 flex-col overflow-hidden px-4 pb-4 pt-4">
             <div class="flex h-full min-h-0 flex-col items-center justify-between">
               <div class="flex h-12 shrink-0 items-start justify-center">
                 <div
@@ -1147,9 +1526,9 @@ watch(
                   <div class="flex w-24 flex-col items-center justify-center text-center">
                     <p
                       class="font-semibold tracking-[-0.05em] text-slate-950 dark:text-slate-50"
-                      :class="summary.stress.overall != null ? 'text-[2.15rem]' : 'text-base'"
+                      :class="stressData?.overall != null ? 'text-[2.15rem]' : 'text-base'"
                     >
-                      {{ summary.stress.overall != null ? formatValueOnly(summary.stress.overall, 0) : 'Unavailable' }}
+                      {{ stressData?.overall != null ? formatValueOnly(stressData.overall, 0) : 'Unavailable' }}
                     </p>
                     <p class="mt-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">OVERALL</p>
                   </div>

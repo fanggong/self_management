@@ -2,11 +2,25 @@ import type { ApiResult } from '~/types/auth';
 import type {
   HealthActivityDetail,
   HealthActivityListResponse,
+  HealthCaloriesCardResponse,
   HealthDashboardSummary,
+  HealthHeartRateCardResponse,
+  HealthStressCardResponse,
+  HealthWeightCardResponse,
   ListHealthActivitiesPayload
 } from '~/types/health';
 import { requestApi, useHttpApiMode } from '~/services/api/http';
 import { mockHealthApi } from '~/services/mock/health';
+
+const buildCardPath = (resource: 'heart-rate' | 'weight' | 'calories' | 'stress', date?: string | null) => {
+  if (!date) {
+    return `/users/me/health-dashboard/${resource}`;
+  }
+
+  const params = new URLSearchParams();
+  params.set('date', date);
+  return `/users/me/health-dashboard/${resource}?${params.toString()}`;
+};
 
 const buildActivitiesPath = (payload: ListHealthActivitiesPayload) => {
   const params = new URLSearchParams();
@@ -27,6 +41,50 @@ export const healthApi = {
     }
 
     return mockHealthApi.getSummary();
+  },
+
+  getHeartRateCard(
+    token: string | null | undefined,
+    date?: string | null
+  ): Promise<ApiResult<HealthHeartRateCardResponse>> {
+    if (useHttpApiMode()) {
+      return requestApi<HealthHeartRateCardResponse>(buildCardPath('heart-rate', date), { token });
+    }
+
+    return mockHealthApi.getHeartRateCard(date);
+  },
+
+  getWeightCard(
+    token: string | null | undefined,
+    date?: string | null
+  ): Promise<ApiResult<HealthWeightCardResponse>> {
+    if (useHttpApiMode()) {
+      return requestApi<HealthWeightCardResponse>(buildCardPath('weight', date), { token });
+    }
+
+    return mockHealthApi.getWeightCard(date);
+  },
+
+  getCaloriesCard(
+    token: string | null | undefined,
+    date?: string | null
+  ): Promise<ApiResult<HealthCaloriesCardResponse>> {
+    if (useHttpApiMode()) {
+      return requestApi<HealthCaloriesCardResponse>(buildCardPath('calories', date), { token });
+    }
+
+    return mockHealthApi.getCaloriesCard(date);
+  },
+
+  getStressCard(
+    token: string | null | undefined,
+    date?: string | null
+  ): Promise<ApiResult<HealthStressCardResponse>> {
+    if (useHttpApiMode()) {
+      return requestApi<HealthStressCardResponse>(buildCardPath('stress', date), { token });
+    }
+
+    return mockHealthApi.getStressCard(date);
   },
 
   listActivities(

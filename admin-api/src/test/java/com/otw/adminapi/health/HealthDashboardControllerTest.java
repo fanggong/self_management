@@ -7,6 +7,7 @@ import com.otw.adminapi.common.api.ApiResult;
 import com.otw.adminapi.security.AuthenticatedUser;
 import com.otw.adminapi.security.JwtService;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,6 +64,91 @@ class HealthDashboardControllerTest {
 
     assertEquals(true, result.success());
     assertEquals(summary, result.data());
+  }
+
+  @Test
+  void getHeartRateCardReturnsApiResult() {
+    LocalDate date = LocalDate.of(2026, 3, 19);
+    HealthCardResponseView<HealthHeartRateCardView> response = new HealthCardResponseView<>(
+      "2026-03-19",
+      new HealthHeartRateCardView(114, 58, 96)
+    );
+    when(jwtService.toAuthenticatedUser(jwt)).thenReturn(authenticatedUser);
+    when(healthDashboardService.getHeartRateCard(authenticatedUser, date)).thenReturn(response);
+
+    ApiResult<HealthCardResponseView<HealthHeartRateCardView>> result = controller.getHeartRateCard(jwt, date);
+
+    assertEquals(true, result.success());
+    assertEquals(response, result.data());
+  }
+
+  @Test
+  void getHeartRateCardWithoutDateReturnsApiResult() {
+    HealthCardResponseView<HealthHeartRateCardView> response = new HealthCardResponseView<>(
+      "2026-03-18",
+      new HealthHeartRateCardView(134, 69, 87)
+    );
+    when(jwtService.toAuthenticatedUser(jwt)).thenReturn(authenticatedUser);
+    when(healthDashboardService.getHeartRateCard(authenticatedUser, null)).thenReturn(response);
+
+    ApiResult<HealthCardResponseView<HealthHeartRateCardView>> result = controller.getHeartRateCard(jwt, null);
+
+    assertEquals(true, result.success());
+    assertEquals(response, result.data());
+  }
+
+  @Test
+  void getWeightCardReturnsApiResult() {
+    LocalDate date = LocalDate.of(2026, 3, 19);
+    HealthCardResponseView<HealthWeightCardView> response = new HealthCardResponseView<>(
+      "2026-03-19",
+      new HealthWeightCardView(
+        new BigDecimal("68.20"),
+        new BigDecimal("22.40"),
+        new BigDecimal("67.40"),
+        new BigDecimal("0.80"),
+        new BigDecimal("1.19")
+      )
+    );
+    when(jwtService.toAuthenticatedUser(jwt)).thenReturn(authenticatedUser);
+    when(healthDashboardService.getWeightCard(authenticatedUser, date)).thenReturn(response);
+
+    ApiResult<HealthCardResponseView<HealthWeightCardView>> result = controller.getWeightCard(jwt, date);
+
+    assertEquals(true, result.success());
+    assertEquals(response, result.data());
+  }
+
+  @Test
+  void getCaloriesCardReturnsApiResult() {
+    LocalDate date = LocalDate.of(2026, 3, 19);
+    HealthCardResponseView<HealthCaloriesCardView> response = new HealthCardResponseView<>(
+      "2026-03-19",
+      new HealthCaloriesCardView(new BigDecimal("1411"), new BigDecimal("157"))
+    );
+    when(jwtService.toAuthenticatedUser(jwt)).thenReturn(authenticatedUser);
+    when(healthDashboardService.getCaloriesCard(authenticatedUser, date)).thenReturn(response);
+
+    ApiResult<HealthCardResponseView<HealthCaloriesCardView>> result = controller.getCaloriesCard(jwt, date);
+
+    assertEquals(true, result.success());
+    assertEquals(response, result.data());
+  }
+
+  @Test
+  void getStressCardReturnsApiResult() {
+    LocalDate date = LocalDate.of(2026, 3, 19);
+    HealthCardResponseView<HealthStressCardView> response = new HealthCardResponseView<>(
+      "2026-03-19",
+      new HealthStressCardView(new BigDecimal("24"), 1200L, 1800L, 900L, 3600L)
+    );
+    when(jwtService.toAuthenticatedUser(jwt)).thenReturn(authenticatedUser);
+    when(healthDashboardService.getStressCard(authenticatedUser, date)).thenReturn(response);
+
+    ApiResult<HealthCardResponseView<HealthStressCardView>> result = controller.getStressCard(jwt, date);
+
+    assertEquals(true, result.success());
+    assertEquals(response, result.data());
   }
 
   @Test

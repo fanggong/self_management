@@ -3,7 +3,15 @@ import type {
   HealthActivityDetail,
   HealthActivityListItem,
   HealthActivityListResponse,
+  HealthCaloriesCard,
+  HealthCaloriesCardResponse,
   HealthDashboardSummary,
+  HealthHeartRateCard,
+  HealthHeartRateCardResponse,
+  HealthStressCard,
+  HealthStressCardResponse,
+  HealthWeightCard,
+  HealthWeightCardResponse,
   ListHealthActivitiesPayload
 } from '~/types/health';
 
@@ -35,6 +43,75 @@ const mockSummary: HealthDashboardSummary = {
     restDurationSeconds: 7200
   }
 };
+
+const mockHeartRateCardsByDate: Record<string, HealthHeartRateCard | null> = {
+  '2026-03-19': mockSummary.heartRate,
+  '2026-03-18': {
+    highest: 134,
+    resting: 69,
+    average: 87
+  },
+  '2026-03-17': null
+};
+
+const mockWeightCardsByDate: Record<string, HealthWeightCard | null> = {
+  '2026-03-19': mockSummary.weight,
+  '2026-03-18': {
+    weightKg: 67.4,
+    bmi: 22.1,
+    previousWeightKg: 67.8,
+    weightDeltaKg: -0.4,
+    weightDeltaPercent: -0.59
+  },
+  '2026-03-17': null
+};
+
+const mockCaloriesCardsByDate: Record<string, HealthCaloriesCard | null> = {
+  '2026-03-19': mockSummary.calories,
+  '2026-03-18': {
+    restingBurn: 1406,
+    activeBurn: 221
+  },
+  '2026-03-17': null
+};
+
+const mockStressCardsByDate: Record<string, HealthStressCard | null> = {
+  '2026-03-19': mockSummary.stress,
+  '2026-03-18': {
+    overall: 31,
+    lowDurationSeconds: 11220,
+    mediumDurationSeconds: 9540,
+    highDurationSeconds: 2100,
+    restDurationSeconds: 6480
+  },
+  '2026-03-17': null
+};
+
+const findLatestCardEntry = <T>(cardsByDate: Record<string, T | null>) => {
+  const latestEntry = Object.entries(cardsByDate)
+    .filter(([, data]) => data != null)
+    .sort(([left], [right]) => right.localeCompare(left))[0];
+
+  if (!latestEntry) {
+    return {
+      date: null,
+      data: null
+    };
+  }
+
+  return {
+    date: latestEntry[0],
+    data: latestEntry[1]
+  };
+};
+
+const buildCardResponse = <T>(date: string | null, data: T | null) => ({
+  success: true as const,
+  data: {
+    date,
+    data
+  }
+});
 
 const mockActivities: HealthActivityListItem[] = [
   {
@@ -162,6 +239,46 @@ export const mockHealthApi = {
       success: true,
       data: mockSummary
     };
+  },
+
+  async getHeartRateCard(date?: string | null): Promise<ApiResult<HealthHeartRateCardResponse>> {
+    await wait();
+    if (!date) {
+      const latest = findLatestCardEntry(mockHeartRateCardsByDate);
+      return buildCardResponse(latest.date, latest.data);
+    }
+
+    return buildCardResponse(date, mockHeartRateCardsByDate[date] ?? null);
+  },
+
+  async getWeightCard(date?: string | null): Promise<ApiResult<HealthWeightCardResponse>> {
+    await wait();
+    if (!date) {
+      const latest = findLatestCardEntry(mockWeightCardsByDate);
+      return buildCardResponse(latest.date, latest.data);
+    }
+
+    return buildCardResponse(date, mockWeightCardsByDate[date] ?? null);
+  },
+
+  async getCaloriesCard(date?: string | null): Promise<ApiResult<HealthCaloriesCardResponse>> {
+    await wait();
+    if (!date) {
+      const latest = findLatestCardEntry(mockCaloriesCardsByDate);
+      return buildCardResponse(latest.date, latest.data);
+    }
+
+    return buildCardResponse(date, mockCaloriesCardsByDate[date] ?? null);
+  },
+
+  async getStressCard(date?: string | null): Promise<ApiResult<HealthStressCardResponse>> {
+    await wait();
+    if (!date) {
+      const latest = findLatestCardEntry(mockStressCardsByDate);
+      return buildCardResponse(latest.date, latest.data);
+    }
+
+    return buildCardResponse(date, mockStressCardsByDate[date] ?? null);
   },
 
   async listActivities(payload: ListHealthActivitiesPayload): Promise<ApiResult<HealthActivityListResponse>> {

@@ -1,7 +1,7 @@
 version: 2
 models:
   - name: mart_health_dashboard_daily
-    description: Health dashboard daily mart. Grain is one row per account and metric date, combining Garmin daily summary metrics with the latest available body composition metrics on or before that date, and calculating BMI from profile height when the raw BMI is missing.
+    description: Health dashboard daily mart. Grain is one row per account and metric date, combining Garmin daily summary metrics with same-day body composition metrics only, and calculating BMI from profile height when the same-day raw BMI is missing.
     tests:
       - unique_combination:
           arguments:
@@ -24,10 +24,10 @@ models:
         description: Average heart rate for the metric date, calculated from Garmin heart-rate samples captured on that date.
       - name: weight_kg
         data_type: numeric
-        description: Latest available Garmin weight in kilograms on or before the dashboard metric date.
+        description: Garmin weight in kilograms captured on the dashboard metric date. Empty when no same-day weight record exists.
       - name: bmi
         data_type: numeric
-        description: Latest available Garmin BMI on or before the dashboard metric date, falling back to a calculated value from weight and the closest known profile height for the account when the raw BMI is missing.
+        description: Garmin BMI captured on the dashboard metric date, falling back to a calculated value from same-day weight and the closest known profile height for the account when the same-day raw BMI is missing.
 
   - name: mart_health_activity_history
     description: Health activity history mart. Grain is one row per activity, curated for dashboard list and activity detail use cases.

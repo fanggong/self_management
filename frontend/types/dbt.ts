@@ -51,15 +51,15 @@ export type RunDbtModelResult = {
   finishedAt?: string | null;
 };
 
-export type DbtBatchRunScopeType = 'connector' | 'domain';
+export type DbtBatchRunSelectionType = 'connector' | 'domain';
 
-export type RunDbtModelsByScopePayload = {
+export type RunDbtModelsPayload = {
   layer: DbtModelLayer;
-  scopeType: DbtBatchRunScopeType;
-  scopeValues: string[];
+  selectionType: DbtBatchRunSelectionType;
+  modelNames: string[];
 };
 
-export type RunDbtModelsByScopeItem = {
+export type RunDbtModelsItem = {
   modelName: string;
   layer: DbtModelLayer;
   scopeKey: string | null;
@@ -74,14 +74,14 @@ export type RunDbtModelsByScopeItem = {
   message: string | null;
 };
 
-export type RunDbtModelsByScopeResult = {
+export type RunDbtModelsResult = {
   layer: DbtModelLayer;
-  scopeType: DbtBatchRunScopeType;
-  scopeValues: string[];
+  selectionType: DbtBatchRunSelectionType;
+  modelNames: string[];
   totalModels: number;
   succeededCount: number;
   failedCount: number;
-  items: RunDbtModelsByScopeItem[];
+  items: RunDbtModelsItem[];
 };
 
 export type DbtRunHistoryListItem = {
@@ -184,8 +184,8 @@ export type DbtBatchRunQueuedItem = {
 export type DbtBatchRunStartedEvent = {
   type: 'batch_started';
   layer: DbtModelLayer;
-  scopeType: DbtBatchRunScopeType;
-  scopeValues: string[];
+  selectionType: DbtBatchRunSelectionType;
+  modelNames: string[];
   totalModels: number;
   items: DbtBatchRunQueuedItem[];
 };
@@ -200,18 +200,18 @@ export type DbtBatchTargetStartedEvent = {
 
 export type DbtBatchTargetFinishedEvent = {
   type: 'target_finished';
-  item: RunDbtModelsByScopeItem;
+  item: RunDbtModelsItem;
 };
 
 export type DbtBatchRunFinishedEvent = {
   type: 'batch_finished';
   layer: DbtModelLayer;
-  scopeType: DbtBatchRunScopeType;
-  scopeValues: string[];
+  selectionType: DbtBatchRunSelectionType;
+  modelNames: string[];
   totalModels: number;
   succeededCount: number;
   failedCount: number;
-  items: RunDbtModelsByScopeItem[];
+  items: RunDbtModelsItem[];
 };
 
 export type DbtBatchRunStreamEvent =

@@ -1,18 +1,19 @@
 <script setup lang="ts">
+import type { TreeNode } from 'primevue/treenode';
 import { dbtModelApi } from '~/services/api/dbt';
 import { resolveConnectorDisplayIdentity } from '~/services/connectors/display';
 import { getDbtLayerClass, stripAnsi } from '~/services/dbt/presentation';
 import { useAuthStore } from '~/stores/auth';
 import type {
   DbtBatchRunStreamEvent,
-  DbtBatchRunScopeType,
+  DbtBatchRunSelectionType,
   DbtModelDetail,
   DbtModelLayer,
   DbtModelListItem,
   DbtSingleRunStreamEvent,
   RunDbtModelResult,
-  RunDbtModelsByScopeItem,
-  RunDbtModelsByScopeResult
+  RunDbtModelsItem,
+  RunDbtModelsResult
 } from '~/types/dbt';
 
 type DataTablePageEvent = {
@@ -21,15 +22,24 @@ type DataTablePageEvent = {
   first: number;
 };
 
-type ScopeOption = {
-  value: string;
-  label: string;
-  scopeType: DbtBatchRunScopeType;
+type TreeCheckboxSelectionState = {
+  checked?: boolean;
+  partialChecked?: boolean;
+};
+
+type TreeCheckboxSelectionKeys = Record<string, boolean | TreeCheckboxSelectionState>;
+
+type BatchSelectionTreeNodeData = {
+  kind: 'group' | 'model';
+  selectionType: DbtBatchRunSelectionType;
+  scopeKey: string | null;
+  scopeLabel: string;
+  modelName?: string;
 };
 
 type BatchRunDisplayState = 'queued' | 'running' | 'success' | 'failed';
 
-type BatchRunDisplayItem = RunDbtModelsByScopeItem & {
+type BatchRunDisplayItem = RunDbtModelsItem & {
   state: BatchRunDisplayState;
 };
 
@@ -84,11 +94,11 @@ const runResult = ref<RunDbtModelResult | null>(null);
 const liveRunStdout = ref('');
 const liveRunStderr = ref('');
 
-const selectedScopeValues = ref<string[]>([]);
+const selectedTreeKeys = ref<TreeCheckboxSelectionKeys>({});
 const batchRunDialogVisible = ref(false);
 const batchRunBusy = ref(false);
 const batchRunError = ref('');
-const batchRunResult = ref<RunDbtModelsByScopeResult | null>(null);
+const batchRunResult = ref<RunDbtModelsResult | null>(null);
 const batchRunItems = ref<BatchRunDisplayItem[]>([]);
 const batchLiveOutput = ref('');
 const batchOutputDialogVisible = ref(false);
@@ -104,9 +114,13 @@ let activeScopeLoadRequestId = 0;
 let activeDetailRequestId = 0;
 
 const layerMeta = computed(() => layerMetaMap[props.layer]);
-const scopeType = computed<DbtBatchRunScopeType>(() => props.layer === 'staging' ? 'connector' : 'domain');
-const scopeLabel = computed(() => scopeType.value === 'connector' ? 'Connector' : 'Domain');
-const scopePlaceholder = computed(() => scopeType.value === 'connector' ? 'Select connectors' : 'Select domains');
+const selectionType = computed<DbtBatchRunSelectionType>(() => props.layer === 'staging' ? 'connector' : 'domain');
+const selectionLabel = computed(() => selectionType.value === 'connector' ? 'Connector' : 'Domain');
+const selectionPlaceholder = computed(() => (
+  selectionType.value === 'connector'
+    ? 'Select connectors or models'
+    : 'Select domains or models'
+));
 const modelDetailTitle = computed(() => {
   if (!selectedDetailModel.value) {
     return 'Model Details';
@@ -147,36 +161,99 @@ const modelDetailCacheKey = (layer: DbtModelLayer, modelName: string) => `${laye
 const resolveLayerClass = getDbtLayerClass;
 const getConnectorIdentity = (value: string | null | undefined) => resolveConnectorDisplayIdentity(value);
 const selectedBatchOutputTitle = computed(() => selectedBatchOutput.value?.modelName ?? 'Run Output');
-const scopeOptions = computed<ScopeOption[]>(() => {
-  const optionMap = new Map<string, ScopeOption>();
+const batchSelectionTreeNodes = computed<TreeNode[]>(() => {
+  const groups = new Map<string, { label: string; children: TreeNode[] }>();
 
   for (const item of scopeSourceModels.value) {
-    const value = scopeType.value === 'connector' ? item.connectorKey : item.domainKey;
-    const label = scopeType.value === 'connector' ? item.connector : item.domain;
-    if (!value || !label || optionMap.has(value)) {
+    const scopeKey = selectionType.value === 'connector' ? item.connectorKey : item.domainKey;
+    const scopeLabel = selectionType.value === 'connector' ? item.connector : item.domain;
+    if (!scopeKey || !scopeLabel) {
       continue;
     }
 
-    optionMap.set(value, {
-      value,
-      label,
-      scopeType: scopeType.value
+    if (!groups.has(scopeKey)) {
+      groups.set(scopeKey, {
+        label: scopeLabel,
+        children: []
+      });
+    }
+
+    groups.get(scopeKey)?.children.push({
+      key: `model:${item.name}`,
+      label: item.name,
+      leaf: true,
+      selectable: true,
+      data: {
+        kind: 'model',
+        selectionType: selectionType.value,
+        scopeKey,
+        scopeLabel,
+        modelName: item.name
+      } satisfies BatchSelectionTreeNodeData
     });
   }
 
-  return Array.from(optionMap.values()).sort((left, right) => left.label.localeCompare(right.label));
+  return Array.from(groups.entries())
+    .map(([scopeKey, group]) => ({
+      key: `group:${scopeKey}`,
+      label: group.label,
+      selectable: true,
+      data: {
+        kind: 'group',
+        selectionType: selectionType.value,
+        scopeKey,
+        scopeLabel: group.label
+      } satisfies BatchSelectionTreeNodeData,
+      children: [...group.children].sort((left, right) => (left.label ?? '').localeCompare(right.label ?? ''))
+    }))
+    .sort((left, right) => (left.label ?? '').localeCompare(right.label ?? ''));
 });
-const batchScopeLabels = computed(() => {
-  const optionMap = new Map(scopeOptions.value.map((option) => [option.value, option.label]));
-  return selectedScopeValues.value
-    .map((value) => optionMap.get(value) ?? value)
-    .filter((value): value is string => Boolean(value));
+const selectedLeafModelNames = computed(() => {
+  const selectedNames = new Set<string>();
+
+  const isChecked = (key: string) => {
+    const selection = selectedTreeKeys.value[key];
+    if (typeof selection === 'boolean') {
+      return selection;
+    }
+    return Boolean(selection?.checked);
+  };
+
+  const visitNodes = (nodes: TreeNode[], inheritedChecked = false) => {
+    for (const node of nodes) {
+      const checked = inheritedChecked || isChecked(node.key);
+      const nodeData = node.data as BatchSelectionTreeNodeData | undefined;
+      if (node.children?.length) {
+        visitNodes(node.children, checked);
+        continue;
+      }
+
+      if (checked && nodeData?.kind === 'model' && nodeData.modelName) {
+        selectedNames.add(nodeData.modelName);
+      }
+    }
+  };
+
+  visitNodes(batchSelectionTreeNodes.value);
+  return Array.from(selectedNames).sort((left, right) => left.localeCompare(right));
+});
+const selectedGroupLabels = computed(() => {
+  const groups = new Set<string>();
+
+  for (const item of plannedBatchModels.value) {
+    const label = selectionType.value === 'connector' ? item.connector : item.domain;
+    if (label) {
+      groups.add(label);
+    }
+  }
+
+  return Array.from(groups).sort((left, right) => left.localeCompare(right));
 });
 const batchRunDisabled = computed(() => (
   runBusy.value
   || batchRunBusy.value
-  || selectedScopeValues.value.length === 0
-  || scopeOptions.value.length === 0
+  || selectedLeafModelNames.value.length === 0
+  || batchSelectionTreeNodes.value.length === 0
 ));
 const hasSingleRunActivity = computed(() => (
   Boolean(runResult.value)
@@ -185,16 +262,10 @@ const hasSingleRunActivity = computed(() => (
   || liveRunStderr.value.length > 0
 ));
 const plannedBatchModels = computed(() => {
-  const selectedValues = new Set(selectedScopeValues.value);
+  const selectedNames = new Set(selectedLeafModelNames.value);
 
   return scopeSourceModels.value
-    .filter((item) => {
-      const scopeValue = scopeType.value === 'connector' ? item.connectorKey : item.domainKey;
-      if (!scopeValue) {
-        return false;
-      }
-      return selectedValues.has(scopeValue);
-    })
+    .filter((item) => selectedNames.has(item.name))
     .sort((left, right) => left.name.localeCompare(right.name));
 });
 const hasBatchRunActivity = computed(() => (
@@ -468,8 +539,8 @@ const startBatchRun = async () => {
 
   const result = await dbtModelApi.streamRunBatch(auth.token, {
     layer: props.layer,
-    scopeType: scopeType.value,
-    scopeValues: [...selectedScopeValues.value]
+    selectionType: selectionType.value,
+    modelNames: [...selectedLeafModelNames.value]
   }, (event) => {
     if (event.type === 'batch_started') {
       batchRunItems.value = event.items.map((item) => createBatchRunDisplayItem(item, 'queued'));
@@ -504,8 +575,8 @@ const startBatchRun = async () => {
     if (event.type === 'batch_finished') {
       batchRunResult.value = {
         layer: event.layer,
-        scopeType: event.scopeType,
-        scopeValues: event.scopeValues,
+        selectionType: event.selectionType,
+        modelNames: event.modelNames,
         totalModels: event.totalModels,
         succeededCount: event.succeededCount,
         failedCount: event.failedCount,
@@ -600,7 +671,7 @@ watch(
 watch(
   () => props.layer,
   () => {
-    selectedScopeValues.value = [];
+    selectedTreeKeys.value = {};
     batchRunDialogVisible.value = false;
     runDialogVisible.value = false;
     batchOutputDialogVisible.value = false;
@@ -613,10 +684,27 @@ watch(
 );
 
 watch(
-  scopeOptions,
-  (options) => {
-    const availableValues = new Set(options.map((option) => option.value));
-    selectedScopeValues.value = selectedScopeValues.value.filter((value) => availableValues.has(value));
+  batchSelectionTreeNodes,
+  (nodes) => {
+    const validKeys = new Set<string>();
+    const collectKeys = (items: TreeNode[]) => {
+      for (const item of items) {
+        validKeys.add(item.key);
+        if (item.children?.length) {
+          collectKeys(item.children);
+        }
+      }
+    };
+
+    collectKeys(nodes);
+
+    const nextSelection = Object.fromEntries(
+      Object.entries(selectedTreeKeys.value).filter(([key]) => validKeys.has(key))
+    );
+
+    if (Object.keys(nextSelection).length !== Object.keys(selectedTreeKeys.value).length) {
+      selectedTreeKeys.value = nextSelection;
+    }
   }
 );
 
@@ -649,42 +737,59 @@ onBeforeUnmount(() => {
                 />
               </IconField>
 
-              <MultiSelect
-                v-model="selectedScopeValues"
-                :options="scopeOptions"
-                option-label="label"
-                option-value="value"
-                display="chip"
+              <TreeSelect
+                v-model="selectedTreeKeys"
+                :options="batchSelectionTreeNodes"
+                selection-mode="checkbox"
                 filter
-                :placeholder="scopePlaceholder"
-                :max-selected-labels="2"
-                selected-items-label="{0} selected"
+                filter-by="label"
+                :placeholder="selectionPlaceholder"
                 class="w-full sm:flex-1 xl:w-[18rem] xl:flex-none"
-                :disabled="runBusy || batchRunBusy"
+                :disabled="runBusy || batchRunBusy || batchSelectionTreeNodes.length === 0"
               >
-                <template #option="{ option }">
-                  <div v-if="option.scopeType === 'connector' && getConnectorIdentity(option.label)" class="connector-identity">
+                <template #value>
+                  <span
+                    v-if="selectedLeafModelNames.length"
+                    class="block truncate text-sm font-medium text-slate-700 dark:text-slate-200"
+                  >
+                    {{ selectedLeafModelNames.length }} model{{ selectedLeafModelNames.length === 1 ? '' : 's' }} selected
+                  </span>
+                  <span v-else class="text-sm text-slate-400 dark:text-slate-500">
+                    {{ selectionPlaceholder }}
+                  </span>
+                </template>
+
+                <template #option="{ node }">
+                  <div
+                    v-if="node.data?.kind === 'group' && selectionType === 'connector' && getConnectorIdentity(node.label)"
+                    class="connector-identity"
+                  >
                     <img
-                      v-if="getConnectorIdentity(option.label)?.logo"
-                      :src="getConnectorIdentity(option.label)?.logo"
-                      :alt="option.label"
+                      v-if="getConnectorIdentity(node.label)?.logo"
+                      :src="getConnectorIdentity(node.label)?.logo"
+                      :alt="node.label"
                       class="connector-brand-logo"
                     />
                     <i
                       v-else
-                      :class="[getConnectorIdentity(option.label)?.fallbackIcon, 'connector-brand-icon']"
+                      :class="[getConnectorIdentity(node.label)?.fallbackIcon, 'connector-brand-icon']"
                     />
-                    <span class="connector-name">{{ option.label }}</span>
+                    <span class="connector-name">{{ node.label }}</span>
                   </div>
                   <span
-                    v-else-if="option.scopeType === 'domain'"
+                    v-else-if="node.data?.kind === 'group' && selectionType === 'domain'"
                     class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200"
                   >
-                    {{ option.label }}
+                    {{ node.label }}
                   </span>
-                  <span v-else>{{ option.label }}</span>
+                  <span
+                    v-else
+                    class="block truncate font-mono text-[0.92rem] font-medium tracking-[0.01em] text-slate-700 dark:text-slate-200"
+                  >
+                    {{ node.label }}
+                  </span>
                 </template>
-              </MultiSelect>
+              </TreeSelect>
 
               <Button
                 label="Run"
@@ -1034,7 +1139,13 @@ onBeforeUnmount(() => {
         <div class="space-y-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-900/60">
           <div class="flex flex-wrap items-start justify-between gap-3">
             <div class="space-y-2">
-              <p class="text-sm font-medium text-slate-700 dark:text-slate-200">Selected {{ scopeLabel }}</p>
+              <p class="text-sm font-medium text-slate-700 dark:text-slate-200">Selected Models</p>
+              <p class="text-xs text-slate-500 dark:text-slate-400">
+                {{ plannedBatchModels.length }} model{{ plannedBatchModels.length === 1 ? '' : 's' }}
+                across
+                {{ selectedGroupLabels.length }}
+                {{ selectionLabel.toLowerCase() }}{{ selectedGroupLabels.length === 1 ? '' : 's' }}
+              </p>
               <div class="flex flex-wrap items-center gap-2">
                 <span
                   class="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em]"
@@ -1042,8 +1153,8 @@ onBeforeUnmount(() => {
                 >
                   {{ props.layer }}
                 </span>
-                <template v-for="label in batchScopeLabels" :key="label">
-                  <div v-if="scopeType === 'connector' && getConnectorIdentity(label)" class="connector-identity rounded-full border border-slate-200 bg-white px-3 py-1 dark:border-slate-700 dark:bg-slate-950/60">
+                <template v-for="label in selectedGroupLabels" :key="label">
+                  <div v-if="selectionType === 'connector' && getConnectorIdentity(label)" class="connector-identity rounded-full border border-slate-200 bg-white px-3 py-1 dark:border-slate-700 dark:bg-slate-950/60">
                     <img
                       v-if="getConnectorIdentity(label)?.logo"
                       :src="getConnectorIdentity(label)?.logo"
@@ -1084,7 +1195,7 @@ onBeforeUnmount(() => {
         </div>
 
         <Message v-if="canStartBatchRun" severity="info" :closable="false">
-          Review the selected {{ scopeLabel.toLowerCase() }} values and click Start to begin the batch run.
+          Review the selected models and click Start to begin the batch run.
         </Message>
 
         <Message v-if="batchRunBusy" severity="warn" :closable="false">
@@ -1096,7 +1207,7 @@ onBeforeUnmount(() => {
         </Message>
 
         <Message v-else-if="batchRunResult && batchRunResult.totalModels === 0" severity="info" :closable="false">
-          No models matched the selected {{ scopeLabel.toLowerCase() }} values.
+          No models matched the selected tree selection.
         </Message>
 
         <div v-if="batchRunBusy || batchLiveOutput" class="rounded-2xl border border-slate-200 dark:border-slate-700">
@@ -1120,7 +1231,7 @@ onBeforeUnmount(() => {
 
           <Column header="Scope">
             <template #body="{ data }">
-              <div v-if="data.scopeLabel && scopeType === 'connector' && getConnectorIdentity(data.scopeLabel)" class="connector-identity">
+              <div v-if="data.scopeLabel && selectionType === 'connector' && getConnectorIdentity(data.scopeLabel)" class="connector-identity">
                 <img
                   v-if="getConnectorIdentity(data.scopeLabel)?.logo"
                   :src="getConnectorIdentity(data.scopeLabel)?.logo"
@@ -1215,7 +1326,7 @@ onBeforeUnmount(() => {
                   {{ selectedBatchOutput.layer }}
                 </span>
                 <div
-                  v-if="selectedBatchOutput.scopeLabel && scopeType === 'connector' && getConnectorIdentity(selectedBatchOutput.scopeLabel)"
+                  v-if="selectedBatchOutput.scopeLabel && selectionType === 'connector' && getConnectorIdentity(selectedBatchOutput.scopeLabel)"
                   class="connector-identity rounded-full border border-slate-200 bg-white px-3 py-1 dark:border-slate-700 dark:bg-slate-950/60"
                 >
                   <img

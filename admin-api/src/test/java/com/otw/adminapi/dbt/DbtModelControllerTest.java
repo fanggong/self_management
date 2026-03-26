@@ -168,12 +168,16 @@ class DbtModelControllerTest {
   }
 
   @Test
-  void runModelsByScopeReturnsApiResult() {
-    RunDbtModelsByScopeRequest request = new RunDbtModelsByScopeRequest("staging", "connector", List.of("garmin-connect"));
+  void runModelsReturnsApiResult() {
+    RunDbtModelsRequest request = new RunDbtModelsRequest(
+      "staging",
+      "connector",
+      List.of("stg_garmin_profile_snapshot")
+    );
     DbtBatchModelRunResultView response = new DbtBatchModelRunResultView(
       "staging",
       "connector",
-      List.of("garmin-connect"),
+      List.of("stg_garmin_profile_snapshot"),
       1,
       1,
       0,
@@ -193,22 +197,26 @@ class DbtModelControllerTest {
       ))
     );
     when(jwtService.toAuthenticatedUser(jwt)).thenReturn(authenticatedUser);
-    when(dbtModelService.runModelsByScope(authenticatedUser, request)).thenReturn(response);
+    when(dbtModelService.runModels(authenticatedUser, request)).thenReturn(response);
 
-    ApiResult<DbtBatchModelRunResultView> result = controller.runModelsByScope(jwt, request);
+    ApiResult<DbtBatchModelRunResultView> result = controller.runModels(jwt, request);
 
     assertEquals(true, result.success());
     assertEquals(response, result.data());
   }
 
   @Test
-  void runModelsByScopeStreamReturnsStreamingBody() throws Exception {
-    RunDbtModelsByScopeRequest request = new RunDbtModelsByScopeRequest("staging", "connector", List.of("garmin-connect"));
+  void runModelsStreamReturnsStreamingBody() throws Exception {
+    RunDbtModelsRequest request = new RunDbtModelsRequest(
+      "staging",
+      "connector",
+      List.of("stg_garmin_profile_snapshot")
+    );
     StreamingResponseBody responseBody = outputStream -> outputStream.write("{\"type\":\"batch_started\"}\n".getBytes());
     when(jwtService.toAuthenticatedUser(jwt)).thenReturn(authenticatedUser);
-    when(dbtModelService.streamModelsByScope(authenticatedUser, request)).thenReturn(responseBody);
+    when(dbtModelService.streamModels(authenticatedUser, request)).thenReturn(responseBody);
 
-    ResponseEntity<StreamingResponseBody> response = controller.runModelsByScopeStream(jwt, request);
+    ResponseEntity<StreamingResponseBody> response = controller.runModelsStream(jwt, request);
     ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
     response.getBody().writeTo(outputStream);
 

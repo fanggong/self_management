@@ -1,7 +1,7 @@
 import type { ApiResult } from '~/types/auth';
 import type {
   DbtBatchRunStreamEvent,
-  DbtBatchRunScopeType,
+  DbtBatchRunSelectionType,
   DbtModelDetail,
   DbtModelLayer,
   DbtModelListItem,
@@ -14,8 +14,9 @@ import type {
   DbtRunModelHistoryResponse,
   ListDbtModelsPayload,
   ListDbtRunHistoryPayload,
-  RunDbtModelsByScopePayload,
-  RunDbtModelsByScopeResult,
+  RunDbtModelsPayload,
+  RunDbtModelsResult,
+  RunDbtModelsItem,
   RunDbtModelPayload,
   RunDbtModelResult
 } from '~/types/dbt';
@@ -575,11 +576,22 @@ const performMockModelRun = (model: DbtModelListItem) => {
   };
 };
 
-const resolveScopeKey = (item: DbtModelListItem, scopeType: DbtBatchRunScopeType) =>
-  scopeType === 'connector' ? item.connectorKey : item.domainKey;
+const resolveScopeKey = (item: DbtModelListItem, selectionType: DbtBatchRunSelectionType) =>
+  selectionType === 'connector' ? item.connectorKey : item.domainKey;
 
-const resolveScopeLabel = (item: DbtModelListItem, scopeType: DbtBatchRunScopeType) =>
-  scopeType === 'connector' ? item.connector : item.domain;
+const resolveScopeLabel = (item: DbtModelListItem, selectionType: DbtBatchRunSelectionType) =>
+  selectionType === 'connector' ? item.connector : item.domain;
+
+const resolveSelectedModels = (payload: RunDbtModelsPayload) => {
+  const requestedNames = payload.modelNames
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const requestedSet = new Set(requestedNames);
+
+  return cloneLayerItems(payload.layer)
+    .filter((item) => requestedSet.has(item.name))
+    .sort((left, right) => left.name.localeCompare(right.name));
+};
 
 const emitSingleRunLogs = async (
   model: DbtModelListItem,
@@ -724,16 +736,11 @@ export const mockDbtModelApi = {
     };
   },
 
-  async runBatch(payload: RunDbtModelsByScopePayload): Promise<ApiResult<RunDbtModelsByScopeResult>> {
+  async runBatch(payload: RunDbtModelsPayload): Promise<ApiResult<RunDbtModelsResult>> {
     await wait(700);
 
-    const scopeValues = payload.scopeValues.map((value) => value.trim().toLowerCase()).filter(Boolean);
-    const matchedModels = cloneLayerItems(payload.layer)
-      .filter((item) => {
-        const scopeKey = resolveScopeKey(item, payload.scopeType);
-        return scopeKey ? scopeValues.includes(scopeKey) : false;
-      })
-      .sort((left, right) => left.name.localeCompare(right.name));
+    const matchedModels = resolveSelectedModels(payload);
+    const modelNames = matchedModels.map((item) => item.name);
 
     const items = matchedModels.map((matchedModel) => {
       const stateModel = mockModelsState[payload.layer].find((item) => item.name === matchedModel.name);
@@ -741,8 +748,8 @@ export const mockDbtModelApi = {
         return {
           modelName: matchedModel.name,
           layer: matchedModel.layer,
-          scopeKey: resolveScopeKey(matchedModel, payload.scopeType),
-          scopeLabel: resolveScopeLabel(matchedModel, payload.scopeType),
+          scopeKey: resolveScopeKey(matchedModel, payload.selectionType),
+          scopeLabel: resolveScopeLabel(matchedModel, payload.selectionType),
           success: false,
           returncode: null,
           stdout: '',
@@ -758,8 +765,8 @@ export const mockDbtModelApi = {
       return {
         modelName: stateModel.name,
         layer: stateModel.layer,
-        scopeKey: resolveScopeKey(stateModel, payload.scopeType),
-        scopeLabel: resolveScopeLabel(stateModel, payload.scopeType),
+        scopeKey: resolveScopeKey(stateModel, payload.selectionType),
+        scopeLabel: resolveScopeLabel(stateModel, payload.selectionType),
         success: true,
         returncode: result.returncode,
         stdout: result.stdout,
@@ -777,8 +784,8 @@ export const mockDbtModelApi = {
       success: true,
       data: {
         layer: payload.layer,
-        scopeType: payload.scopeType,
-        scopeValues,
+        selectionType: payload.selectionType,
+        modelNames,
         totalModels: items.length,
         succeededCount,
         failedCount: items.length - succeededCount,
@@ -788,42 +795,37 @@ export const mockDbtModelApi = {
   },
 
   async streamRunBatch(
-    payload: RunDbtModelsByScopePayload,
+    payload: RunDbtModelsPayload,
     onEvent?: (event: DbtBatchRunStreamEvent) => void
-  ): Promise<ApiResult<RunDbtModelsByScopeResult>> {
+  ): Promise<ApiResult<RunDbtModelsResult>> {
     await wait(120);
 
-    const scopeValues = payload.scopeValues.map((value) => value.trim().toLowerCase()).filter(Boolean);
-    const matchedModels = cloneLayerItems(payload.layer)
-      .filter((item) => {
-        const scopeKey = resolveScopeKey(item, payload.scopeType);
-        return scopeKey ? scopeValues.includes(scopeKey) : false;
-      })
-      .sort((left, right) => left.name.localeCompare(right.name));
+    const matchedModels = resolveSelectedModels(payload);
+    const modelNames = matchedModels.map((item) => item.name);
 
     onEvent?.({
       type: 'batch_started',
       layer: payload.layer,
-      scopeType: payload.scopeType,
-      scopeValues,
+      selectionType: payload.selectionType,
+      modelNames,
       totalModels: matchedModels.length,
       items: matchedModels.map((item) => ({
         modelName: item.name,
         layer: item.layer,
-        scopeKey: resolveScopeKey(item, payload.scopeType),
-        scopeLabel: resolveScopeLabel(item, payload.scopeType)
+        scopeKey: resolveScopeKey(item, payload.selectionType),
+        scopeLabel: resolveScopeLabel(item, payload.selectionType)
       }))
     });
 
-    const items: RunDbtModelsByScopeResult['items'] = [];
+    const items: RunDbtModelsResult['items'] = [];
     for (const matchedModel of matchedModels) {
       const stateModel = mockModelsState[payload.layer].find((item) => item.name === matchedModel.name);
       if (!stateModel) {
-        const missingItem = {
+        const missingItem: RunDbtModelsItem = {
           modelName: matchedModel.name,
           layer: matchedModel.layer,
-          scopeKey: resolveScopeKey(matchedModel, payload.scopeType),
-          scopeLabel: resolveScopeLabel(matchedModel, payload.scopeType),
+          scopeKey: resolveScopeKey(matchedModel, payload.selectionType),
+          scopeLabel: resolveScopeLabel(matchedModel, payload.selectionType),
           success: false,
           returncode: null,
           stdout: '',
@@ -849,16 +851,16 @@ export const mockDbtModelApi = {
         type: 'target_started',
         layer: stateModel.layer,
         modelName: stateModel.name,
-        scopeKey: resolveScopeKey(stateModel, payload.scopeType),
-        scopeLabel: resolveScopeLabel(stateModel, payload.scopeType)
+        scopeKey: resolveScopeKey(stateModel, payload.selectionType),
+        scopeLabel: resolveScopeLabel(stateModel, payload.selectionType)
       });
       await emitBatchModelLogs(stateModel, onEvent);
       const { result } = performMockModelRun(stateModel);
-      const finishedItem = {
+      const finishedItem: RunDbtModelsItem = {
         modelName: stateModel.name,
         layer: stateModel.layer,
-        scopeKey: resolveScopeKey(stateModel, payload.scopeType),
-        scopeLabel: resolveScopeLabel(stateModel, payload.scopeType),
+        scopeKey: resolveScopeKey(stateModel, payload.selectionType),
+        scopeLabel: resolveScopeLabel(stateModel, payload.selectionType),
         success: true,
         returncode: result.returncode,
         stdout: result.stdout,
@@ -876,8 +878,8 @@ export const mockDbtModelApi = {
     onEvent?.({
       type: 'batch_finished',
       layer: payload.layer,
-      scopeType: payload.scopeType,
-      scopeValues,
+      selectionType: payload.selectionType,
+      modelNames,
       totalModels: items.length,
       succeededCount,
       failedCount: items.length - succeededCount,
@@ -888,8 +890,8 @@ export const mockDbtModelApi = {
       success: true,
       data: {
         layer: payload.layer,
-        scopeType: payload.scopeType,
-        scopeValues,
+        selectionType: payload.selectionType,
+        modelNames,
         totalModels: items.length,
         succeededCount,
         failedCount: items.length - succeededCount,

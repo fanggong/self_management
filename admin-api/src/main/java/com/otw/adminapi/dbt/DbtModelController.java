@@ -95,20 +95,20 @@ public class DbtModelController {
   }
 
   @PostMapping("/dbt-models/run-batch")
-  public ApiResult<DbtBatchModelRunResultView> runModelsByScope(
+  public ApiResult<DbtBatchModelRunResultView> runModels(
     @AuthenticationPrincipal Jwt jwt,
-    @Valid @RequestBody RunDbtModelsByScopeRequest request
+    @Valid @RequestBody RunDbtModelsRequest request
   ) {
-    return ApiResult.success(dbtModelService.runModelsByScope(jwtService.toAuthenticatedUser(jwt), request));
+    return ApiResult.success(dbtModelService.runModels(jwtService.toAuthenticatedUser(jwt), request));
   }
 
   @PostMapping(value = "/dbt-models/run-batch-stream", produces = "application/x-ndjson")
-  public ResponseEntity<StreamingResponseBody> runModelsByScopeStream(
+  public ResponseEntity<StreamingResponseBody> runModelsStream(
     @AuthenticationPrincipal Jwt jwt,
-    @Valid @RequestBody RunDbtModelsByScopeRequest request
+    @Valid @RequestBody RunDbtModelsRequest request
   ) {
     return ResponseEntity.ok()
       .contentType(MediaType.parseMediaType("application/x-ndjson"))
-      .body(dbtModelService.streamModelsByScope(jwtService.toAuthenticatedUser(jwt), request));
+      .body(dbtModelService.streamModels(jwtService.toAuthenticatedUser(jwt), request));
   }
 }

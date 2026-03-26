@@ -293,7 +293,7 @@ class DbtModelServiceTest {
   }
 
   @Test
-  void runModelsByScopeRunsMatchingModelsInNameOrderAndContinuesAfterFailure() {
+  void runModelsRunsSelectedModelsInNameOrderAndContinuesAfterFailure() {
     when(dbtModelRunnerClient.listModels("staging", null)).thenReturn(
       List.of(
         new DbtModelRunnerClient.RunnerModelItem("stg_medical_report_snapshot", "staging", "Medical report", "medical-report", null, null),
@@ -331,15 +331,19 @@ class DbtModelServiceTest {
     );
     when(connectorService.getConnectorName("garmin-connect")).thenReturn("Garmin Connect");
 
-    DbtBatchModelRunResultView response = service.runModelsByScope(
+    DbtBatchModelRunResultView response = service.runModels(
       authenticatedUser,
-      new RunDbtModelsByScopeRequest("staging", "connector", List.of("garmin-connect"))
+      new RunDbtModelsRequest(
+        "staging",
+        "connector",
+        List.of("stg_garmin_profile_snapshot", "stg_garmin_daily_summary")
+      )
     );
 
     assertEquals(2, response.totalModels());
     assertEquals(1, response.succeededCount());
     assertEquals(1, response.failedCount());
-    assertEquals(List.of("garmin-connect"), response.scopeValues());
+    assertEquals(List.of("stg_garmin_daily_summary", "stg_garmin_profile_snapshot"), response.modelNames());
     assertEquals("stg_garmin_daily_summary", response.items().get(0).modelName());
     assertEquals(false, response.items().get(0).success());
     assertEquals("stg_garmin_profile_snapshot", response.items().get(1).modelName());
