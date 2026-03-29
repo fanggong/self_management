@@ -30,6 +30,7 @@ export type ConnectorDefinition = {
 };
 
 export type ConnectorConfigValues = Record<string, string>;
+export type ConnectorSecretFieldState = Record<string, boolean>;
 
 export type ConnectorRecord = {
   id: ConnectorId;
@@ -40,6 +41,7 @@ export type ConnectorRecord = {
   lastRun: string;
   nextRun: string;
   config: ConnectorConfigValues;
+  secretFieldsConfigured: ConnectorSecretFieldState;
 };
 
 export type TestConnectorPayload = {

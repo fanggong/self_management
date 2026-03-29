@@ -339,19 +339,7 @@ class MedicalReportConnectorAdapter:
                 http_status=502,
             ) from error
 
-        if response.status_code in {401, 403}:
-            raise MedicalReportConnectorError(
-                "MODEL_AUTH_FAILED",
-                "Provider authentication failed.",
-            )
-
-        if response.status_code >= 400:
-            provider_message = _extract_provider_error_message(response)
-            raise MedicalReportConnectorError(
-                "REPORT_PARSE_FAILED",
-                provider_message or "Unable to upload medical report content.",
-                http_status=502,
-            )
+        _raise_provider_http_error(response, parse_message="Unable to upload medical report content.")
 
         payload_json = response.json()
         file_id = str(payload_json.get("id", "")).strip()
@@ -403,19 +391,7 @@ class MedicalReportConnectorAdapter:
                 http_status=502,
             ) from error
 
-        if response.status_code in {401, 403}:
-            raise MedicalReportConnectorError(
-                "MODEL_AUTH_FAILED",
-                "Provider authentication failed.",
-            )
-
-        if response.status_code >= 400:
-            provider_message = _extract_provider_error_message(response)
-            raise MedicalReportConnectorError(
-                "REPORT_PARSE_FAILED",
-                provider_message or "Unable to retrieve medical report processing status.",
-                http_status=502,
-            )
+        _raise_provider_http_error(response, parse_message="Unable to retrieve medical report processing status.")
 
         payload_json = response.json()
         return payload_json if isinstance(payload_json, dict) else {}
@@ -439,19 +415,7 @@ class MedicalReportConnectorAdapter:
                 http_status=502,
             ) from error
 
-        if response.status_code in {401, 403}:
-            raise MedicalReportConnectorError(
-                "MODEL_AUTH_FAILED",
-                "Provider authentication failed.",
-            )
-
-        if response.status_code >= 400:
-            provider_message = _extract_provider_error_message(response)
-            raise MedicalReportConnectorError(
-                "REPORT_PARSE_FAILED",
-                provider_message or "Unable to retrieve medical report parsing result.",
-                http_status=502,
-            )
+        _raise_provider_http_error(response, parse_message="Unable to retrieve medical report parsing result.")
 
         payload_json = response.json()
         return payload_json if isinstance(payload_json, dict) else {}
@@ -512,19 +476,7 @@ class MedicalReportConnectorAdapter:
                 http_status=502,
             ) from error
 
-        if response.status_code in {401, 403}:
-            raise MedicalReportConnectorError(
-                "MODEL_AUTH_FAILED",
-                "Provider authentication failed.",
-            )
-
-        if response.status_code >= 400:
-            provider_message = _extract_provider_error_message(response)
-            raise MedicalReportConnectorError(
-                "REPORT_PARSE_FAILED",
-                provider_message or "Unable to parse report content.",
-                http_status=502,
-            )
+        _raise_provider_http_error(response, parse_message="Unable to parse report content.")
 
         payload_json = response.json()
         try:
@@ -573,19 +525,7 @@ class MedicalReportConnectorAdapter:
                 http_status=502,
             ) from error
 
-        if response.status_code in {401, 403}:
-            raise MedicalReportConnectorError(
-                "MODEL_AUTH_FAILED",
-                "Provider authentication failed.",
-            )
-
-        if response.status_code >= 400:
-            provider_message = _extract_provider_error_message(response)
-            raise MedicalReportConnectorError(
-                "REPORT_PARSE_FAILED",
-                provider_message or "Unable to parse report content.",
-                http_status=502,
-            )
+        _raise_provider_http_error(response, parse_message="Unable to parse report content.")
 
         payload_json = response.json()
         content = _extract_responses_output_text(payload_json)
@@ -594,8 +534,12 @@ class MedicalReportConnectorAdapter:
 
         if not content:
             logger.warning(
-                "volcengine responses returned unexpected payload shape: %s",
-                _summarize_payload_for_log(payload_json),
+                "volcengine responses returned unexpected payload shape (provider=%s response_id=%s status=%s error_code=%s error_type=%s)",
+                provider,
+                str(payload_json.get("id", "")).strip() or "-",
+                str(payload_json.get("status", "")).strip() or "-",
+                _extract_error_code(payload_json),
+                _extract_error_type(payload_json),
             )
             raise MedicalReportConnectorError(
                 "REPORT_PARSE_FAILED",
@@ -650,8 +594,11 @@ class MedicalReportConnectorAdapter:
 
         if not latest_content:
             logger.warning(
-                "volcengine response completed without output text: %s",
-                _summarize_payload_for_log(latest_payload),
+                "volcengine response completed without output text (response_id=%s status=%s error_code=%s error_type=%s)",
+                str(latest_payload.get("id", "")).strip() or "-",
+                str(latest_payload.get("status", "")).strip() or "-",
+                _extract_error_code(latest_payload),
+                _extract_error_type(latest_payload),
             )
 
         return latest_content
@@ -668,24 +615,28 @@ def decode_pdf_base64(file_base64: str) -> bytes:
         raise MedicalReportConnectorError("VALIDATION_ERROR", "Invalid medical report file payload.") from error
 
 
-def _extract_provider_error_message(response: requests.Response) -> str:
-    try:
-        payload = response.json()
-    except Exception:
-        return response.text.strip()
+def _raise_provider_http_error(response: requests.Response, *, parse_message: str) -> None:
+    if response.status_code < 400:
+        return
 
-    error = payload.get("error")
-    if isinstance(error, dict):
-        message = error.get("message")
-        if isinstance(message, str):
-            return message.strip()
-    if isinstance(error, str):
-        return error.strip()
+    if response.status_code in {401, 403}:
+        raise MedicalReportConnectorError(
+            "MODEL_AUTH_FAILED",
+            "Provider authentication failed.",
+        )
 
-    message = payload.get("message")
-    if isinstance(message, str):
-        return message.strip()
-    return ""
+    if response.status_code == 429 or response.status_code >= 500:
+        raise MedicalReportConnectorError(
+            "MODEL_CONNECTION_ERROR",
+            "Unable to reach model provider right now.",
+            http_status=502,
+        )
+
+    raise MedicalReportConnectorError(
+        "REPORT_PARSE_FAILED",
+        parse_message,
+        http_status=502,
+    )
 
 
 def _extract_json_object(content: str) -> dict[str, Any]:
@@ -784,11 +735,20 @@ def _extract_error_message_from_payload(payload_json: dict[str, Any]) -> str:
     return ""
 
 
-def _summarize_payload_for_log(payload_json: dict[str, Any]) -> str:
-    try:
-        return json.dumps(payload_json, ensure_ascii=False)[:4000]
-    except Exception:
-        return repr(payload_json)[:4000]
+def _extract_error_code(payload_json: dict[str, Any]) -> str:
+    error = payload_json.get("error")
+    if isinstance(error, dict):
+        code = error.get("code")
+        return str(code).strip() if code is not None else "-"
+    return "-"
+
+
+def _extract_error_type(payload_json: dict[str, Any]) -> str:
+    error = payload_json.get("error")
+    if isinstance(error, dict):
+        error_type = error.get("type")
+        return str(error_type).strip() if error_type is not None else "-"
+    return "-"
 
 
 def _build_section_mapping_prompt() -> str:

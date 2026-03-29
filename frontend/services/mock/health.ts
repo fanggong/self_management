@@ -174,13 +174,13 @@ const mockActivities: HealthActivityListItem[] = [
 const mockActivityDetails: Record<string, HealthActivityDetail> = {
   '4cb0c0e2-4a73-4332-a2cb-a8320d77d4e1': {
     activityRecordId: '4cb0c0e2-4a73-4332-a2cb-a8320d77d4e1',
-    activityName: '室内骑行',
+    activityName: '训练台骑行',
     activityType: 'indoor_cycling',
     basics: [
-      { label: 'Activity Name', value: '室内骑行' },
+      { label: 'Activity Name', value: '训练台骑行' },
       { label: 'Activity Type', value: 'Indoor cycling' },
       { label: 'Source Date', value: '2026-01-27' },
-      { label: 'Owner', value: 'Fang Yongchao' },
+      { label: 'Owner', value: 'Demo Athlete' },
       { label: 'Privacy', value: 'Private' }
     ],
     performance: [
@@ -206,7 +206,7 @@ const mockActivityDetails: Record<string, HealthActivityDetail> = {
       { label: 'End Time', value: '2026-01-27 21:33:01' },
       { label: 'Start Time (Local)', value: '2026-01-27T20:53:16+08:00' },
       { label: 'Time Zone', value: 'Asia/Shanghai' },
-      { label: 'Location', value: 'Chengdu' }
+      { label: 'Location', value: 'Demo City' }
     ]
   }
 };

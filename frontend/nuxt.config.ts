@@ -62,8 +62,8 @@ export default defineNuxtConfig({
     apiBaseInternal: env.NUXT_API_BASE_INTERNAL ?? 'http://admin-api:8080/api/v1',
     public: {
       appName: 'OTW',
-      apiMode: env.NUXT_PUBLIC_API_MODE ?? 'mock',
-      apiBase: env.NUXT_PUBLIC_API_BASE ?? 'http://localhost:8080/api/v1'
+      apiMode: env.NUXT_PUBLIC_API_MODE ?? 'http',
+      apiBase: env.NUXT_PUBLIC_API_BASE ?? 'https://api.example.com/api/v1'
     }
   },
   routeRules: {

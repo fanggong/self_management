@@ -765,7 +765,7 @@ const loadSummary = async () => {
   summaryLoading.value = true;
   summaryError.value = '';
 
-  const result = await healthApi.getSummary(auth.token);
+  const result = await healthApi.getSummary();
   if (requestId !== summaryRequestId) {
     return;
   }
@@ -805,7 +805,7 @@ const loadHeartRateCard = async (date?: string | null) => {
   heartRateCard.loading = true;
   heartRateCard.error = '';
 
-  const result = await healthApi.getHeartRateCard(auth.token, date);
+  const result = await healthApi.getHeartRateCard(date);
   if (requestId !== heartRateCardRequestId) {
     return;
   }
@@ -828,7 +828,7 @@ const loadWeightCard = async (date?: string | null) => {
   weightCard.loading = true;
   weightCard.error = '';
 
-  const result = await healthApi.getWeightCard(auth.token, date);
+  const result = await healthApi.getWeightCard(date);
   if (requestId !== weightCardRequestId) {
     return;
   }
@@ -851,7 +851,7 @@ const loadCaloriesCard = async (date?: string | null) => {
   caloriesCard.loading = true;
   caloriesCard.error = '';
 
-  const result = await healthApi.getCaloriesCard(auth.token, date);
+  const result = await healthApi.getCaloriesCard(date);
   if (requestId !== caloriesCardRequestId) {
     return;
   }
@@ -874,7 +874,7 @@ const loadStressCard = async (date?: string | null) => {
   stressCard.loading = true;
   stressCard.error = '';
 
-  const result = await healthApi.getStressCard(auth.token, date);
+  const result = await healthApi.getStressCard(date);
   if (requestId !== stressCardRequestId) {
     return;
   }
@@ -931,7 +931,7 @@ const loadActivities = async () => {
   activitiesLoading.value = true;
   activitiesError.value = '';
 
-  const result = await healthApi.listActivities(auth.token, {
+  const result = await healthApi.listActivities({
     page: activityPage.page,
     pageSize: activityPage.pageSize,
     search: activitySearchInput.value
@@ -969,7 +969,7 @@ const openActivityDetail = async (item: HealthActivityListItem) => {
   }
 
   const requestId = ++detailRequestId;
-  const result = await healthApi.getActivityDetail(auth.token, item.activityRecordId);
+  const result = await healthApi.getActivityDetail(item.activityRecordId);
   if (requestId !== detailRequestId) {
     return;
   }
@@ -1002,7 +1002,7 @@ const triggerActivitySearch = () => {
 };
 
 watch(activitySearchInput, () => {
-  if (!auth.token) {
+  if (!auth.isAuthenticated) {
     return;
   }
 
@@ -1017,9 +1017,9 @@ watch(activitySearchInput, () => {
 });
 
 watch(
-  () => auth.token,
-  (token) => {
-    if (!token) {
+  () => auth.isAuthenticated,
+  (isAuthenticated) => {
+    if (!isAuthenticated) {
       summary.value = null;
       resetSummaryCards();
       activities.value = [];

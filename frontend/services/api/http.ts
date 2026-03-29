@@ -4,13 +4,11 @@ type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 type RequestApiOptions = {
   method?: HttpMethod;
-  token?: string | null;
   body?: unknown;
+  headers?: Record<string, string>;
 };
 
-const TOKEN_COOKIE_KEY = 'sm_auth_token';
-
-const isApiResultPayload = <T>(value: unknown): value is ApiResult<T> => {
+export const isApiResultPayload = <T>(value: unknown): value is ApiResult<T> => {
   if (!value || typeof value !== 'object') {
     return false;
   }
@@ -21,23 +19,38 @@ const isApiResultPayload = <T>(value: unknown): value is ApiResult<T> => {
     && ('code' in maybeResult);
 };
 
-const handleUnauthorized = () => {
+export const handleUnauthorized = () => {
   if (!import.meta.client) {
     return;
   }
-
-  const tokenCookie = useCookie<string | null>(TOKEN_COOKIE_KEY, { sameSite: 'lax' });
-  tokenCookie.value = null;
 
   if (window.location.pathname !== '/login') {
     window.location.assign('/login');
   }
 };
 
-const resolveApiBase = () => {
+export const resolveApiBase = () => {
   const config = useRuntimeConfig();
   return import.meta.server ? config.apiBaseInternal : config.public.apiBase;
 };
+
+const buildRequestHeaders = (headers?: Record<string, string>) => {
+  const mergedHeaders: Record<string, string> = { ...(headers ?? {}) };
+
+  if (import.meta.server) {
+    const requestHeaders = useRequestHeaders(['cookie']);
+    if (requestHeaders.cookie) {
+      mergedHeaders.cookie = requestHeaders.cookie;
+    }
+  }
+
+  return Object.keys(mergedHeaders).length > 0 ? mergedHeaders : undefined;
+};
+
+export const buildApiFetchOptions = (headers?: Record<string, string>) => ({
+  credentials: 'include' as const,
+  headers: buildRequestHeaders(headers)
+});
 
 export const useHttpApiMode = () => {
   return useRuntimeConfig().public.apiMode === 'http';
@@ -49,11 +62,7 @@ export const requestApi = async <T>(path: string, options: RequestApiOptions = {
       baseURL: resolveApiBase(),
       method: options.method ?? 'GET',
       body: options.body as BodyInit | Record<string, any> | null | undefined,
-      headers: options.token
-        ? {
-            Authorization: `Bearer ${options.token}`
-          }
-        : undefined
+      ...buildApiFetchOptions(options.headers)
     });
   } catch (error) {
     const response = error as {

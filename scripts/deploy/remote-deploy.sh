@@ -25,6 +25,11 @@ if [[ ! -f docker-compose.yml ]]; then
   exit 1
 fi
 
+if [[ ! -f .env ]]; then
+  echo ".env not found in $PROJECT_DIR; create an untracked deployment-specific .env before running this script" >&2
+  exit 1
+fi
+
 docker compose config >/dev/null
 docker compose up -d --build --remove-orphans
 docker compose ps

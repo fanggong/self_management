@@ -5,7 +5,7 @@ from typing import Callable
 
 from ..config import settings
 from ..cron import next_run
-from ..connectors.garmin import GarminConnectorAdapter
+from ..connectors.garmin import GarminConnectorAdapter, sanitize_garmin_sync_error
 from ..crypto import decrypt_config, payload_hash
 from .. import db
 
@@ -103,6 +103,7 @@ def execute_sync_task(task_id: str) -> None:
         )
         db.set_connector_run_timestamps(task["connector_config_id"], finished_at, next_run_at)
     except Exception as exc:
+        error_code, error_message = sanitize_garmin_sync_error(exc)
         db.update_task_status(
             task_id,
             "failed",
@@ -112,7 +113,7 @@ def execute_sync_task(task_id: str) -> None:
             updated_count=updated_count,
             unchanged_count=unchanged_count,
             deduped_count=deduped_count,
-            error_code="SYNC_EXECUTION_FAILED",
-            error_message=str(exc),
+            error_code=error_code,
+            error_message=error_message,
         )
-        raise
+        raise RuntimeError(error_message) from None

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { dbtModelApi } from '~/services/api/dbt';
 import { getDbtLayerClass, stripAnsi } from '~/services/dbt/presentation';
-import { useAuthStore } from '~/stores/auth';
 import type { DbtRunHistoryDetail, DbtRunHistoryListItem, DbtRunModelHistoryItem } from '~/types/dbt';
 
 type DataTablePageEvent = {
@@ -16,7 +15,6 @@ type DataTableExpandEvent = {
 
 const DEFAULT_PAGE_SIZE = 10;
 
-const auth = useAuthStore();
 const { showToast } = useAppToast();
 
 const searchQuery = ref('');
@@ -69,7 +67,7 @@ const loadRuns = async () => {
   loading.value = true;
   loadError.value = '';
 
-  const result = await dbtModelApi.listRuns(auth.token, {
+  const result = await dbtModelApi.listRuns({
     page: pageState.page,
     pageSize: pageState.pageSize,
     search: debouncedSearchQuery.value || '%'
@@ -108,7 +106,7 @@ const loadRunModels = async (runId: string) => {
   runModelHistoryLoading[runId] = true;
   runModelHistoryError[runId] = '';
 
-  const result = await dbtModelApi.listRunModels(auth.token, runId);
+  const result = await dbtModelApi.listRunModels(runId);
 
   if (activeModelHistoryRequestIdByRun[runId] !== requestId) {
     return;
@@ -133,7 +131,7 @@ const openDetailDialog = async (run: DbtRunHistoryListItem) => {
   detailDialogVisible.value = true;
   detailLoading.value = true;
 
-  const result = await dbtModelApi.getRunDetail(auth.token, run.runId);
+  const result = await dbtModelApi.getRunDetail(run.runId);
 
   if (requestId !== activeDetailRequestId) {
     return;

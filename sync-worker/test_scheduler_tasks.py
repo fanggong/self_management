@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 import types
 import unittest
@@ -7,6 +8,9 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+os.environ.setdefault("CONNECTOR_SECRET_KEY", "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=")
+os.environ.setdefault("INTERNAL_API_TOKEN", "unit-test-internal-token-123456")
 
 if "psycopg" not in sys.modules:
     psycopg_module = types.ModuleType("psycopg")

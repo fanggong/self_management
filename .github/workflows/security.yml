@@ -1,0 +1,79 @@
+name: Security Checks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  repository-security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Scan Repository For Secrets And Personal Exposure
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          fail=0
+
+          tracked_env_files="$(git ls-files | grep -E '(^|/)\.env($|\.)' | grep -vE '(^|/)\.env\.example$' || true)"
+          if [[ -n "${tracked_env_files}" ]]; then
+            echo "Tracked .env-like files are not allowed:"
+            echo "${tracked_env_files}"
+            fail=1
+          fi
+
+          private_key_hits="$(git grep -nE '-----BEGIN (RSA|DSA|EC|OPENSSH|PGP |)?PRIVATE KEY-----|-----BEGIN OPENSSH PRIVATE KEY-----' -- . || true)"
+          if [[ -n "${private_key_hits}" ]]; then
+            echo "Private key material detected:"
+            echo "${private_key_hits}"
+            fail=1
+          fi
+
+          published_secret_hits="$(
+            git grep -nF \
+              -e '0ea96cef2a345c46af1aa6318958d60228fa1903c1f1776fb8b3fa9bcc2dbc3b' \
+              -e 'ZpbWkYr/Lhf2an422+7liSjKuN4KkbOEx9f2oll8Nv4=' \
+              -e '6f988cfd1b0c448b182082f4a4f7927370a07699c0258d2e' \
+              -- . \
+              ':(exclude).github/workflows/security.yml' \
+              || true
+          )"
+          if [[ -n "${published_secret_hits}" ]]; then
+            echo "Published default secret material detected:"
+            echo "${published_secret_hits}"
+            fail=1
+          fi
+
+          personal_identity_hits="$(
+            git grep -nE 'Fang Yongchao|yongchao\.fang@outlook\.com' -- . \
+              ':(exclude).github/workflows/security.yml' \
+              || true
+          )"
+          if [[ -n "${personal_identity_hits}" ]]; then
+            echo "Personal identity strings detected in tracked files:"
+            echo "${personal_identity_hits}"
+            fail=1
+          fi
+
+          demo_credential_hits="$(
+            git grep -nE 'demo123456|admin@otw\.local' -- . \
+              ':(exclude)frontend/README.md' \
+              ':(exclude)frontend/services/mock/auth.ts' \
+              ':(exclude)admin-api/src/main/resources/db/migration/V2__seed_demo_data.sql' \
+              || true
+          )"
+          if [[ -n "${demo_credential_hits}" ]]; then
+            echo "Unexpected demo credential string detected outside allowlisted mock/historical files:"
+            echo "${demo_credential_hits}"
+            fail=1
+          fi
+
+          if [[ "${fail}" -ne 0 ]]; then
+            exit 1
+          fi
+
+      - name: Validate Environment Defaults
+        run: python3 scripts/dev/check_env_defaults.py

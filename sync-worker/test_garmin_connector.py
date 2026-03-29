@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 import types
 import unittest
@@ -9,7 +10,10 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from sync_worker.connectors.garmin import GarminConnectorAdapter
+os.environ.setdefault("CONNECTOR_SECRET_KEY", "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=")
+os.environ.setdefault("INTERNAL_API_TOKEN", "unit-test-internal-token-123456")
+
+from sync_worker.connectors.garmin import GarminConnectorAdapter, sanitize_garmin_sync_error
 
 
 class GarminConnectorAdapterTest(unittest.TestCase):
@@ -77,6 +81,13 @@ class GarminConnectorAdapterTest(unittest.TestCase):
         self.assertEqual(GarminConnectorAdapter._normalize_height_cm(1.72, "m"), 172.0)
         self.assertEqual(GarminConnectorAdapter._normalize_height_cm(68, "imperial"), 172.7)
         self.assertIsNone(GarminConnectorAdapter._normalize_height_cm(68, None))
+
+    def test_sanitize_garmin_sync_error_hides_account_details(self) -> None:
+        error_code, message = sanitize_garmin_sync_error(RuntimeError("403 forbidden for demo@example.com"))
+
+        self.assertEqual("CONNECTOR_AUTH_FAILED", error_code)
+        self.assertEqual("Garmin Connect authentication failed. Update the stored username or password.", message)
+        self.assertNotIn("demo@example.com", message)
 
 
 if __name__ == "__main__":

@@ -30,11 +30,6 @@ export type RegisterPayload = {
   [key: string]: unknown;
 };
 
-export type AuthLoginResult = {
-  token: string;
-  user: AuthUser;
-};
-
 export type UpdateProfilePayload = {
   displayName: string;
   email: string;

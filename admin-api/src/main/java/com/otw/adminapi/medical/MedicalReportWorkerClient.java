@@ -22,9 +22,13 @@ public class MedicalReportWorkerClient {
 
   public MedicalReportWorkerClient(
     @Value("${app.connector.internal-base-url:http://sync-worker:8081}") String internalBaseUrl,
+    @Value("${app.connector.internal-token:please-set-internal-api-token}") String internalToken,
     ObjectMapper objectMapper
   ) {
-    this.restClient = RestClient.builder().baseUrl(internalBaseUrl).build();
+    this.restClient = RestClient.builder()
+      .baseUrl(internalBaseUrl)
+      .defaultHeader("X-Internal-Token", internalToken)
+      .build();
     this.objectMapper = objectMapper;
   }
 

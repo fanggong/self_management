@@ -53,6 +53,10 @@ public class CryptoService {
 
     try {
       String[] parts = encryptedValue.split("\\.");
+      if (parts.length != 2) {
+        throw new IllegalArgumentException("Encrypted connector configuration is malformed.");
+      }
+
       Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
       cipher.init(
         Cipher.DECRYPT_MODE,

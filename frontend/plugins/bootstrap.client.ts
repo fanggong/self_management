@@ -6,5 +6,5 @@ export default defineNuxtPlugin(async () => {
   ui.initialize();
 
   const auth = useAuthStore();
-  await auth.hydrateFromCookie();
+  await auth.hydrateSession();
 });

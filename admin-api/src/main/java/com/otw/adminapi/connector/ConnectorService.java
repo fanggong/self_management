@@ -75,32 +75,42 @@ public class ConnectorService {
   @Transactional(readOnly = true)
   public List<ConnectorRecordView> listConnectors(AuthenticatedUser authenticatedUser) {
     return connectorConfigRepository.findByAccountIdOrderByConnectorId(authenticatedUser.accountId()).stream()
-      .map(this::toView)
+      .map(entity -> toView(entity, cryptoService.decrypt(entity.getConfigCiphertext())))
       .toList();
   }
 
   public void testConnection(AuthenticatedUser authenticatedUser, String connectorId, TestConnectionRequest request) {
     String normalizedConnectorId = requireSupportedConnectorId(connectorId);
-    Map<String, String> normalizedConfig = normalizeConfig(normalizedConnectorId, request.config());
-    validateConfig(normalizedConnectorId, normalizedConfig);
-    verifyConnection(normalizedConnectorId, normalizedConfig);
+    ConnectorConfigEntity connector = requireConnector(authenticatedUser, normalizedConnectorId);
+    Map<String, String> normalizedConfig = normalizeRequestConfig(normalizedConnectorId, request.config());
+    Map<String, String> mergedConfig = mergeWithStoredSecrets(
+      normalizedConnectorId,
+      normalizedConfig,
+      cryptoService.decrypt(connector.getConfigCiphertext())
+    );
+    validateConfig(normalizedConnectorId, mergedConfig);
+    verifyConnection(normalizedConnectorId, mergedConfig);
   }
 
   public ConnectorRecordView saveConfiguration(AuthenticatedUser authenticatedUser, String connectorId, SaveConnectorConfigurationRequest request) {
     String normalizedConnectorId = requireSupportedConnectorId(connectorId);
-    Map<String, String> normalizedConfig = normalizeConfig(normalizedConnectorId, request.config());
-    validateConfig(normalizedConnectorId, normalizedConfig);
-    verifyConnection(normalizedConnectorId, normalizedConfig);
-
     ConnectorConfigEntity connector = requireConnector(authenticatedUser, normalizedConnectorId);
+    Map<String, String> normalizedConfig = normalizeRequestConfig(normalizedConnectorId, request.config());
+    Map<String, String> mergedConfig = mergeWithStoredSecrets(
+      normalizedConnectorId,
+      normalizedConfig,
+      cryptoService.decrypt(connector.getConfigCiphertext())
+    );
+    validateConfig(normalizedConnectorId, mergedConfig);
+    verifyConnection(normalizedConnectorId, mergedConfig);
     String normalizedSchedule = normalizeSchedule(normalizedConnectorId, request.schedule());
     connector.setSchedule(normalizedSchedule);
     connector.setNextRunAt(isManualOnlyConnector(normalizedConnectorId)
       ? null
       : cronScheduleService.nextRun(normalizedSchedule, zoneId));
-    connector.setConfigCiphertext(cryptoService.encrypt(normalizedConfig));
+    connector.setConfigCiphertext(cryptoService.encrypt(mergedConfig));
     connector.setStatus("stopped");
-    return toView(connectorConfigRepository.save(connector));
+    return toView(connectorConfigRepository.save(connector), mergedConfig);
   }
 
   public ConnectorRecordView updateStatus(AuthenticatedUser authenticatedUser, String connectorId, UpdateConnectorStatusRequest request) {
@@ -116,7 +126,7 @@ public class ConnectorService {
     }
 
     connector.setStatus(nextStatus);
-    return toView(connectorConfigRepository.save(connector));
+    return toView(connectorConfigRepository.save(connector), cryptoService.decrypt(connector.getConfigCiphertext()));
   }
 
   @Transactional(readOnly = true)
@@ -194,7 +204,7 @@ public class ConnectorService {
     }
   }
 
-  private Map<String, String> normalizeConfig(String connectorId, Map<String, String> config) {
+  private Map<String, String> normalizeRequestConfig(String connectorId, Map<String, String> config) {
     if (GARMIN_CONNECT_ID.equals(connectorId)) {
       if (config == null) {
         return Map.of("username", "", "password", "");
@@ -216,6 +226,35 @@ public class ConnectorService {
     );
   }
 
+  private Map<String, String> mergeWithStoredSecrets(String connectorId, Map<String, String> requestConfig, Map<String, String> storedConfig) {
+    if (GARMIN_CONNECT_ID.equals(connectorId)) {
+      return Map.of(
+        "username", String.valueOf(requestConfig.getOrDefault("username", "")).trim(),
+        "password", resolvePassword(String.valueOf(requestConfig.getOrDefault("password", "")), storedConfig.get("password"))
+      );
+    }
+
+    return Map.of(
+      "provider", String.valueOf(requestConfig.getOrDefault("provider", "")).trim().toLowerCase(Locale.ROOT),
+      "modelId", String.valueOf(requestConfig.getOrDefault("modelId", "")).trim(),
+      "apiKey", resolveApiKey(String.valueOf(requestConfig.getOrDefault("apiKey", "")).trim(), storedConfig.get("apiKey"))
+    );
+  }
+
+  private String resolvePassword(String requestValue, String storedValue) {
+    if (requestValue != null && !requestValue.isBlank()) {
+      return requestValue;
+    }
+    return storedValue == null ? "" : storedValue;
+  }
+
+  private String resolveApiKey(String requestValue, String storedValue) {
+    if (requestValue != null && !requestValue.isBlank()) {
+      return requestValue;
+    }
+    return storedValue == null ? "" : storedValue.trim();
+  }
+
   private void verifyConnection(String connectorId, Map<String, String> config) {
     if (GARMIN_CONNECT_ID.equals(connectorId)) {
       connectorVerificationClient.verifyGarminConnection(config);
@@ -229,7 +268,17 @@ public class ConnectorService {
     return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
   }
 
-  private ConnectorRecordView toView(ConnectorConfigEntity entity) {
+  private ConnectorRecordView toView(ConnectorConfigEntity entity, Map<String, String> decryptedConfig) {
+    Map<String, String> safeConfig = GARMIN_CONNECT_ID.equals(entity.getConnectorId())
+      ? Map.of("username", String.valueOf(decryptedConfig.getOrDefault("username", "")).trim())
+      : Map.of(
+        "provider", String.valueOf(decryptedConfig.getOrDefault("provider", "")).trim(),
+        "modelId", String.valueOf(decryptedConfig.getOrDefault("modelId", "")).trim()
+      );
+    Map<String, Boolean> secretFieldsConfigured = GARMIN_CONNECT_ID.equals(entity.getConnectorId())
+      ? Map.of("password", hasConfiguredSecret(decryptedConfig.get("password")))
+      : Map.of("apiKey", hasConfiguredSecret(decryptedConfig.get("apiKey")));
+
     return new ConnectorRecordView(
       entity.getId(),
       entity.getConnectorId(),
@@ -239,7 +288,12 @@ public class ConnectorService {
       entity.getSchedule(),
       DateTimeFormats.formatNullable(entity.getLastRunAt(), zoneId),
       DateTimeFormats.formatNullable(entity.getNextRunAt(), zoneId),
-      cryptoService.decrypt(entity.getConfigCiphertext())
+      safeConfig,
+      secretFieldsConfigured
     );
+  }
+
+  private boolean hasConfiguredSecret(String value) {
+    return value != null && !value.isBlank();
   }
 }

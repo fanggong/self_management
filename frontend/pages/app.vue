@@ -470,7 +470,7 @@ const loadConnectorTasks = async (options: { append: boolean } = { append: false
 
   const targetPage = append ? connectorTaskPage.page + 1 : 1;
   const currentRequestId = ++connectorTaskRequestSequence;
-  const result = await connectorApi.listSyncJobs(auth.token, buildConnectorTaskQuery(targetPage));
+  const result = await connectorApi.listSyncJobs(buildConnectorTaskQuery(targetPage));
 
   if (currentRequestId !== connectorTaskRequestSequence) {
     return;
@@ -596,6 +596,19 @@ const selectedConnector = computed(() => {
 const selectedConnectorDefinition = computed(() => {
   return selectedConnector.value ? getConnectorDefinition(selectedConnector.value.id) ?? null : null;
 });
+const isConnectorSecretFieldConfigured = (fieldKey: string) => {
+  return Boolean(selectedConnector.value?.secretFieldsConfigured?.[fieldKey]);
+};
+const getConnectorFieldPlaceholder = (field: { key: string; type: string; placeholder: string; label: string }) => {
+  if (field.type === 'password' && isConnectorSecretFieldConfigured(field.key)) {
+    return `${field.label} is configured. Leave blank to keep unchanged.`;
+  }
+
+  return field.placeholder;
+};
+const getConnectorSecretFieldHint = (fieldKey: string) => {
+  return isConnectorSecretFieldConfigured(fieldKey) ? 'Already configured. Leave blank to keep unchanged.' : '';
+};
 const selectedSyncConnector = computed(() => {
   return connectorRecords.value.find((connector) => connector.id === selectedSyncConnectorId.value) ?? null;
 });
@@ -1140,7 +1153,7 @@ const loadConnectors = async () => {
   connectorLoading.value = true;
   connectorLoadError.value = '';
 
-  const result = await connectorApi.list(auth.token);
+  const result = await connectorApi.list();
   connectorLoading.value = false;
 
   if (!result.success || !result.data) {
@@ -1439,7 +1452,7 @@ const parseMedicalReport = async () => {
 
   medicalReportParsing.value = true;
   try {
-    const result = await connectorApi.parseMedicalReport(auth.token, {
+    const result = await connectorApi.parseMedicalReport({
       recordNumber: medicalReportSyncForm.recordNumber.trim(),
       reportDate: formatMedicalReportDate(medicalReportSyncForm.reportTime as Date),
       institution: medicalReportSyncForm.institution.trim(),
@@ -1502,7 +1515,7 @@ const testConnectorConnection = async () => {
 
   connectorTesting.value = true;
 
-  const result = await connectorApi.testConnection(auth.token, {
+  const result = await connectorApi.testConnection({
     id: selectedConnector.value.id,
     config: { ...connectorDraftConfig }
   });
@@ -1526,7 +1539,7 @@ const saveConnectorConfiguration = async () => {
   connectorSaving.value = true;
   const normalizedSchedule = isConnectorManualOnly.value ? '-' : connectorDraftSchedule.value.trim();
 
-  const saveResult = await connectorApi.saveConfiguration(auth.token, {
+  const saveResult = await connectorApi.saveConfiguration({
     id: selectedConnector.value.id,
     schedule: normalizedSchedule,
     config: { ...connectorDraftConfig }
@@ -1590,7 +1603,7 @@ const confirmSync = async () => {
     syncSubmitting.value = true;
     let result: Awaited<ReturnType<typeof connectorApi.syncMedicalReport>> | null = null;
     try {
-      result = await connectorApi.syncMedicalReport(auth.token, {
+      result = await connectorApi.syncMedicalReport({
         parseSessionId: medicalReportSyncForm.parseSessionId,
         recordNumber: medicalReportSyncForm.recordNumber.trim(),
         reportDate: formatMedicalReportDate(medicalReportSyncForm.reportTime as Date),
@@ -1629,7 +1642,7 @@ const confirmSync = async () => {
 
   syncSubmitting.value = true;
 
-  const result = await connectorApi.createSyncJob(auth.token, {
+  const result = await connectorApi.createSyncJob({
     id: selectedSyncConnector.value.id,
     startAt: formatDateTime(syncWindow.startAt as Date),
     endAt: formatDateTime(syncWindow.endAt as Date)
@@ -1653,7 +1666,7 @@ const toggleConnectorStatus = async (connector: ConnectorRecord, enabled: boolea
 
   connectorStatusUpdatingIds.value.push(connector.id);
 
-  const result = await connectorApi.updateStatus(auth.token, {
+  const result = await connectorApi.updateStatus({
     id: connector.id,
     status: enabled ? 'running' : 'stopped'
   });
@@ -2272,7 +2285,7 @@ watch(
                 v-if="field.type === 'text'"
                 :id="`connector-field-${field.key}`"
                 :model-value="connectorDraftConfig[field.key] ?? ''"
-                :placeholder="field.placeholder"
+                :placeholder="getConnectorFieldPlaceholder(field)"
                 class="w-full"
                 :autocomplete="field.autocomplete"
                 @update:model-value="connectorDraftConfig[field.key] = String($event ?? '')"
@@ -2286,7 +2299,7 @@ watch(
                 option-label="label"
                 option-value="value"
                 class="w-full"
-                :placeholder="field.placeholder"
+                :placeholder="getConnectorFieldPlaceholder(field)"
                 @update:model-value="connectorDraftConfig[field.key] = String($event ?? '')"
               >
                 <template v-if="hasConnectorFieldOptionLogo(field)" #value="slotProps">
@@ -2315,7 +2328,7 @@ watch(
                 v-else
                 :id="`connector-field-${field.key}`"
                 :model-value="connectorDraftConfig[field.key] ?? ''"
-                :placeholder="field.placeholder"
+                :placeholder="getConnectorFieldPlaceholder(field)"
                 class="w-full"
                 input-class="w-full"
                 :feedback="false"
@@ -2323,6 +2336,9 @@ watch(
                 :autocomplete="field.autocomplete"
                 @update:model-value="connectorDraftConfig[field.key] = String($event ?? '')"
               />
+              <small v-if="field.type === 'password' && getConnectorSecretFieldHint(field.key)" class="text-xs text-slate-500 dark:text-slate-400">
+                {{ getConnectorSecretFieldHint(field.key) }}
+              </small>
             </div>
           </div>
         </div>

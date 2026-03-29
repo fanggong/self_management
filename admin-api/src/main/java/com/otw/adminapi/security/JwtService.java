@@ -44,4 +44,8 @@ public class JwtService {
       jwt.getClaimAsString("role")
     );
   }
+
+  public long tokenTtlSeconds() {
+    return TOKEN_TTL_SECONDS;
+  }
 }

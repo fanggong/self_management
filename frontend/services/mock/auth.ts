@@ -1,6 +1,5 @@
 import type {
   ApiResult,
-  AuthLoginResult,
   AuthUser,
   ChangePasswordPayload,
   LoginPayload,
@@ -13,13 +12,14 @@ type MockUser = AuthUser & {
 };
 
 const USERS_KEY = 'sm_mock_users';
+const SESSION_COOKIE_KEY = 'sm_mock_session_user';
 const INITIAL_USERS: MockUser[] = [
   {
     id: 'u-demo-admin',
     displayName: 'Admin',
     principal: 'demo',
-    email: 'admin@otw.local',
-    phone: '+1 555 010 0001',
+    email: 'admin@example.invalid',
+    phone: '+1 555 010 9999',
     avatarUrl: '',
     role: 'admin',
     password: 'demo123456'
@@ -69,26 +69,28 @@ const writeUsers = (users: MockUser[]) => {
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
 };
 
-const createToken = (userId: string) => `mock-token:${userId}:${Date.now()}`;
+const readSessionUserId = () => {
+  const sessionCookie = useCookie<string | null>(SESSION_COOKIE_KEY, { sameSite: 'lax' });
+  return sessionCookie.value?.trim() || null;
+};
 
-const parseToken = (token: string): string | null => {
-  if (!token.startsWith('mock-token:')) {
-    return null;
-  }
-
-  const parts = token.split(':');
-  return parts.length >= 3 ? parts[1] : null;
+const writeSessionUserId = (userId: string | null) => {
+  const sessionCookie = useCookie<string | null>(SESSION_COOKIE_KEY, {
+    sameSite: 'lax',
+    maxAge: userId ? 7 * 24 * 60 * 60 : 0
+  });
+  sessionCookie.value = userId;
 };
 
 export const mockAuthApi = {
-  async login(payload: LoginPayload): Promise<ApiResult<AuthLoginResult>> {
+  async login(payload: LoginPayload): Promise<ApiResult<AuthUser>> {
     await wait();
 
-    const principal = payload.principal?.trim();
+    const principal = payload.principal?.trim().toLowerCase() ?? '';
     const password = payload.password ?? '';
     const users = readUsers();
     const user = users.find(
-      (item) => item.principal.toLowerCase() === principal.toLowerCase() && item.password === password
+      (item) => item.principal.toLowerCase() === principal && item.password === password
     );
 
     if (!user) {
@@ -99,12 +101,11 @@ export const mockAuthApi = {
       };
     }
 
+    writeSessionUserId(user.id);
+
     return {
       success: true,
-      data: {
-        token: createToken(user.id),
-        user: sanitizeUser(user)
-      }
+      data: sanitizeUser(user)
     };
   },
 
@@ -163,13 +164,14 @@ export const mockAuthApi = {
 
   async logout(): Promise<ApiResult<null>> {
     await wait(150);
+    writeSessionUserId(null);
     return { success: true, data: null };
   },
 
-  async me(token: string): Promise<ApiResult<AuthUser>> {
+  async me(): Promise<ApiResult<AuthUser>> {
     await wait(150);
 
-    const userId = parseToken(token);
+    const userId = readSessionUserId();
     if (!userId) {
       return {
         success: false,
@@ -195,10 +197,10 @@ export const mockAuthApi = {
     };
   },
 
-  async updateProfile(token: string, payload: UpdateProfilePayload): Promise<ApiResult<AuthUser>> {
+  async updateProfile(payload: UpdateProfilePayload): Promise<ApiResult<AuthUser>> {
     await wait(250);
 
-    const userId = parseToken(token);
+    const userId = readSessionUserId();
     if (!userId) {
       return {
         success: false,
@@ -244,10 +246,10 @@ export const mockAuthApi = {
     };
   },
 
-  async changePassword(token: string, payload: ChangePasswordPayload): Promise<ApiResult<null>> {
+  async changePassword(payload: ChangePasswordPayload): Promise<ApiResult<null>> {
     await wait(300);
 
-    const userId = parseToken(token);
+    const userId = readSessionUserId();
     if (!userId) {
       return {
         success: false,

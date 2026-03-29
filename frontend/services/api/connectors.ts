@@ -2,6 +2,7 @@ import type { ApiResult } from '~/types/auth';
 import type {
   ConnectorId,
   ConnectorRecord,
+  ConnectorSecretFieldState,
   CreateSyncJobPayload,
   ListSyncJobsPayload,
   MedicalReportParsePayload,
@@ -22,6 +23,14 @@ import { mockConnectorApi } from '~/services/mock/connectors';
 const SHANGHAI_OFFSET_MS = 8 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const BUILTIN_CONNECTOR_ORDER: ConnectorId[] = ['garmin-connect', 'medical-report'];
+const SAFE_CONFIG_FIELD_KEYS: Record<ConnectorId, string[]> = {
+  'garmin-connect': ['username'],
+  'medical-report': ['provider', 'modelId']
+};
+const SECRET_FIELD_KEYS: Record<ConnectorId, string[]> = {
+  'garmin-connect': ['password'],
+  'medical-report': ['apiKey']
+};
 const FALLBACK_CONNECTORS: Record<ConnectorId, ConnectorRecord> = {
   'garmin-connect': {
     id: 'garmin-connect',
@@ -32,8 +41,10 @@ const FALLBACK_CONNECTORS: Record<ConnectorId, ConnectorRecord> = {
     lastRun: '',
     nextRun: '',
     config: {
-      username: '',
-      password: ''
+      username: ''
+    },
+    secretFieldsConfigured: {
+      password: false
     }
   },
   'medical-report': {
@@ -46,8 +57,10 @@ const FALLBACK_CONNECTORS: Record<ConnectorId, ConnectorRecord> = {
     nextRun: '-',
     config: {
       provider: '',
-      modelId: '',
-      apiKey: ''
+      modelId: ''
+    },
+    secretFieldsConfigured: {
+      apiKey: false
     }
   }
 };
@@ -320,10 +333,43 @@ const buildSyncJobsPath = (payload: ListSyncJobsPayload) => {
   return queryString ? `/users/me/sync-jobs?${queryString}` : '/users/me/sync-jobs';
 };
 
+const sanitizeConnectorConfig = (connectorId: ConnectorId, config: Record<string, unknown> | null | undefined) => {
+  const sanitizedConfig: Record<string, string> = {};
+  for (const key of SAFE_CONFIG_FIELD_KEYS[connectorId]) {
+    sanitizedConfig[key] = String(config?.[key] ?? '');
+  }
+  return sanitizedConfig;
+};
+
+const toBooleanFlag = (value: unknown) => {
+  if (typeof value === 'string') {
+    return value.trim().toLowerCase() === 'true';
+  }
+
+  return Boolean(value);
+};
+
+const sanitizeSecretFieldsConfigured = (
+  connectorId: ConnectorId,
+  secretFieldsConfigured: Record<string, unknown> | null | undefined
+): ConnectorSecretFieldState => {
+  const sanitizedState: ConnectorSecretFieldState = {};
+  for (const key of SECRET_FIELD_KEYS[connectorId]) {
+    sanitizedState[key] = toBooleanFlag(secretFieldsConfigured?.[key]);
+  }
+  return sanitizedState;
+};
+
+const sanitizeConnectorRecord = (connector: ConnectorRecord): ConnectorRecord => ({
+  ...connector,
+  config: sanitizeConnectorConfig(connector.id, connector.config),
+  secretFieldsConfigured: sanitizeSecretFieldsConfigured(connector.id, connector.secretFieldsConfigured)
+});
+
 const normalizeConnectorList = (connectors: ConnectorRecord[]) => {
   const connectorMap = new Map<ConnectorId, ConnectorRecord>();
   for (const connector of connectors) {
-    connectorMap.set(connector.id, connector);
+    connectorMap.set(connector.id, sanitizeConnectorRecord(connector));
   }
 
   for (const connectorId of BUILTIN_CONNECTOR_ORDER) {
@@ -339,8 +385,7 @@ const normalizeConnectorList = (connectors: ConnectorRecord[]) => {
     }
 
     return {
-      ...connector,
-      config: { ...(connector.config ?? {}) }
+      ...sanitizeConnectorRecord(connector)
     };
   });
 };
@@ -421,11 +466,9 @@ const buildMockSyncJobList = (payload: ListSyncJobsPayload): SyncJobListResponse
 };
 
 export const connectorApi = {
-  async list(token?: string | null): Promise<ApiResult<ConnectorRecord[]>> {
+  async list(): Promise<ApiResult<ConnectorRecord[]>> {
     if (useHttpApiMode()) {
-      const result = await requestApi<ConnectorRecord[]>('/users/me/connectors', {
-        token
-      });
+      const result = await requestApi<ConnectorRecord[]>('/users/me/connectors');
 
       if (!result.success || !result.data) {
         return result;
@@ -448,11 +491,10 @@ export const connectorApi = {
     };
   },
 
-  testConnection(token: string | null | undefined, payload: TestConnectorPayload): Promise<ApiResult<null>> {
+  testConnection(payload: TestConnectorPayload): Promise<ApiResult<null>> {
     if (useHttpApiMode()) {
       return requestApi<null>(`/users/me/connectors/${payload.id}/connection-test`, {
         method: 'POST',
-        token,
         body: {
           config: payload.config
         }
@@ -462,40 +504,55 @@ export const connectorApi = {
     return mockConnectorApi.testConnection(payload);
   },
 
-  saveConfiguration(token: string | null | undefined, payload: SaveConnectorPayload): Promise<ApiResult<ConnectorRecord>> {
+  async saveConfiguration(payload: SaveConnectorPayload): Promise<ApiResult<ConnectorRecord>> {
     if (useHttpApiMode()) {
-      return requestApi<ConnectorRecord>(`/users/me/connectors/${payload.id}/configuration`, {
+      const result = await requestApi<ConnectorRecord>(`/users/me/connectors/${payload.id}/configuration`, {
         method: 'PUT',
-        token,
         body: {
           schedule: payload.schedule,
           config: payload.config
         }
       });
+
+      if (!result.success || !result.data) {
+        return result;
+      }
+
+      return {
+        ...result,
+        data: sanitizeConnectorRecord(result.data)
+      };
     }
 
     return mockConnectorApi.saveConfiguration(payload);
   },
 
-  updateStatus(token: string | null | undefined, payload: UpdateConnectorStatusPayload): Promise<ApiResult<ConnectorRecord>> {
+  async updateStatus(payload: UpdateConnectorStatusPayload): Promise<ApiResult<ConnectorRecord>> {
     if (useHttpApiMode()) {
-      return requestApi<ConnectorRecord>(`/users/me/connectors/${payload.id}/status`, {
+      const result = await requestApi<ConnectorRecord>(`/users/me/connectors/${payload.id}/status`, {
         method: 'PATCH',
-        token,
         body: {
           status: payload.status
         }
       });
+
+      if (!result.success || !result.data) {
+        return result;
+      }
+
+      return {
+        ...result,
+        data: sanitizeConnectorRecord(result.data)
+      };
     }
 
     return mockConnectorApi.updateStatus(payload);
   },
 
-  createSyncJob(token: string | null | undefined, payload: CreateSyncJobPayload): Promise<ApiResult<SyncJobRecord>> {
+  createSyncJob(payload: CreateSyncJobPayload): Promise<ApiResult<SyncJobRecord>> {
     if (useHttpApiMode()) {
       return requestApi<SyncJobRecord>(`/users/me/connectors/${payload.id}/sync-jobs`, {
         method: 'POST',
-        token,
         body: {
           startAt: payload.startAt,
           endAt: payload.endAt
@@ -525,10 +582,7 @@ export const connectorApi = {
     });
   },
 
-  parseMedicalReport(
-    token: string | null | undefined,
-    payload: MedicalReportParsePayload
-  ): Promise<ApiResult<MedicalReportParseResult>> {
+  parseMedicalReport(payload: MedicalReportParsePayload): Promise<ApiResult<MedicalReportParseResult>> {
     if (useHttpApiMode()) {
       const formData = new FormData();
       const metadata = new Blob(
@@ -549,7 +603,6 @@ export const connectorApi = {
 
       return requestApi<MedicalReportParseResult>('/users/me/connectors/medical-report/parse', {
         method: 'POST',
-        token,
         body: formData
       });
     }
@@ -570,14 +623,10 @@ export const connectorApi = {
     });
   },
 
-  syncMedicalReport(
-    token: string | null | undefined,
-    payload: MedicalReportSyncPayload
-  ): Promise<ApiResult<MedicalReportSyncResult>> {
+  syncMedicalReport(payload: MedicalReportSyncPayload): Promise<ApiResult<MedicalReportSyncResult>> {
     if (useHttpApiMode()) {
       return requestApi<MedicalReportSyncResult>('/users/me/connectors/medical-report/sync-jobs', {
         method: 'POST',
-        token,
         body: payload
       });
     }
@@ -604,11 +653,9 @@ export const connectorApi = {
     });
   },
 
-  listSyncJobs(token: string | null | undefined, payload: ListSyncJobsPayload): Promise<ApiResult<SyncJobListResponse>> {
+  listSyncJobs(payload: ListSyncJobsPayload): Promise<ApiResult<SyncJobListResponse>> {
     if (useHttpApiMode()) {
-      return requestApi<SyncJobListResponse>(buildSyncJobsPath(payload), {
-        token
-      });
+      return requestApi<SyncJobListResponse>(buildSyncJobsPath(payload));
     }
 
     return Promise.resolve({

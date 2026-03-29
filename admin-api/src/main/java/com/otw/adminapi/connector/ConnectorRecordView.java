@@ -12,6 +12,7 @@ public record ConnectorRecordView(
   String schedule,
   String lastRun,
   String nextRun,
-  Map<String, String> config
+  Map<String, String> config,
+  Map<String, Boolean> secretFieldsConfigured
 ) {
 }

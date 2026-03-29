@@ -1,8 +1,11 @@
 package com.otw.adminapi.security;
 
+import com.otw.adminapi.auth.AuthController;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,6 +28,8 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
+import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -35,18 +40,21 @@ import com.nimbusds.jose.jwk.source.ImmutableSecret;
 @EnableMethodSecurity
 public class SecurityConfig {
   @Bean
-  public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+  public SecurityFilterChain securityFilterChain(HttpSecurity http, BearerTokenResolver bearerTokenResolver) throws Exception {
     http
       .csrf(AbstractHttpConfigurer::disable)
       .cors(Customizer.withDefaults())
       .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
       .authorizeHttpRequests(authorize -> authorize
-        .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/register").permitAll()
+        .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/logout").permitAll()
         .requestMatchers(HttpMethod.POST, "/internal/dbt/default-schedules/marts/run").permitAll()
         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
         .anyRequest().authenticated()
       )
-      .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
+      .oauth2ResourceServer(oauth2 -> oauth2
+        .bearerTokenResolver(bearerTokenResolver)
+        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
+      );
 
     return http.build();
   }
@@ -77,12 +85,23 @@ public class SecurityConfig {
     );
     configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
     configuration.setAllowedHeaders(List.of("*"));
-    configuration.setExposedHeaders(List.of("Authorization"));
-    configuration.setAllowCredentials(false);
+    configuration.setAllowCredentials(true);
 
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", configuration);
     return source;
+  }
+
+  @Bean
+  public BearerTokenResolver bearerTokenResolver() {
+    DefaultBearerTokenResolver defaultResolver = new DefaultBearerTokenResolver();
+    return request -> {
+      String headerToken = defaultResolver.resolve(request);
+      if (headerToken != null && !headerToken.isBlank()) {
+        return headerToken;
+      }
+      return resolveCookieToken(request);
+    };
   }
 
   private Converter<Jwt, ? extends AbstractAuthenticationToken> jwtAuthenticationConverter() {
@@ -96,5 +115,21 @@ public class SecurityConfig {
   private SecretKey secretKey(String secret) {
     byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
     return new SecretKeySpec(keyBytes, "HmacSHA256");
+  }
+
+  private String resolveCookieToken(HttpServletRequest request) {
+    Cookie[] cookies = request.getCookies();
+    if (cookies == null || cookies.length == 0) {
+      return null;
+    }
+
+    for (Cookie cookie : cookies) {
+      if (AuthController.AUTH_COOKIE_NAME.equals(cookie.getName())) {
+        String value = cookie.getValue();
+        return value == null || value.isBlank() ? null : value;
+      }
+    }
+
+    return null;
   }
 }

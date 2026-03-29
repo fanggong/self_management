@@ -6,7 +6,8 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 
-from .connectors.garmin import GarminConnectorAdapter
+from .config import settings
+from .connectors.garmin import GarminConnectorAdapter, sanitize_garmin_sync_error
 from .connectors.medical_report import MedicalReportConnectorAdapter, MedicalReportConnectorError, decode_pdf_base64
 
 logger = logging.getLogger(__name__)
@@ -29,6 +30,13 @@ class InternalApiHandler(BaseHTTPRequestHandler):
             "/internal/connectors/medical-report/parse",
         ):
             self._write_json(HTTPStatus.NOT_FOUND, {"success": False, "code": "NOT_FOUND", "message": "Not found."})
+            return
+
+        if self.headers.get("X-Internal-Token", "").strip() != settings.internal_api_token:
+            self._write_json(
+                HTTPStatus.FORBIDDEN,
+                {"success": False, "code": "FORBIDDEN", "message": "Invalid internal API token."},
+            )
             return
 
         try:
@@ -86,27 +94,26 @@ class InternalApiHandler(BaseHTTPRequestHandler):
 
     @staticmethod
     def _map_verification_error(error: Exception) -> tuple[HTTPStatus, str, str]:
-        raw_message = str(error).strip()
-        message = raw_message.lower()
+        error_code, _ = sanitize_garmin_sync_error(error)
 
-        if any(token in message for token in ("credential", "password", "username", "auth", "login", "401", "403", "forbidden", "unauthorized")):
+        if error_code == "CONNECTOR_AUTH_FAILED":
             return (
                 HTTPStatus.BAD_REQUEST,
-                "CONNECTOR_AUTH_FAILED",
+                error_code,
                 "Garmin Connect rejected the provided username or password.",
             )
 
-        if any(token in message for token in ("timeout", "connection", "network", "proxy", "temporarily", "rate")):
+        if error_code == "CONNECTOR_CONNECTION_ERROR":
             return (
                 HTTPStatus.BAD_GATEWAY,
-                "CONNECTOR_CONNECTION_ERROR",
+                error_code,
                 "Unable to reach Garmin Connect right now. Please try again.",
             )
 
         return (
             HTTPStatus.BAD_GATEWAY,
             "CONNECTOR_VERIFICATION_FAILED",
-            raw_message or "Garmin Connect verification failed.",
+            "Garmin Connect verification failed.",
         )
 
     def _verify_garmin(self, payload: Any) -> None:
@@ -131,8 +138,8 @@ class InternalApiHandler(BaseHTTPRequestHandler):
         try:
             GarminConnectorAdapter(username, password).verify_connection()
         except Exception as error:  # pragma: no cover - runtime integration branch
-            logger.warning("Garmin connection verification failed for %s: %s", username, error)
             status, code, message = self._map_verification_error(error)
+            logger.warning("Garmin connection verification failed with code=%s", code)
             self._write_json(status, {"success": False, "code": code, "message": message})
             return
 

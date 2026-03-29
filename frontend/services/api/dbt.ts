@@ -17,7 +17,14 @@ import type {
   RunDbtModelPayload,
   RunDbtModelResult
 } from '~/types/dbt';
-import { requestApi, useHttpApiMode } from '~/services/api/http';
+import {
+  buildApiFetchOptions,
+  handleUnauthorized,
+  isApiResultPayload,
+  requestApi,
+  resolveApiBase,
+  useHttpApiMode
+} from '~/services/api/http';
 import { mockDbtModelApi } from '~/services/mock/dbt';
 
 const buildDbtModelsPath = (payload: ListDbtModelsPayload) => {
@@ -41,37 +48,6 @@ const buildDbtRunHistoryPath = (payload: ListDbtRunHistoryPayload) => {
   }
 
   return `/users/me/dbt-model-runs?${params.toString()}`;
-};
-
-const TOKEN_COOKIE_KEY = 'sm_auth_token';
-
-const isApiResultPayload = <T>(value: unknown): value is ApiResult<T> => {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
-
-  const maybeResult = value as Partial<ApiResult<T>>;
-  return typeof maybeResult.success === 'boolean'
-    && ('message' in maybeResult)
-    && ('code' in maybeResult);
-};
-
-const handleUnauthorized = () => {
-  if (!import.meta.client) {
-    return;
-  }
-
-  const tokenCookie = useCookie<string | null>(TOKEN_COOKIE_KEY, { sameSite: 'lax' });
-  tokenCookie.value = null;
-
-  if (window.location.pathname !== '/login') {
-    window.location.assign('/login');
-  }
-};
-
-const resolveStreamApiBase = () => {
-  const config = useRuntimeConfig();
-  return import.meta.server ? config.apiBaseInternal : config.public.apiBase;
 };
 
 const parseApiErrorResponse = async <T>(response: Response): Promise<ApiResult<T>> => {
@@ -149,17 +125,15 @@ const readNdjsonEvents = async <TEvent extends { type: string }>(
 };
 
 const streamSingleRunHttp = async (
-  token: string | null | undefined,
   payload: RunDbtModelPayload,
   onEvent?: (event: DbtSingleRunStreamEvent) => void
 ): Promise<ApiResult<RunDbtModelResult>> => {
-  const response = await fetch(`${resolveStreamApiBase()}/users/me/dbt-models/run-stream`, {
+  const response = await fetch(`${resolveApiBase()}/users/me/dbt-models/run-stream`, {
     method: 'POST',
-    headers: {
+    ...buildApiFetchOptions({
       'Content-Type': 'application/json',
-      Accept: 'application/x-ndjson, application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
-    },
+      Accept: 'application/x-ndjson, application/json'
+    }),
     body: JSON.stringify(payload)
   });
 
@@ -194,17 +168,15 @@ const streamSingleRunHttp = async (
 };
 
 const streamBatchRunHttp = async (
-  token: string | null | undefined,
   payload: RunDbtModelsPayload,
   onEvent?: (event: DbtBatchRunStreamEvent) => void
 ): Promise<ApiResult<RunDbtModelsResult>> => {
-  const response = await fetch(`${resolveStreamApiBase()}/users/me/dbt-models/run-batch-stream`, {
+  const response = await fetch(`${resolveApiBase()}/users/me/dbt-models/run-batch-stream`, {
     method: 'POST',
-    headers: {
+    ...buildApiFetchOptions({
       'Content-Type': 'application/json',
-      Accept: 'application/x-ndjson, application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
-    },
+      Accept: 'application/x-ndjson, application/json'
+    }),
     body: JSON.stringify(payload)
   });
 
@@ -238,31 +210,26 @@ const streamBatchRunHttp = async (
 };
 
 export const dbtModelApi = {
-  list(token: string | null | undefined, payload: ListDbtModelsPayload): Promise<ApiResult<DbtModelListResponse>> {
+  list(payload: ListDbtModelsPayload): Promise<ApiResult<DbtModelListResponse>> {
     if (useHttpApiMode()) {
-      return requestApi<DbtModelListResponse>(buildDbtModelsPath(payload), {
-        token
-      });
+      return requestApi<DbtModelListResponse>(buildDbtModelsPath(payload));
     }
 
     return mockDbtModelApi.list(payload);
   },
 
-  getDetail(token: string | null | undefined, layer: DbtModelLayer, modelName: string): Promise<ApiResult<DbtModelDetail>> {
+  getDetail(layer: DbtModelLayer, modelName: string): Promise<ApiResult<DbtModelDetail>> {
     if (useHttpApiMode()) {
-      return requestApi<DbtModelDetail>(buildDbtModelDetailPath(layer, modelName), {
-        token
-      });
+      return requestApi<DbtModelDetail>(buildDbtModelDetailPath(layer, modelName));
     }
 
     return mockDbtModelApi.getDetail(layer, modelName);
   },
 
-  run(token: string | null | undefined, payload: RunDbtModelPayload): Promise<ApiResult<RunDbtModelResult>> {
+  run(payload: RunDbtModelPayload): Promise<ApiResult<RunDbtModelResult>> {
     if (useHttpApiMode()) {
       return requestApi<RunDbtModelResult>('/users/me/dbt-models/run', {
         method: 'POST',
-        token,
         body: payload
       });
     }
@@ -271,22 +238,20 @@ export const dbtModelApi = {
   },
 
   streamRun(
-    token: string | null | undefined,
     payload: RunDbtModelPayload,
     onEvent?: (event: DbtSingleRunStreamEvent) => void
   ): Promise<ApiResult<RunDbtModelResult>> {
     if (useHttpApiMode()) {
-      return streamSingleRunHttp(token, payload, onEvent);
+      return streamSingleRunHttp(payload, onEvent);
     }
 
     return mockDbtModelApi.streamRun(payload, onEvent);
   },
 
-  runBatch(token: string | null | undefined, payload: RunDbtModelsPayload): Promise<ApiResult<RunDbtModelsResult>> {
+  runBatch(payload: RunDbtModelsPayload): Promise<ApiResult<RunDbtModelsResult>> {
     if (useHttpApiMode()) {
       return requestApi<RunDbtModelsResult>('/users/me/dbt-models/run-batch', {
         method: 'POST',
-        token,
         body: payload
       });
     }
@@ -295,42 +260,35 @@ export const dbtModelApi = {
   },
 
   streamRunBatch(
-    token: string | null | undefined,
     payload: RunDbtModelsPayload,
     onEvent?: (event: DbtBatchRunStreamEvent) => void
   ): Promise<ApiResult<RunDbtModelsResult>> {
     if (useHttpApiMode()) {
-      return streamBatchRunHttp(token, payload, onEvent);
+      return streamBatchRunHttp(payload, onEvent);
     }
 
     return mockDbtModelApi.streamRunBatch(payload, onEvent);
   },
 
-  listRuns(token: string | null | undefined, payload: ListDbtRunHistoryPayload): Promise<ApiResult<DbtRunHistoryListResponse>> {
+  listRuns(payload: ListDbtRunHistoryPayload): Promise<ApiResult<DbtRunHistoryListResponse>> {
     if (useHttpApiMode()) {
-      return requestApi<DbtRunHistoryListResponse>(buildDbtRunHistoryPath(payload), {
-        token
-      });
+      return requestApi<DbtRunHistoryListResponse>(buildDbtRunHistoryPath(payload));
     }
 
     return mockDbtModelApi.listRuns(payload);
   },
 
-  getRunDetail(token: string | null | undefined, runId: string): Promise<ApiResult<DbtRunHistoryDetail>> {
+  getRunDetail(runId: string): Promise<ApiResult<DbtRunHistoryDetail>> {
     if (useHttpApiMode()) {
-      return requestApi<DbtRunHistoryDetail>(`/users/me/dbt-model-runs/${encodeURIComponent(runId)}`, {
-        token
-      });
+      return requestApi<DbtRunHistoryDetail>(`/users/me/dbt-model-runs/${encodeURIComponent(runId)}`);
     }
 
     return mockDbtModelApi.getRunDetail(runId);
   },
 
-  listRunModels(token: string | null | undefined, runId: string): Promise<ApiResult<DbtRunModelHistoryResponse>> {
+  listRunModels(runId: string): Promise<ApiResult<DbtRunModelHistoryResponse>> {
     if (useHttpApiMode()) {
-      return requestApi<DbtRunModelHistoryResponse>(`/users/me/dbt-model-runs/${encodeURIComponent(runId)}/models`, {
-        token
-      });
+      return requestApi<DbtRunModelHistoryResponse>(`/users/me/dbt-model-runs/${encodeURIComponent(runId)}/models`);
     }
 
     return mockDbtModelApi.listRunModels(runId);

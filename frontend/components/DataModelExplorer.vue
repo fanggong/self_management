@@ -3,7 +3,6 @@ import type { TreeNode } from 'primevue/treenode';
 import { dbtModelApi } from '~/services/api/dbt';
 import { resolveConnectorDisplayIdentity } from '~/services/connectors/display';
 import { getDbtLayerClass, stripAnsi } from '~/services/dbt/presentation';
-import { useAuthStore } from '~/stores/auth';
 import type {
   DbtBatchRunStreamEvent,
   DbtBatchRunSelectionType,
@@ -49,7 +48,6 @@ const props = defineProps<{
   layer: DbtModelLayer;
 }>();
 
-const auth = useAuthStore();
 const { showToast } = useAppToast();
 
 const layerMetaMap: Record<DbtModelLayer, { title: string; emptyText: string }> = {
@@ -380,7 +378,7 @@ const loadModels = async () => {
   loading.value = true;
   loadError.value = '';
 
-  const result = await dbtModelApi.list(auth.token, {
+  const result = await dbtModelApi.list({
     layer: props.layer,
     search: debouncedSearchQuery.value
   });
@@ -402,7 +400,7 @@ const loadModels = async () => {
 
 const loadScopeSourceModels = async () => {
   const requestId = ++activeScopeLoadRequestId;
-  const result = await dbtModelApi.list(auth.token, {
+  const result = await dbtModelApi.list({
     layer: props.layer,
     search: ''
   });
@@ -429,7 +427,7 @@ const openModelDetailDialog = async (model: DbtModelListItem) => {
   }
 
   const requestId = ++activeDetailRequestId;
-  const result = await dbtModelApi.getDetail(auth.token, model.layer, model.name);
+  const result = await dbtModelApi.getDetail(model.layer, model.name);
 
   if (requestId !== activeDetailRequestId) {
     return;
@@ -466,7 +464,7 @@ const startRun = async () => {
   liveRunStdout.value = '';
   liveRunStderr.value = '';
 
-  const result = await dbtModelApi.streamRun(auth.token, {
+  const result = await dbtModelApi.streamRun({
     layer: model.layer,
     modelName: model.name
   }, (event) => {
@@ -537,7 +535,7 @@ const startBatchRun = async () => {
   batchRunItems.value = [];
   batchLiveOutput.value = '';
 
-  const result = await dbtModelApi.streamRunBatch(auth.token, {
+  const result = await dbtModelApi.streamRunBatch({
     layer: props.layer,
     selectionType: selectionType.value,
     modelNames: [...selectedLeafModelNames.value]

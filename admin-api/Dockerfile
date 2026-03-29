@@ -1,9 +1,19 @@
 FROM maven:3.9.9-eclipse-temurin-21 AS build
 WORKDIR /app
 COPY pom.xml .
-RUN mvn -B -ntp -DskipTests dependency:go-offline
+RUN sh -lc 'for attempt in 1 2 3 4 5; do \
+  mvn -B -ntp -Dmaven.test.skip=true dependency:go-offline && exit 0; \
+  echo "dependency:go-offline attempt ${attempt} failed; retrying..."; \
+  sleep 5; \
+done; \
+exit 1'
 COPY src ./src
-RUN mvn -B -ntp -DskipTests package
+RUN sh -lc 'for attempt in 1 2 3 4 5; do \
+  mvn -B -ntp -Dmaven.test.skip=true package && exit 0; \
+  echo "package attempt ${attempt} failed; retrying..."; \
+  sleep 5; \
+done; \
+exit 1'
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app

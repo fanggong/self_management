@@ -8,6 +8,27 @@ from zoneinfo import ZoneInfo
 from .base import BaseConnectorAdapter
 from ..config import settings
 
+AUTH_ERROR_TOKENS = ("credential", "password", "username", "auth", "login", "401", "403", "forbidden", "unauthorized")
+CONNECTION_ERROR_TOKENS = ("timeout", "connection", "network", "proxy", "temporarily", "rate", "unavailable", "bad gateway", "503")
+
+
+def sanitize_garmin_sync_error(error: Exception) -> tuple[str, str]:
+    message = str(error).strip().lower()
+
+    if any(token in message for token in AUTH_ERROR_TOKENS):
+        return (
+            "CONNECTOR_AUTH_FAILED",
+            "Garmin Connect authentication failed. Update the stored username or password.",
+        )
+
+    if any(token in message for token in CONNECTION_ERROR_TOKENS):
+        return (
+            "CONNECTOR_CONNECTION_ERROR",
+            "Unable to reach Garmin Connect right now. Please try again later.",
+        )
+
+    return ("SYNC_EXECUTION_FAILED", "Garmin Connect sync failed.")
+
 
 class GarminConnectorAdapter(BaseConnectorAdapter):
     def __init__(self, username: str, password: str) -> None:

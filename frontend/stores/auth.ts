@@ -2,7 +2,6 @@ import { defineStore } from 'pinia';
 import { authApi } from '~/services/api/auth';
 import type {
   ApiResult,
-  AuthLoginResult,
   AuthUser,
   ChangePasswordPayload,
   LoginPayload,
@@ -10,58 +9,41 @@ import type {
   UpdateProfilePayload
 } from '~/types/auth';
 
-const TOKEN_COOKIE_KEY = 'sm_auth_token';
-
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null as AuthUser | null,
-    token: null as string | null,
     loading: false,
     initialized: false
   }),
 
   getters: {
-    isAuthenticated: (state) => Boolean(state.user && state.token)
+    isAuthenticated: (state) => Boolean(state.user)
   },
 
   actions: {
-    async hydrateFromCookie() {
+    async hydrateSession() {
       if (this.initialized) {
         return;
       }
 
-      const tokenCookie = useCookie<string | null>(TOKEN_COOKIE_KEY, { sameSite: 'lax' });
-      this.token = tokenCookie.value ?? null;
-
-      if (!this.token) {
-        this.user = null;
-        this.initialized = true;
-        return;
-      }
-
-      const result = await authApi.me(this.token);
+      const result = await authApi.me();
       if (result.success && result.data) {
         this.user = result.data;
       } else {
-        tokenCookie.value = null;
-        this.token = null;
         this.user = null;
       }
 
       this.initialized = true;
     },
 
-    async login(payload: LoginPayload): Promise<ApiResult<AuthLoginResult>> {
+    async login(payload: LoginPayload): Promise<ApiResult<AuthUser>> {
       this.loading = true;
 
       try {
         const result = await authApi.login(payload);
 
         if (result.success && result.data) {
-          const tokenCookie = useCookie<string | null>(TOKEN_COOKIE_KEY, { sameSite: 'lax' });
-          tokenCookie.value = result.data.token;
-          this.token = result.data.token;
-          this.user = result.data.user;
+          this.user = result.data;
           this.initialized = true;
         }
 
@@ -82,17 +64,13 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async logout() {
-      await authApi.logout(this.token);
-
-      const tokenCookie = useCookie<string | null>(TOKEN_COOKIE_KEY, { sameSite: 'lax' });
-      tokenCookie.value = null;
-      this.token = null;
+      await authApi.logout();
       this.user = null;
       this.initialized = true;
     },
 
     async updateProfile(payload: UpdateProfilePayload): Promise<ApiResult<AuthUser>> {
-      if (!this.token) {
+      if (!this.user) {
         return {
           success: false,
           message: 'You are not signed in.',
@@ -103,7 +81,7 @@ export const useAuthStore = defineStore('auth', {
       this.loading = true;
 
       try {
-        const result = await authApi.updateProfile(this.token, payload);
+        const result = await authApi.updateProfile(payload);
 
         if (result.success && result.data) {
           this.user = result.data;
@@ -116,7 +94,7 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async changePassword(payload: ChangePasswordPayload): Promise<ApiResult<null>> {
-      if (!this.token) {
+      if (!this.user) {
         return {
           success: false,
           message: 'You are not signed in.',
@@ -127,7 +105,7 @@ export const useAuthStore = defineStore('auth', {
       this.loading = true;
 
       try {
-        return await authApi.changePassword(this.token, payload);
+        return await authApi.changePassword(payload);
       } finally {
         this.loading = false;
       }

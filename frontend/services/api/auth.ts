@@ -1,6 +1,5 @@
 import type {
   ApiResult,
-  AuthLoginResult,
   AuthUser,
   ChangePasswordPayload,
   LoginPayload,
@@ -11,9 +10,9 @@ import { requestApi, useHttpApiMode } from '~/services/api/http';
 import { mockAuthApi } from '~/services/mock/auth';
 
 export const authApi = {
-  login(payload: LoginPayload): Promise<ApiResult<AuthLoginResult>> {
+  login(payload: LoginPayload): Promise<ApiResult<AuthUser>> {
     if (useHttpApiMode()) {
-      return requestApi<AuthLoginResult>('/auth/login', {
+      return requestApi<AuthUser>('/auth/login', {
         method: 'POST',
         body: payload
       });
@@ -33,48 +32,43 @@ export const authApi = {
     return mockAuthApi.register(payload);
   },
 
-  logout(token?: string | null): Promise<ApiResult<null>> {
+  logout(): Promise<ApiResult<null>> {
     if (useHttpApiMode()) {
       return requestApi<null>('/auth/logout', {
-        method: 'POST',
-        token
+        method: 'POST'
       });
     }
 
     return mockAuthApi.logout();
   },
 
-  me(token: string): Promise<ApiResult<AuthUser>> {
+  me(): Promise<ApiResult<AuthUser>> {
     if (useHttpApiMode()) {
-      return requestApi<AuthUser>('/auth/me', {
-        token
-      });
+      return requestApi<AuthUser>('/auth/me');
     }
 
-    return mockAuthApi.me(token);
+    return mockAuthApi.me();
   },
 
-  updateProfile(token: string, payload: UpdateProfilePayload): Promise<ApiResult<AuthUser>> {
+  updateProfile(payload: UpdateProfilePayload): Promise<ApiResult<AuthUser>> {
     if (useHttpApiMode()) {
       return requestApi<AuthUser>('/users/me/profile', {
         method: 'PUT',
-        token,
         body: payload
       });
     }
 
-    return mockAuthApi.updateProfile(token, payload);
+    return mockAuthApi.updateProfile(payload);
   },
 
-  changePassword(token: string, payload: ChangePasswordPayload): Promise<ApiResult<null>> {
+  changePassword(payload: ChangePasswordPayload): Promise<ApiResult<null>> {
     if (useHttpApiMode()) {
       return requestApi<null>('/users/me/password', {
         method: 'POST',
-        token,
         body: payload
       });
     }
 
-    return mockAuthApi.changePassword(token, payload);
+    return mockAuthApi.changePassword(payload);
   }
 };

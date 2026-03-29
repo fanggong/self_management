@@ -33,81 +33,57 @@ const buildActivitiesPath = (payload: ListHealthActivitiesPayload) => {
 };
 
 export const healthApi = {
-  getSummary(token: string | null | undefined): Promise<ApiResult<HealthDashboardSummary | null>> {
+  getSummary(): Promise<ApiResult<HealthDashboardSummary | null>> {
     if (useHttpApiMode()) {
-      return requestApi<HealthDashboardSummary | null>('/users/me/health-dashboard/summary', {
-        token
-      });
+      return requestApi<HealthDashboardSummary | null>('/users/me/health-dashboard/summary');
     }
 
     return mockHealthApi.getSummary();
   },
 
-  getHeartRateCard(
-    token: string | null | undefined,
-    date?: string | null
-  ): Promise<ApiResult<HealthHeartRateCardResponse>> {
+  getHeartRateCard(date?: string | null): Promise<ApiResult<HealthHeartRateCardResponse>> {
     if (useHttpApiMode()) {
-      return requestApi<HealthHeartRateCardResponse>(buildCardPath('heart-rate', date), { token });
+      return requestApi<HealthHeartRateCardResponse>(buildCardPath('heart-rate', date));
     }
 
     return mockHealthApi.getHeartRateCard(date);
   },
 
-  getWeightCard(
-    token: string | null | undefined,
-    date?: string | null
-  ): Promise<ApiResult<HealthWeightCardResponse>> {
+  getWeightCard(date?: string | null): Promise<ApiResult<HealthWeightCardResponse>> {
     if (useHttpApiMode()) {
-      return requestApi<HealthWeightCardResponse>(buildCardPath('weight', date), { token });
+      return requestApi<HealthWeightCardResponse>(buildCardPath('weight', date));
     }
 
     return mockHealthApi.getWeightCard(date);
   },
 
-  getCaloriesCard(
-    token: string | null | undefined,
-    date?: string | null
-  ): Promise<ApiResult<HealthCaloriesCardResponse>> {
+  getCaloriesCard(date?: string | null): Promise<ApiResult<HealthCaloriesCardResponse>> {
     if (useHttpApiMode()) {
-      return requestApi<HealthCaloriesCardResponse>(buildCardPath('calories', date), { token });
+      return requestApi<HealthCaloriesCardResponse>(buildCardPath('calories', date));
     }
 
     return mockHealthApi.getCaloriesCard(date);
   },
 
-  getStressCard(
-    token: string | null | undefined,
-    date?: string | null
-  ): Promise<ApiResult<HealthStressCardResponse>> {
+  getStressCard(date?: string | null): Promise<ApiResult<HealthStressCardResponse>> {
     if (useHttpApiMode()) {
-      return requestApi<HealthStressCardResponse>(buildCardPath('stress', date), { token });
+      return requestApi<HealthStressCardResponse>(buildCardPath('stress', date));
     }
 
     return mockHealthApi.getStressCard(date);
   },
 
-  listActivities(
-    token: string | null | undefined,
-    payload: ListHealthActivitiesPayload
-  ): Promise<ApiResult<HealthActivityListResponse>> {
+  listActivities(payload: ListHealthActivitiesPayload): Promise<ApiResult<HealthActivityListResponse>> {
     if (useHttpApiMode()) {
-      return requestApi<HealthActivityListResponse>(buildActivitiesPath(payload), {
-        token
-      });
+      return requestApi<HealthActivityListResponse>(buildActivitiesPath(payload));
     }
 
     return mockHealthApi.listActivities(payload);
   },
 
-  getActivityDetail(
-    token: string | null | undefined,
-    activityRecordId: string
-  ): Promise<ApiResult<HealthActivityDetail>> {
+  getActivityDetail(activityRecordId: string): Promise<ApiResult<HealthActivityDetail>> {
     if (useHttpApiMode()) {
-      return requestApi<HealthActivityDetail>(`/users/me/health-dashboard/activities/${encodeURIComponent(activityRecordId)}`, {
-        token
-      });
+      return requestApi<HealthActivityDetail>(`/users/me/health-dashboard/activities/${encodeURIComponent(activityRecordId)}`);
     }
 
     return mockHealthApi.getActivityDetail(activityRecordId);

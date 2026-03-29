@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 import types
 import unittest
@@ -8,6 +9,9 @@ from pathlib import Path
 from unittest.mock import ANY, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+os.environ.setdefault("CONNECTOR_SECRET_KEY", "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=")
+os.environ.setdefault("INTERNAL_API_TOKEN", "unit-test-internal-token-123456")
 
 if "psycopg" not in sys.modules:
     psycopg_module = types.ModuleType("psycopg")
@@ -123,9 +127,9 @@ class ExecuteSyncTaskTest(unittest.TestCase):
             patch("sync_worker.services.sync_executor.db.set_connector_run_timestamps") as set_connector_run_timestamps,
         ):
             adapter = adapter_class.return_value
-            adapter.verify_connection.side_effect = RuntimeError("connector unavailable")
+            adapter.verify_connection.side_effect = RuntimeError("401 unauthorized for demo@example.com")
 
-            with self.assertRaisesRegex(RuntimeError, "connector unavailable"):
+            with self.assertRaisesRegex(RuntimeError, "Garmin Connect authentication failed. Update the stored username or password."):
                 sync_executor.execute_sync_task("task-1")
 
         self.assertEqual(len(update_task_status.call_args_list), 2)
@@ -137,12 +141,33 @@ class ExecuteSyncTaskTest(unittest.TestCase):
         self.assertEqual(failed_call.kwargs["updated_count"], 0)
         self.assertEqual(failed_call.kwargs["unchanged_count"], 0)
         self.assertEqual(failed_call.kwargs["deduped_count"], 0)
-        self.assertEqual(failed_call.kwargs["error_code"], "SYNC_EXECUTION_FAILED")
-        self.assertEqual(failed_call.kwargs["error_message"], "connector unavailable")
+        self.assertEqual(failed_call.kwargs["error_code"], "CONNECTOR_AUTH_FAILED")
+        self.assertEqual(
+            failed_call.kwargs["error_message"],
+            "Garmin Connect authentication failed. Update the stored username or password.",
+        )
+        self.assertNotIn("demo@example.com", failed_call.kwargs["error_message"])
         self.assertIsNotNone(failed_call.kwargs["finished_at"])
 
         snapshot_task.assert_not_called()
         set_connector_run_timestamps.assert_not_called()
+
+    def test_execute_sync_task_maps_unknown_failures_to_generic_message(self) -> None:
+        with (
+            patch("sync_worker.services.sync_executor.db.load_task_context", return_value=self._task_context()),
+            patch("sync_worker.services.sync_executor.decrypt_config", return_value={"username": "demo", "password": "secret123"}),
+            patch("sync_worker.services.sync_executor.GarminConnectorAdapter") as adapter_class,
+            patch("sync_worker.services.sync_executor.db.update_task_status") as update_task_status,
+        ):
+            adapter = adapter_class.return_value
+            adapter.verify_connection.side_effect = RuntimeError("unexpected parser state with payload id 123")
+
+            with self.assertRaisesRegex(RuntimeError, "Garmin Connect sync failed."):
+                sync_executor.execute_sync_task("task-1")
+
+        failed_call = update_task_status.call_args_list[1]
+        self.assertEqual(failed_call.kwargs["error_code"], "SYNC_EXECUTION_FAILED")
+        self.assertEqual(failed_call.kwargs["error_message"], "Garmin Connect sync failed.")
 
 
 if __name__ == "__main__":
